@@ -106,5 +106,5 @@ test('Home shows loading, recoverable network error and an empty real locality',
   await page.getByRole('button', { name: 'Reintentar partidos' }).click();
   await expect(page.getByText('Cancha de demostración 1', { exact: true })).toBeVisible();
   await chooseLocation(page, 'Localidad seleccionada', 'Abasto');
-  await expect(page.getByText('Todavía no hay partidos en esta localidad. Probá con otra zona.')).toBeVisible();
+  await expect(page.getByText('No hay partidos disponibles en esta zona.')).toBeVisible();
 });

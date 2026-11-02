@@ -6,7 +6,7 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 function mountCarousel() {
   render(<BenefitsCarousel />);
-  const track = screen.getByRole("group", { name: "Beneficios de Hacha y Tiza" });
+  const track = screen.getByRole("group", { name: "Beneficios de Falta Gente" });
   Object.defineProperty(track, "setPointerCapture", { value: vi.fn(), configurable: true });
   return { track };
 }

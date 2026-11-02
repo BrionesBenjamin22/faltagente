@@ -37,11 +37,25 @@ export class CsrfResponse {
 export class MessageResponse {
   @ApiProperty() message: string;
 }
+export class SportIdentityResponse {
+  @ApiProperty({ format: 'uuid' }) id: string;
+  @ApiProperty() name: string;
+  @ApiProperty() slug: string;
+}
+export class SportResponse extends SportIdentityResponse {
+  @ApiProperty({ type: [SportIdentityResponse] })
+  formats: SportIdentityResponse[];
+}
+export class SportsResponse {
+  @ApiProperty({ type: [SportResponse] }) items: SportResponse[];
+}
 export class MatchResponse {
   @ApiProperty({ format: 'uuid' }) id: string;
   @ApiProperty({ type: PublicLocationResponse })
   location: PublicLocationResponse;
-  @ApiProperty({ enum: ['FIVE', 'SIX', 'SEVEN'] }) footballType: string;
+  @ApiProperty({ type: SportIdentityResponse }) sport: SportIdentityResponse;
+  @ApiProperty({ type: SportIdentityResponse, nullable: true })
+  sportFormat: SportIdentityResponse | null;
   @ApiProperty({ format: 'date-time' }) startsAt: string;
   @ApiProperty() venueName: string;
   @ApiProperty() address: string;

@@ -1,0 +1,16 @@
+.controls { display:grid; gap:6px; margin:12px 0; min-width:0; }
+.heading { margin-bottom:8px; }
+.group { min-width:0; }
+.label { display:block; font-weight:600; line-height:1.3; margin-bottom:4px; }
+.chips { display:flex; gap:8px; overflow-x:auto; overscroll-behavior-x:contain; padding:4px 4px 5px; margin:0 -4px; max-width:calc(100% + 8px); scrollbar-width:thin; }
+.chip { flex:0 0 auto; min-height:44px; padding:8px 14px; border:1px solid var(--control-border); border-radius:999px; color:var(--ink); background:var(--solid); cursor:pointer; white-space:nowrap; }
+.chip[aria-pressed="true"] { border:2px solid var(--club); padding:7px 13px; background:var(--notice); font-weight:700; }
+.chip:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+.locality { max-width:520px; }
+.help { margin:4px 0 0; font-size:.875rem; color:var(--muted); }
+.dateDetails { display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap; }
+.dateInput { flex:1; min-width:150px; max-width:240px; }
+.dateInput label { display:block; font-size:.875rem; line-height:1.3; margin-bottom:4px; }
+.clear { flex:0 0 auto; font-size:.875rem; padding:8px 12px; }
+.listingTitle { font-size:1.2rem; margin:8px 0 12px; }
+@media(min-width:700px) { .controls { gap:10px; } }

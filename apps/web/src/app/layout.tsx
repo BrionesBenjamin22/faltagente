@@ -4,7 +4,7 @@ import { Providers } from "@/features/auth/session";
 import { Shell } from "@/components/shell";
 
 export const metadata: Metadata = {
-  title: "Hacha y Tiza",
+  title: "Falta Gente",
   description: "Encontrá jugadores y completá tu partido de fútbol.",
 };
 

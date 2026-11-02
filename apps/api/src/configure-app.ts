@@ -68,8 +68,8 @@ export function configureApplication(app: INestApplication): void {
   });
 
   const openApiConfig = new DocumentBuilder()
-    .setTitle('Hacha y Tiza API')
-    .setDescription('Contrato HTTP de la API de Hacha y Tiza.')
+    .setTitle('Falta Gente API')
+    .setDescription('Contrato HTTP de la API de Falta Gente.')
     .setVersion('1.0')
     .build();
   const document = SwaggerModule.createDocument(app, openApiConfig);

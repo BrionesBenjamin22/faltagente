@@ -1,4 +1,6 @@
-# Hacha y Tiza (HyT)
+# Falta Gente
+
+Nombre y convenciones vigentes: [identidad de Falta Gente](docs/agent/NAMING.md). Los identificadores técnicos heredados que mantienen sesiones o datos se conservan por compatibilidad.
 
 Para ejecutar la aplicación localmente, seguir el [instructivo de desarrollo](#levantar-el-proyecto-en-desarrollo).
 
@@ -6,7 +8,7 @@ Para ejecutar la aplicación localmente, seguir el [instructivo de desarrollo](#
 
 Una idea simple: me faltan 4 para un fútbol 6 en Megaestadio, 1 y 63. El que quiera jugar puede reservar su lugar, y el de su compañero si quiere llevar a alguien.
 
-HyT nace para resolver una necesidad concreta: **reclutar jugadores para completar los lugares necesarios para una cancha, sin que tengan que ser conocidos entre sí**.
+Falta Gente nace para resolver una necesidad concreta: **reclutar jugadores para completar los lugares necesarios para una cancha, sin que tengan que ser conocidos entre sí**.
 
 El problema lo tiene cualquiera que organice partidos de fútbol y dependa siempre del mismo grupo de gente. Hay días en los que conseguir jugadores se vuelve más difícil por horarios, compromisos o incluso por partidos importantes. Por ejemplo, un martes a las 22:00 puede jugar Boca por Copa y varios de los que normalmente juegan pueden bajarse, mientras que otras personas que sí están disponibles podrían ocupar esos lugares.
 
@@ -18,7 +20,7 @@ La idea es simplemente conectar esas dos situaciones.
 
 Cualquier persona puede reservar.
 
-La primera versión de HyT se basa en algo muy simple: la buena fe de la gente.
+La primera versión de Falta Gente se basa en algo muy simple: la buena fe de la gente.
 
 > **Cualquier persona puede reservar, me debo a la buena fe de la gente y el respeto por el fútbol ajeno. En la tierra de Maradona no bardeen con el fútbol ajeno.**
 
@@ -32,12 +34,12 @@ La aplicación no busca complicar algo que debería ser sencillo. El objetivo es
 
 ## Qué busca resolver
 
-HyT apunta únicamente a este flujo:
+Falta Gente apunta únicamente a este flujo:
 
 1. Alguien reserva una cancha.
 2. Le faltan jugadores.
 3. Publica cuántos lugares tiene disponibles.
-4. Otra persona entra a Hacha y Tiza.
+4. Otra persona entra a Falta Gente.
 5. Encuentra el partido.
 6. Reserva uno o más lugares.
 7. Va a jugar.
@@ -48,7 +50,7 @@ Al menos al principio.
 
 ## Idea a futuro
 
-A futuro estaría buenísimo que las propias canchas puedan utilizar Hacha y Tiza para ofrecer sus servicios, publicar disponibilidad o integrarse al flujo de reservas.
+A futuro estaría buenísimo que las propias canchas puedan utilizar Falta Gente para ofrecer sus servicios, publicar disponibilidad o integrarse al flujo de reservas.
 
 Pero eso viene después.
 
@@ -63,6 +65,10 @@ Soñar es gratis.
 La aplicación implementa registro y login local, sesión segura, verificación de email, recuperación de contraseña y descubrimiento de partidos por localidad. La selección temporal del Home es independiente de la localidad principal del perfil. Google y las reservas quedan para etapas posteriores.
 
 La segunda iteración agrega edición del perfil con historial privado, cambio de contraseña con cierre de todas las sesiones, localidades buscables, navegación de cuenta y temas claro, oscuro y sistema.
+
+MVP-01 generaliza el dominio de partidos a deporte y formato opcional. El catálogo persistido incluye Fútbol, Pádel, Básquet y Vóley; el listado conserva sus filtros por localidad y muestra los nombres recibidos de la API. No agrega selección de deporte, publicación ni reservas. Consultar [el contrato y la migración multideporte](apps/api/MULTISPORT.md).
+
+MVP-02 extiende ese listado con filtros combinables de deporte, formato opcional y fecha local de Buenos Aires. Los selectores consumen el catálogo real, conservan la localidad temporal y la carga progresiva de nueve resultados. Los filtros se reflejan en la URL y admiten navegación atrás/adelante. Detalle, publicación y reservas continúan fuera de esta entrega.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).
@@ -153,7 +159,7 @@ pnpm --filter api db:migrate
 
 Docker levanta PostgreSQL con PostGIS y conserva los datos en el volumen `hyt-postgres`. `db:migrate` aplica las migraciones existentes, incluido el historial del perfil.
 
-Cargar el catálogo de localidades de La Plata:
+Cargar los catálogos de deportes, formatos y localidades de La Plata:
 
 ```powershell
 pnpm --filter api exec node --env-file=.env --import tsx prisma/seed.ts
