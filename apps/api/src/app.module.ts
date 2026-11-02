@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { LocationsModule } from './locations/locations.module.js';
 import { MatchesModule } from './matches/matches.module.js';
+import { SportsModule } from './sports/sports.module.js';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -15,6 +16,7 @@ import { APP_GUARD } from '@nestjs/core';
     AuthModule,
     LocationsModule,
     MatchesModule,
+    SportsModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 100 }]),
     ConfigModule.forRoot({
       cache: true,

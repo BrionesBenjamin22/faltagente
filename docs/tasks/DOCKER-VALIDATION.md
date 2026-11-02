@@ -1,5 +1,7 @@
 # Docker architecture: validación independiente
 
+Registro histórico: los nombres de imágenes, proyectos y contenedores de esta evidencia corresponden a la ejecución original. Para operaciones actuales de Falta Gente usar las [convenciones vigentes](../agent/NAMING.md) y la [guía Docker](../DOCKER.md).
+
 Fecha: 2026-10-07, America/Buenos_Aires. Resultado: **PASS**. No se realizó commit.
 
 ## Entorno y aislamiento

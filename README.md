@@ -1,10 +1,12 @@
-# Falta Gnt
+# Falta Gente
+
+Nombre y convenciones vigentes: [identidad de Falta Gente](docs/agent/NAMING.md). Los identificadores técnicos heredados que mantienen sesiones o datos se conservan por compatibilidad.
 
 Para ejecutar la aplicación localmente, seguir el [instructivo de desarrollo](#levantar-el-proyecto-en-desarrollo).
 
 ## Siempre falta gente para jugar
 
-Falta Gnt nace para resolver una necesidad concreta: **conectar partidos deportivos que necesitan participantes con personas que tienen ganas de jugar**.
+Falta Gente nace para resolver una necesidad concreta: **conectar partidos deportivos que necesitan participantes con personas que tienen ganas de jugar**.
 
 La idea es simple:
 
@@ -23,7 +25,7 @@ El deporte pertenece al partido, no al usuario. Una misma persona puede organiza
 
 Cualquier persona registrada puede reservar un lugar disponible.
 
-La primera versión de Falta Gnt se basa en algo muy simple: la buena fe de la comunidad.
+La primera versión de Falta Gente se basa en algo muy simple: la buena fe de la comunidad.
 
 > **Si reservás, comprometete a ir. Si no podés, avisá con tiempo. El partido ajeno se respeta.**
 
@@ -39,13 +41,13 @@ A futuro, la plataforma podrá registrar cancelaciones tardías y utilizar esa i
 
 ## Qué busca resolver
 
-Falta Gnt apunta a este flujo principal:
+Falta Gente apunta a este flujo principal:
 
 1. Alguien organiza un partido.
 2. Elige el deporte.
 3. Define lugar, fecha, horario, precio y lugares disponibles.
 4. Publica el partido.
-5. Otra persona entra a Falta Gnt.
+5. Otra persona entra a Falta Gente.
 6. Busca partidos por localidad, deporte y fecha.
 7. Encuentra uno que le interesa.
 8. Reserva uno o más lugares.
@@ -61,13 +63,12 @@ El deporte cambia el contexto del partido, pero no el flujo principal.
 
 Cada partido está asociado a un deporte.
 
-Ejemplos iniciales:
+Catálogo inicial implementado:
 
 - Fútbol
 - Pádel
 - Básquet
 - Vóley
-- Tenis
 
 Un deporte puede tener formatos o modalidades propias cuando sea necesario.
 
@@ -84,8 +85,7 @@ Básquet
 └── 5x5
 
 Pádel
-├── Dobles
-└── Individual
+└── Dobles
 ```
 
 El objetivo no es implementar reglas particulares para todos los deportes desde el comienzo, sino mantener un dominio común para:
@@ -103,7 +103,7 @@ Las reglas específicas de cada deporte se incorporarán únicamente cuando exis
 
 ## Funciones principales del MVP
 
-El alcance funcional contempla:
+El alcance objetivo contempla las siguientes funciones. El apartado «Estado actual del desarrollo» distingue las implementadas de las pendientes:
 
 - registro e inicio de sesión;
 - verificación y recuperación de cuenta;
@@ -156,23 +156,15 @@ Primero hay que resolver bien algo mucho más simple:
 
 ## Estado actual del desarrollo
 
-La vertical slice actual implementa registro y login local, sesión segura, verificación de email, recuperación de contraseña y descubrimiento de partidos por localidad.
-
-La selección temporal del Home es independiente de la localidad principal del perfil.
+La aplicación implementa registro y login local, sesión segura, verificación de email, recuperación de contraseña y descubrimiento de partidos por localidad. La selección temporal del Home es independiente de la localidad principal del perfil. Google y las reservas quedan para etapas posteriores.
 
 La segunda iteración agrega edición del perfil con historial privado, cambio de contraseña con cierre de todas las sesiones, localidades buscables, navegación de cuenta y temas claro, oscuro y sistema.
 
-La evolución multideporte modifica el modelo objetivo del producto:
+MVP-01 generaliza el dominio de partidos a deporte y formato opcional. El catálogo persistido incluye Fútbol, Pádel, Básquet y Vóley; el listado conserva sus filtros por localidad y muestra los nombres recibidos de la API. No agrega selección de deporte, publicación ni reservas. Consultar [el contrato y la migración multideporte](apps/api/MULTISPORT.md).
 
-```text
-Match
-→ Sport
-→ SportFormat?
-```
+MVP-02 extiende ese listado con filtros combinables de deporte, formato opcional y fecha local de Buenos Aires. Los selectores consumen el catálogo real, conservan la localidad temporal y la carga progresiva de nueve resultados. Los filtros se reflejan en la URL y admiten navegación atrás/adelante. Detalle, publicación y reservas continúan fuera de esta entrega.
 
-La asociación de partidos a deportes, los filtros por deporte y el flujo de publicación forman parte de las próximas iteraciones del producto. El núcleo existente de autenticación, ubicación y descubrimiento se conserva.
-
-Google OAuth y las reservas continúan fuera de la vertical slice actualmente implementada.
+Google OAuth también continúa pendiente. Los flujos de publicación y reserva descritos en la visión del producto representan el objetivo del MVP.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).
@@ -228,7 +220,7 @@ RESEND_API_KEY=
 EMAIL_FROM=
 ```
 
-> **Nota:** los identificadores internos `hyt` se mantienen mientras sigan siendo los utilizados por la configuración actual del proyecto. El cambio de nombre comercial a Falta Gnt no requiere renombrar inmediatamente usuarios, bases o volúmenes internos.
+> **Nota:** los identificadores internos `hyt` se mantienen mientras sigan siendo los utilizados por la configuración actual del proyecto. El cambio de nombre comercial a Falta Gente no requiere renombrar inmediatamente usuarios, bases o volúmenes internos.
 
 Los valores entre `<...>` son marcadores: reemplazarlos. `DATABASE_URL` debe coincidir con el usuario, contraseña, puerto y base configurados para Docker. Si la contraseña contiene caracteres especiales, codificarla para su uso dentro de una URL.
 
@@ -265,7 +257,7 @@ pnpm --filter api db:migrate
 
 Docker levanta PostgreSQL con PostGIS y conserva los datos en el volumen `hyt-postgres`. `db:migrate` aplica las migraciones existentes, incluido el historial del perfil.
 
-Cargar el catálogo de localidades de La Plata:
+Cargar los catálogos de deportes, formatos y localidades de La Plata:
 
 ```powershell
 pnpm --filter api exec node --env-file=.env --import tsx prisma/seed.ts
@@ -278,8 +270,6 @@ pnpm --filter api exec node --env-file=.env --import tsx prisma/seed.ts --develo
 ```
 
 Los seeds son idempotentes. Estos comandos cargan explícitamente `apps/api/.env` porque el seed no inicia Nest ni carga sus variables automáticamente. Los datos ficticios son exclusivos de desarrollo; no ejecutar `--development` contra producción.
-
-Cuando el catálogo multideporte esté implementado, los seeds deberán incorporar también los deportes y formatos activos definidos para el MVP.
 
 ### 4. Iniciar API y frontend
 
@@ -313,18 +303,11 @@ Usar **`localhost`** para acceder desde el navegador: las cookies de sesión man
 3. Buscar **Tolosa** y seleccionarla como localidad principal.
 4. Registrarse: se inicia sesión y aparece el Home con los partidos de Tolosa.
 5. Cambiar temporalmente el selector a **City Bell** para comprobar que cambia el listado sin modificar el perfil.
-6. Desde **Cuenta**, acceder al perfil, seguridad, apariencia o cerrar sesión.
-7. Al ingresar nuevamente, el filtro inicial vuelve a la localidad principal.
-
-Cuando la iteración multideporte esté implementada, este flujo deberá ampliarse para validar:
-
-```text
-localidad
-→ deporte
-→ listado filtrado
-→ publicación de partido
-→ reserva
-```
+6. Seleccionar un deporte y, cuando corresponda, un formato. Comprobar que el listado muestra sólo partidos compatibles.
+7. Combinar con **Hoy**, **Mañana** o una fecha elegida. La fecha se interpreta en la zona de Buenos Aires y sólo incluye partidos futuros.
+8. Usar **Limpiar filtros**, la navegación atrás/adelante y **Cargar más partidos** cuando haya más de nueve resultados.
+9. Desde **Cuenta**, acceder al perfil, seguridad, apariencia o cerrar sesión.
+10. Al ingresar nuevamente, el filtro inicial vuelve a la localidad principal.
 
 ### Detener y volver a iniciar
 

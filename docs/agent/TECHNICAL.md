@@ -1,4 +1,6 @@
-# TECHNICAL.md — Hacha y Tiza
+# TECHNICAL.md — Falta Gente
+
+La identidad pública y los identificadores técnicos nuevos siguen [NAMING.md](NAMING.md). Las excepciones persistidas requieren migración explícita.
 
 ## 1. Objetivo
 
@@ -307,7 +309,7 @@ debe respetar la fecha/hora local relevante del partido.
 
 No implementar la regla diaria comparando ingenuamente fechas UTC.
 
-La timezone inicial del producto debe definirse explícitamente para el mercado de La Plata.
+La timezone inicial del producto es `America/Argentina/Buenos_Aires`. El filtro `date=YYYY-MM-DD` representa el intervalo desde medianoche local inclusive hasta la siguiente medianoche exclusiva, manteniendo la condición de inicio futuro.
 
 ---
 
@@ -381,13 +383,19 @@ La API debe soportar paginación estable.
 
 No devolver datasets completos sin límite.
 
-Los filtros principales son:
+El listado implementado en MVP-02 acepta:
 
 ```text
-location
-date
-footballType
+locationId
+sportId?
+sportFormatId?
+date?
+page
 ```
+
+La localidad sigue siendo obligatoria; deporte y fecha son opcionales. Un formato requiere deporte y pertenencia validada en backend. Los UUID desconocidos de deporte no se confunden con errores de formato: pueden devolver un listado vacío. El catálogo público `GET /api/v1/sports` devuelve únicamente deportes y formatos activos; consultar por ID no exige estado activo del catálogo. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`. Una FK compuesta garantiza la pertenencia del formato persistido. Ver `apps/api/MULTISPORT.md`.
+
+La carga progresiva conserva páginas de nueve, `total` y `hasMore`. La caché TanStack Query distingue localidad, deporte, formato y fecha; cambiar filtros inicia la página uno. La selección temporal no modifica el perfil. Los filtros de descubrimiento se representan en query params sin cambiar las rutas existentes.
 
 El orden por defecto debe ser fecha/hora ascendente.
 

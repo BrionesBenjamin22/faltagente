@@ -56,7 +56,7 @@ describe('base API configuration (e2e)', () => {
       .get('/api/v1/docs')
       .expect(200);
 
-    expect(jsonResponse.body.info.title).toBe('Hacha y Tiza API');
+    expect(jsonResponse.body.info.title).toBe('Falta Gente API');
     expect(jsonResponse.body.paths).toHaveProperty('/health');
     expect(jsonResponse.headers['x-request-id']).toMatch(/^req_/);
     expect(uiResponse.headers['x-request-id']).toMatch(/^req_/);

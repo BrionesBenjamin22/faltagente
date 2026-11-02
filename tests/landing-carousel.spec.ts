@@ -85,8 +85,8 @@ test('discovery renders a loading skeleton and a real empty locality with an act
   expect(response.ok()).toBe(true);
   const payload = await response.json() as { total: number };
   expect(payload.total, 'Development seed Abasto has no matches').toBe(0);
-  await expect(page.getByRole('heading', { name: 'Busquemos en otra zona', exact: true })).toBeVisible();
-  await expect(page.getByText('Todavía no hay partidos en esta localidad. Probá con otra zona.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No hay partidos disponibles en esta zona.', exact: true })).toBeVisible();
+  await expect(page.getByText('No hay partidos disponibles en esta zona.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Cambiar localidad', exact: true }).click();
   await expect(page.getByPlaceholder('Buscar localidad…')).toBeVisible();
   await expect(page.getByPlaceholder('Buscar localidad…')).toBeFocused();
@@ -97,7 +97,7 @@ test('discovery renders a loading skeleton and a real empty locality with an act
 test('manual carousel exposes three benefits and accessible indicators with keyboard navigation', async ({ page }) => {
   await page.goto('/');
   const carousel = page.getByRole('region', { name: 'Más fácil juntarse a jugar', exact: true });
-  const track = page.getByLabel('Beneficios de Hacha y Tiza', { exact: true });
+  const track = page.getByLabel('Beneficios de Falta Gente', { exact: true });
   await expect(carousel.getByRole('button', { name: 'Anterior', exact: true })).toHaveCount(0);
   await expect(carousel.getByRole('button', { name: 'Siguiente', exact: true })).toHaveCount(0);
   async function current(index: number) {
@@ -149,7 +149,7 @@ test('manual carousel exposes three benefits and accessible indicators with keyb
 test('a real mobile swipe updates the selected slide without rotating automatically', async ({ page, context }) => {
   await page.goto('/');
   const carousel = page.getByRole('region', { name: 'Más fácil juntarse a jugar', exact: true });
-  const track = page.getByLabel('Beneficios de Hacha y Tiza', { exact: true });
+  const track = page.getByLabel('Beneficios de Falta Gente', { exact: true });
   await track.scrollIntoViewIfNeeded();
   await expect.poll(() => track.evaluate(element => {
     const rect = element.getBoundingClientRect();

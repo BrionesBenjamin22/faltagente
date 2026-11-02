@@ -19,7 +19,7 @@ export class EmailService {
         to: [to],
         subject:
           kind === 'VERIFY'
-            ? 'Verificá tu email en Hacha y Tiza'
+            ? 'Verificá tu email en Falta Gente'
             : 'Restablecé tu contraseña',
         text: `Para continuar, abrí este enlace: ${link}. Si no solicitaste esta acción, ignorá este mensaje.`,
       }),

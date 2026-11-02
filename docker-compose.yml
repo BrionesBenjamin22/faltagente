@@ -6,7 +6,7 @@
 
 services:
   web:
-    image: hyt-web:local
+    image: falta-gente-web:local
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -40,7 +40,7 @@ services:
     logging: *logging
 
   api:
-    image: hyt-api:local
+    image: falta-gente-api:local
     build:
       context: .
       dockerfile: apps/api/Dockerfile

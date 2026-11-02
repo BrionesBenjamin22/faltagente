@@ -20,6 +20,9 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
   let db: PrismaService;
   let tolosa: string;
   let cityBell: string;
+  let footballSportId: string;
+  let fiveFormatId: string;
+  let sevenFormatId: string;
   const userIds: string[] = [];
   const locationIds: string[] = [];
   const emails: { to: string; kind: string; token: string }[] = [];
@@ -67,6 +70,10 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
     configureApplication(app);
     await app.init();
     db = app.get(PrismaService);
+    const football = await db.sport.findUniqueOrThrow({ where: { slug: 'futbol' }, include: { formats: true } });
+    footballSportId = football.id;
+    fiveFormatId = football.formats.find(format => format.slug === 'futbol-5')!.id;
+    sevenFormatId = football.formats.find(format => format.slug === 'futbol-7')!.id;
     for (const name of ['Tolosa test', 'City Bell test']) {
       const location = await db.location.create({ data: { name, type: 'LOCALIDAD' } });
       locationIds.push(location.id);
@@ -127,7 +134,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
       [tolosa, 'OPEN', 100000, 'Tolosa future'], [cityBell, 'CLOSED', 200000, 'City Bell full'],
       [tolosa, 'CANCELLED', 200000, 'Cancelled'], [tolosa, 'OPEN', -100000, 'Past'],
     ] as const) {
-      await db.match.create({ data: { organizerId: id, locationId, status, startsAt: new Date(Date.now() + delay), venueName, address: 'Test address', footballType: 'FIVE', pricePerPerson: 100, availablePlaces: status === 'CLOSED' ? 0 : 2 } });
+      await db.match.create({ data: { organizerId: id, locationId, status, startsAt: new Date(Date.now() + delay), venueName, address: 'Test address', sportId: footballSportId, sportFormatId: fiveFormatId, pricePerPerson: 100, availablePlaces: status === 'CLOSED' ? 0 : 2 } });
     }
     const publicBrowser = new Browser();
     const initial = await publicBrowser.send('get', `/matches?locationId=${tolosa}`);
@@ -214,7 +221,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
     locationIds.push(location.id);
     const start = Date.now() + 86400000;
     for (let index = 9; index >= 0; index--) {
-      await db.match.create({ data: { organizerId: id, locationId: location.id, startsAt: new Date(start + index * 60000), venueName: `Page match ${index}`, address: 'Test address', footballType: 'SEVEN', pricePerPerson: 100, availablePlaces: 1 } });
+      await db.match.create({ data: { organizerId: id, locationId: location.id, startsAt: new Date(start + index * 60000), venueName: `Page match ${index}`, address: 'Test address', sportId: footballSportId, sportFormatId: sevenFormatId, pricePerPerson: 100, availablePlaces: 1 } });
     }
     const first = await browser.send('get', `/matches?locationId=${location.id}&page=1`);
     const second = await browser.send('get', `/matches?locationId=${location.id}&page=2`);
@@ -268,7 +275,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
   it('enforces nonnegative match values and one active participation per local day in PostgreSQL', async () => {
     const user = await db.user.create({ data: { name: 'Constraint Tester', email: `constraints-${randomUUID()}@example.test` } });
     userIds.push(user.id);
-    const data = { organizerId: user.id, locationId: tolosa, startsAt: new Date(Date.now() + 86400000), venueName: 'Constraints match', address: 'Test address', footballType: 'FIVE' as const, pricePerPerson: 0, availablePlaces: 0 };
+    const data = { organizerId: user.id, locationId: tolosa, startsAt: new Date(Date.now() + 86400000), venueName: 'Constraints match', address: 'Test address', sportId: footballSportId, sportFormatId: fiveFormatId, pricePerPerson: 0, availablePlaces: 0 };
     await expect(db.match.create({ data: { ...data, pricePerPerson: -1 } })).rejects.toThrow();
     await expect(db.match.create({ data: { ...data, availablePlaces: -1 } })).rejects.toThrow();
     const first = await db.match.create({ data });

@@ -1,4 +1,6 @@
-# Docker de Hacha y Tiza
+# Docker de Falta Gente
+
+Las imágenes actuales son `falta-gente-web:local` y `falta-gente-api:local`. El volumen y los nombres de base existentes se mantienen por compatibilidad; consultar [convenciones de identidad](agent/NAMING.md). No cambiar el nombre del proyecto Compose de una instalación existente: forma parte del nombre efectivo de sus volúmenes.
 
 Tres servicios: Next.js (`web`), NestJS (`api`) y PostgreSQL/PostGIS (`db`). Ejecutar los comandos desde la raíz con Docker Compose moderno y el motor Linux iniciado. No hay proxy ni terminación TLS en este stack.
 

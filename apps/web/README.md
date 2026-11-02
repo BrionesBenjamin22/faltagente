@@ -1,6 +1,8 @@
-# HyT Web
+# Falta Gente Web
 
-Aplicación web de Hacha y Tiza, creada con Next.js, React y TypeScript.
+Aplicación web de Falta Gente, creada con Next.js, React y TypeScript.
+
+La interfaz, metadatos y nombres accesibles usan Falta Gente. Las claves existentes de apariencia se conservan para mantener preferencias; ver [convenciones de identidad](../../docs/agent/NAMING.md).
 
 ## Estructura actual
 

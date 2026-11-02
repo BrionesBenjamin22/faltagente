@@ -16,7 +16,7 @@ COPY apps/api/package.json ./apps/api/package.json
 COPY apps/web/package.json ./apps/web/package.json
 
 FROM base AS dependencies
-RUN --mount=type=cache,id=hyt-api-pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=falta-gente-api-pnpm,target=/pnpm/store \
     pnpm --filter api install --frozen-lockfile --ignore-scripts --store-dir /pnpm/store
 COPY apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
 # Generation needs no database connection and consumes no build secrets.
@@ -31,7 +31,7 @@ RUN pnpm --filter api build \
     && find apps/api/dist -type f \( -name '*.map' -o -name '*.d.ts' \) -delete
 
 FROM base AS production-dependencies
-RUN --mount=type=cache,id=hyt-api-pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=falta-gente-api-pnpm,target=/pnpm/store \
     pnpm --filter api install --prod --frozen-lockfile --ignore-scripts --store-dir /pnpm/store
 COPY apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
 # Prisma's optional compiler peer is needed only while building/generating;

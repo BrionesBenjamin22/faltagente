@@ -71,7 +71,9 @@ test('profile sends real differences and password change revokes every session a
   await expect(page.getByText('Perfil actualizado correctamente.', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Account Updated');
   await chooseLocation(page, 'Localidad principal', 'City Bell');
+  const locationSaved = page.waitForResponse(response => response.request().method() === 'PATCH' && new URL(response.url()).pathname === '/api/v1/users/me');
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+  expect((await locationSaved).status()).toBe(200);
   await expect.poll(() => patches.length).toBe(2);
   expect(Object.keys(patches[1])).toEqual(['primaryLocationId']);
   expect((await (await context.request.get(`${api}/auth/session`)).json()).user.primaryLocation.name).toBe('City Bell');

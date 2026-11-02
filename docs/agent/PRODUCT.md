@@ -1,8 +1,8 @@
-# PRODUCT.md — Hacha y Tiza
+# PRODUCT.md — Falta Gente
 
 ## 1. Propósito
 
-Hacha y Tiza resuelve un problema simple: alguien ya tiene un partido organizado y le faltan jugadores.
+Falta Gente resuelve un problema simple: alguien ya tiene un partido organizado y le faltan jugadores.
 
 El organizador publica los lugares disponibles y otras personas pueden encontrarlos y reservarlos sin necesidad de conocer previamente al grupo.
 
@@ -24,7 +24,7 @@ El producto debe priorizar siempre simplicidad, rapidez y claridad.
 
 El MVP está orientado inicialmente a La Plata, Buenos Aires, Argentina.
 
-Hacha y Tiza no gestiona inicialmente la reserva de la cancha. El organizador ya reservó el lugar por fuera del sistema y publica únicamente los lugares disponibles.
+Falta Gente no gestiona inicialmente la reserva de la cancha. El organizador ya reservó el lugar por fuera del sistema y publica únicamente los lugares disponibles.
 
 El MVP es una aplicación web responsive.
 
@@ -135,7 +135,8 @@ Un partido contiene:
 
 - organizador;
 - ubicación;
-- formato;
+- deporte;
+- formato opcional perteneciente al deporte;
 - fecha;
 - hora;
 - nombre del lugar;
@@ -145,13 +146,16 @@ Un partido contiene:
 - especificación opcional;
 - estado.
 
-Formatos permitidos inicialmente:
+Catálogo inicial multideporte (MVP-01):
 
 ```text
-Fútbol 5
-Fútbol 6
-Fútbol 7
+Fútbol: Fútbol 5, Fútbol 6, Fútbol 7
+Pádel: Dobles
+Básquet: 3x3, 5x5
+Vóley: sin formatos iniciales
 ```
+
+El deporte pertenece al partido, no al usuario ni a su participación. Deportes y formatos pueden deshabilitarse conservando sus relaciones históricas. MVP-01 expone el catálogo y adapta el listado; no agrega publicación ni filtros deportivos.
 
 Estados:
 
@@ -252,7 +256,10 @@ Filtros del MVP:
 
 - zona;
 - fecha;
-- tipo de fútbol.
+- deporte;
+- formato opcional dentro del deporte.
+
+MVP-02 permite combinar estos filtros en el listado existente. Sin deporte se muestran todos; sin formato se incluyen todos los formatos del deporte. Cambiar de deporte limpia el formato seleccionado. La fecha representa un día local de Buenos Aires y no habilita partidos pasados. La selección temporal de localidad conserva los filtros compatibles y nunca modifica la localidad principal. El catálogo real alimenta selectores horizontales compactos; no se agregan detalle, publicación ni reservas en esta etapa.
 
 No existe búsqueda de texto libre inicialmente.
 

@@ -18,6 +18,34 @@ const data = JSON.parse(
   }[];
 };
 try {
+  const catalog = [
+    { name: 'Fútbol', slug: 'futbol', formats: [
+      { name: 'Fútbol 5', slug: 'futbol-5' },
+      { name: 'Fútbol 6', slug: 'futbol-6' },
+      { name: 'Fútbol 7', slug: 'futbol-7' },
+    ] },
+    { name: 'Pádel', slug: 'padel', formats: [{ name: 'Dobles', slug: 'dobles' }] },
+    { name: 'Básquet', slug: 'basquet', formats: [
+      { name: '3x3', slug: '3x3' }, { name: '5x5', slug: '5x5' },
+    ] },
+    { name: 'Vóley', slug: 'voley', formats: [] },
+  ];
+  await db.$transaction(async (tx) => {
+    for (const item of catalog) {
+      const sport = await tx.sport.upsert({
+        where: { slug: item.slug },
+        update: { name: item.name },
+        create: { name: item.name, slug: item.slug },
+      });
+      for (const format of item.formats) {
+        await tx.sportFormat.upsert({
+          where: { sportId_slug: { sportId: sport.id, slug: format.slug } },
+          update: { name: format.name },
+          create: { sportId: sport.id, ...format },
+        });
+      }
+    }
+  });
   const province = await db.location.upsert({
     where: { seedKey: 'buenos-aires' },
     update: { name: 'Buenos Aires', active: true },
@@ -60,6 +88,8 @@ try {
   if (process.argv.includes('--development')) {
     if (process.env.NODE_ENV !== 'development')
       throw new Error('Fictional seeds require NODE_ENV=development');
+    const football = await db.sport.findUniqueOrThrow({ where: { slug: 'futbol' } });
+    const footballFormats = await db.sportFormat.findMany({ where: { sportId: football.id } });
     const organizer = await db.user.upsert({
       where: { email: 'organizer-demo@example.invalid' },
       update: {},
@@ -85,6 +115,10 @@ try {
         data: { active: false },
       });
       for (const [index, key] of keys.entries()) {
+        const sportFormat = footballFormats.find(
+          format => format.slug === (index % 2 ? 'futbol-7' : 'futbol-5'),
+        );
+        if (!sportFormat) throw new Error('Missing football demo format');
         const startsAt = new Date();
         startsAt.setUTCDate(startsAt.getUTCDate() + index + 1);
         startsAt.setUTCHours(23, 0, 0, 0);
@@ -99,7 +133,8 @@ try {
             seedKey: `demo-match-${index}`,
             organizerId: organizer.id,
             locationId: id(key),
-            footballType: index % 2 ? 'SEVEN' : 'FIVE',
+            sportId: football.id,
+            sportFormatId: sportFormat.id,
             startsAt,
             venueName: `Cancha de demostración ${index + 1}`,
             address: 'Dirección ficticia para desarrollo',
