@@ -12,11 +12,6 @@ enum LocationType {
   BARRIO
   ZONA
 }
-enum FootballType {
-  FIVE
-  SIX
-  SEVEN
-}
 enum MatchStatus {
   OPEN
   CLOSED
@@ -93,6 +88,31 @@ model EmailToken {
   usedAt DateTime? @db.Timestamptz(3)
   @@index([userId, kind])
 }
+model Sport {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  slug String @unique
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  formats SportFormat[]
+  matches Match[]
+  @@index([active, name])
+}
+model SportFormat {
+  id String @id @default(uuid()) @db.Uuid
+  sportId String @db.Uuid
+  sport Sport @relation(fields:[sportId], references:[id], onDelete:Restrict, onUpdate:Restrict)
+  name String
+  slug String
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  matches Match[]
+  @@unique([sportId, slug])
+  @@unique([id, sportId])
+  @@index([sportId, active, name])
+}
 model Match {
   id String @id @default(uuid()) @db.Uuid
   seedKey String? @unique
@@ -100,7 +120,10 @@ model Match {
   organizer User @relation(fields:[organizerId], references:[id])
   locationId String @db.Uuid
   location Location @relation(fields:[locationId], references:[id])
-  footballType FootballType
+  sportId String @db.Uuid
+  sport Sport @relation(fields:[sportId], references:[id], onDelete:Restrict, onUpdate:Restrict)
+  sportFormatId String? @db.Uuid
+  sportFormat SportFormat? @relation(fields:[sportFormatId, sportId], references:[id, sportId], onDelete:Restrict, onUpdate:Restrict)
   startsAt DateTime @db.Timestamptz(3)
   venueName String
   address String
@@ -112,6 +135,8 @@ model Match {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   participations Participation[]
   @@index([locationId, startsAt, id])
+  @@index([sportId])
+  @@index([sportFormatId, sportId])
 }
 model Participation {
   id String @id @default(uuid()) @db.Uuid

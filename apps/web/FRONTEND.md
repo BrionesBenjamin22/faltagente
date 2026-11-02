@@ -23,6 +23,8 @@ Los enlaces nuevos abiertos sobre la misma pantalla se capturan también mediant
 
 `features/auth/service.ts` define DTOs de sesión y usuario y las mutaciones de autenticación. `features/locations/service.ts` consume `GET /locations` (`{items}`) y `features/matches/service.ts` consume `GET /matches?locationId=<uuid>&page=<n>` (`{items,total,page,pageSize,hasMore}`). El backend conserva las reglas del listado y páginas de 9; el cliente ofrece carga progresiva. Fechas se muestran en `America/Argentina/Buenos_Aires`, precios en ARS.
 
+MVP-01 generaliza el contrato de partido: `sport` contiene `{id,name,slug}` y `sportFormat` contiene `{id,name,slug}` o `null`. `MatchCard` muestra el nombre del deporte y, cuando existe, el formato recibido del backend, seguido de la localidad; no mantiene enums ni mapas de formatos deportivos. El resto de los campos públicos del partido se conserva. No hay selector de deporte ni parámetros deportivos en la consulta de esta iteración. El catálogo público `GET /sports` queda disponible en backend, sin añadir un consumidor frontend hasta que exista el flujo correspondiente.
+
 TanStack Query gestiona estado remoto; `useLocations` reutiliza el catálogo. React Hook Form controla formularios y Zod valida nombre, email, contraseña y UUID de localidad. `session.tsx` recupera sesión autoritativa, programa aviso configurable y expiración. El selector temporal vive en memoria del provider, asociado a la identidad; no actualiza el perfil y se limpia al logout. No se agregaron operaciones de reserva ni publicación a esta slice.
 
 `components/shell.tsx` compone `SiteHeader` y `SiteFooter`, conserva el aviso de sesión, feedback y acceso rápido por teclado al contenido. `site-header.tsx` recibe únicamente el estado autenticado para presentar la navegación; `site-footer.tsx` presenta el pie compartido. La navegación pública ofrece Ingresar y Crear cuenta en todas las rutas; Partidos y Mi cuenta se muestran únicamente con sesión vigente. Estados remotos incluyen carga, vacío, error y reintento. La base es mobile-first, con etiquetas, foco visible y anuncios accesibles. Las páginas son Server Components; formularios y estado remoto son Client Components.
@@ -56,7 +58,7 @@ Los elementos reutilizables de presentación viven en `components/`: `SiteHeader
 
 Estas piezas reutilizan los tokens de ambos temas y no dependen de autenticación, almacenamiento, llamadas HTTP ni infraestructura nueva. La integración de loading y empty corresponde a cada feature y mantiene separados carga pendiente, resultado vacío y error.
 
-Partidos compone `MatchesLoading` durante la consulta y `MatchCard` para los resultados reales; la tarjeta reutilizable conserva los campos y formatos anteriores. Cuando falta localidad o el resultado está vacío, `EmptyState` abre el selector existente para elegir otra zona, sin modificar la localidad principal. `SessionLoading` se comparte entre Home, acceso a Cuenta y selección de localidad; `ProfileLoading` y el historial reutilizan las mismas primitivas. El historial vacío ofrece acceso al campo de nombre mediante Editar perfil. Las consultas, sus claves por identidad y los permisos permanecen intactos.
+Partidos compone `MatchesLoading` durante la consulta y `MatchCard` para los resultados reales; la tarjeta reutilizable conserva los datos generales y representa el deporte y formato opcional del contrato multideporte. Cuando falta localidad o el resultado está vacío, `EmptyState` abre el selector existente para elegir otra zona, sin modificar la localidad principal. `SessionLoading` se comparte entre Home, acceso a Cuenta y selección de localidad; `ProfileLoading` y el historial reutilizan las mismas primitivas. El historial vacío ofrece acceso al campo de nombre mediante Editar perfil. Las consultas, sus claves por identidad y los permisos permanecen intactos.
 
 ## Seguridad y configuración
 
@@ -67,3 +69,5 @@ Variables públicas: `NEXT_PUBLIC_API_URL` incluye `/api/v1`, por defecto `http:
 ## Validación
 
 `pnpm --filter web lint`, `typecheck`, `test`, `build`. Vitest/RTL cubren registro, ubicación inicial, cambio temporal, localidad faltante, perfil e historial, aislamiento de caché entre identidades y protección de tokens de email; HTTP cubre credenciales, CSRF fresco y ausencia de renovación automática. La persistencia real, recuperación, temas y cookies del navegador se verifican en tests de integración/E2E de la slice.
+
+`features/matches/match-card.test.tsx` verifica la presentación de Fútbol/Fútbol 5, Pádel/Dobles y Vóley sin formato. El fixture de partidos de `slice.test.tsx` utiliza el mismo contrato anidado sin modificar los escenarios de cuenta, sesión o localidad.

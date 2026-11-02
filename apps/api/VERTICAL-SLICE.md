@@ -28,11 +28,12 @@ All paths below use `/api/v1`. OpenAPI is available at `/api/v1/docs-json`; heal
 | POST `/auth/email/resend` | empty; authenticated | generic 200 message |
 | PATCH `/users/me/location` | `{primaryLocationId}`; authenticated | updated public user DTO |
 | GET `/locations` | none; public | `{items:[{id,name,type,parentId}]}` |
+| GET `/sports` | none; public | `{items:[{id,name,slug,formats:[{id,name,slug}]}]}`; active catalog only |
 | GET `/matches?locationId=<uuid>&page=1` | locality required; public | `{items,total,page,pageSize:9,hasMore}` |
 
 Session: `{authenticated,accessExpiresAt,refreshAvailable,user}`. Public user: `{id,name,email,emailVerified,primaryLocation:{id,name,type}|null}`. Unauthenticated session has null user and expiry. Expired access may have `refreshAvailable:true`; renewal requires explicit user interaction through POST refresh. Registration accepts a selectable active location, never arbitrary text. Legacy null locality remains permitted in storage and is set through the identity-scoped profile endpoint. Home keeps selectedHomeLocation temporarily in client memory, sends it through the matches query, and never writes profile locality.
 
-Match items: `{id,location:{id,name,type},footballType,startsAt,venueName,address,pricePerPerson,availablePlaces,status,description}`. Formats are `FIVE`, `SIX`, `SEVEN`. Price serializes as a decimal string. Discovery returns future OPEN and CLOSED matches at active locations, including complete matches, excludes CANCELLED, and orders by startsAt then UUID. Nine-item pages and count use a repeatable-read snapshot. This slice exposes no publication, reservation or contact endpoint; contact remains private. The schema includes organizer participation and a local-day partial unique index for future flows.
+Match items: `{id,location:{id,name,type},sport:{id,name,slug},sportFormat:{id,name,slug}|null,startsAt,venueName,address,pricePerPerson,availablePlaces,status,description}`. Sport is required and format is optional; see [MULTISPORT.md](MULTISPORT.md) for the current catalog and historical migration. Price serializes as a decimal string. Discovery returns future OPEN and CLOSED matches at active locations, including complete matches, excludes CANCELLED, and orders by startsAt then UUID. Nine-item pages and count use a repeatable-read snapshot. This slice exposes no publication, reservation or contact endpoint; contact remains private. The schema includes organizer participation and a local-day partial unique index for future flows. MVP-01 does not add sport or date filters.
 
 ## Validation and security
 

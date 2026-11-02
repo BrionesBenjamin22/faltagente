@@ -381,13 +381,14 @@ La API debe soportar paginación estable.
 
 No devolver datasets completos sin límite.
 
-Los filtros principales son:
+El listado implementado en MVP-01 acepta:
 
 ```text
-location
-date
-footballType
+locationId
+page
 ```
+
+Fecha y deporte son filtros objetivo posteriores, todavía no implementados. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`. El catálogo público `GET /api/v1/sports` devuelve únicamente deportes y formatos activos. El dominio usa `Sport` y `SportFormat` persistidos; una FK compuesta garantiza que el formato opcional pertenece al deporte del partido. Ver `apps/api/MULTISPORT.md`.
 
 El orden por defecto debe ser fecha/hora ascendente.
 

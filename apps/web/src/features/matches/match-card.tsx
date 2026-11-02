@@ -1,6 +1,5 @@
 import type { Match } from "./service";
 
-const formats = { FIVE: "Fútbol 5", SIX: "Fútbol 6", SEVEN: "Fútbol 7" };
 const dateFormat = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -18,7 +17,7 @@ export function MatchCard({ match }: { match: Match }) {
     <article className="match">
       <time dateTime={match.startsAt}>{dateFormat.format(new Date(match.startsAt))}</time>
       <h2>{match.venueName}</h2>
-      <p>{formats[match.footballType]} · {match.location.name}</p>
+      <p>{match.sport.name}{match.sportFormat ? ` · ${match.sportFormat.name}` : ""} · {match.location.name}</p>
       <p className="muted">{match.address}</p>
       <p>{priceFormat.format(Number(match.pricePerPerson))} por persona</p>
       <p className={available ? "available" : "muted"}>

@@ -64,6 +64,8 @@ La aplicación implementa registro y login local, sesión segura, verificación 
 
 La segunda iteración agrega edición del perfil con historial privado, cambio de contraseña con cierre de todas las sesiones, localidades buscables, navegación de cuenta y temas claro, oscuro y sistema.
 
+MVP-01 generaliza el dominio de partidos a deporte y formato opcional. El catálogo persistido incluye Fútbol, Pádel, Básquet y Vóley; el listado conserva sus filtros por localidad y muestra los nombres recibidos de la API. No agrega selección de deporte, publicación ni reservas. Consultar [el contrato y la migración multideporte](apps/api/MULTISPORT.md).
+
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).
 - [Frontend: vistas, sesión y filtros](apps/web/FRONTEND.md).
@@ -153,7 +155,7 @@ pnpm --filter api db:migrate
 
 Docker levanta PostgreSQL con PostGIS y conserva los datos en el volumen `hyt-postgres`. `db:migrate` aplica las migraciones existentes, incluido el historial del perfil.
 
-Cargar el catálogo de localidades de La Plata:
+Cargar los catálogos de deportes, formatos y localidades de La Plata:
 
 ```powershell
 pnpm --filter api exec node --env-file=.env --import tsx prisma/seed.ts

@@ -18,6 +18,20 @@ El seed de desarrollo crea partidos ficticios en Tolosa, City Bell y Los Hornos.
 
 ## Integración API y persistencia
 
+### MVP-01: dominio multideporte
+
+Aplicar también la migración `202611010001_multisport_domain` en la base aislada antes de ejecutar la integración. La migración crea el catálogo inicial; el seed lo mantiene por slug sin duplicados. Nunca aplicar las pruebas de migración sobre la base habitual.
+
+`apps/api/test/sports.e2e-spec.ts` verifica el catálogo público activo, pertenencia de formatos, campos públicos, contrato de partidos con formato opcional, slugs únicos y rechazo PostgreSQL de formatos de otro deporte tanto al crear como al actualizar. El listado conserva su contrato de filtros por localidad y página; un filtro deportivo todavía se rechaza.
+
+`apps/api/test/multisport-migration.e2e-spec.ts` crea un schema aleatorio dentro de `hyt_slice_test`, aplica las migraciones históricas, inserta fixtures explícitos del modelo anterior y ejecuta la migración multideporte real. Compara todos los campos previos de los partidos y las participaciones, verifica la correspondencia Fútbol 5/6/7 y vuelve a probar las restricciones de participación y valores no negativos. El schema temporal se elimina al finalizar; los datos del schema habitual de pruebas se conservan.
+
+`apps/web/src/features/matches/match-card.test.tsx` cubre Fútbol con Fútbol 5, Pádel con Dobles y Vóley sin formato. Los tests existentes de la slice consumen el nuevo contrato sin modificar sus reglas de autenticación o localidades.
+
+Validación de MVP-01: Prisma validate/generate, `pnpm lint`, `pnpm typecheck`, `pnpm test --maxWorkers=1` (37 API y 50 frontend), typecheck del seed y `pnpm build` aprobaron. La integración completa aprobó 25 casos en seis archivos usando PostgreSQL/PostGIS aislado; incluye la migración real con conservación de datos y dos ejecuciones del seed de desarrollo. `tests/vertical-slice.spec.ts` aprobó sus cuatro casos Chromium sobre los builds finales, API real y la misma base aislada; sólo el transporte de email fue sustituido por el harness. No se migró la base habitual ni se validó entrega real de correo.
+
+La revisión independiente de seguridad no encontró bloqueos: datos públicos seleccionados explícitamente, catálogo de sólo lectura, integridad deporte/formato en PostgreSQL y ausencia de cambios en auth, CSRF, cookies o permisos existentes. Las referencias al enum anterior se limitan a migraciones históricas, fixtures explícitos de migración, documentación del mapeo y la aserción de que el campo anterior ya no aparece en la respuesta HTTP.
+
 ```powershell
 pnpm test:integration
 ```

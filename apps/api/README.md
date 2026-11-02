@@ -16,6 +16,8 @@ API de Hacha y Tiza construida con NestJS, Express y TypeScript.
 
 La primera vertical slice agrega autenticación local, cookies seguras, CSRF, sesiones revocables, verificación y recuperación de contraseña, localidades y partidos filtrados. Ver [VERTICAL-SLICE.md](VERTICAL-SLICE.md) para configuración completa, persistencia y contratos actuales.
 
+MVP-01 generaliza la identidad deportiva y agrega `GET /api/v1/sports`. Ver [MULTISPORT.md](MULTISPORT.md) para modelos, migración, seeds y contratos. El listado mantiene sus filtros anteriores, sin filtro deportivo todavía.
+
 ## Configuración
 
 Copiar los placeholders de `../../.env.example` a un archivo `.env` local. No versionar valores reales. Además de las variables HTTP siguientes, la slice requiere `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET` y `FRONTEND_URL`; los secretos deben ser distintos y tener al menos 32 caracteres. Resend requiere `RESEND_API_KEY` y `EMAIL_FROM` para la entrega real de emails; ambas son obligatorias en producción.
@@ -96,7 +98,7 @@ docker compose run --rm --no-deps api node node_modules/prisma/build/index.js mi
 docker compose run --rm --no-deps api node prisma/seed.js
 ```
 
-El segundo comando carga sólo el catálogo de localidades necesario y es idempotente. El seed está compilado con `tsconfig.seed.json` y conserva la ruta relativa a `localidades.json`; no requiere tsx en runtime. Para fixtures ficticios usar explícitamente el override local y `node prisma/seed.js --development`. Ninguna migración ni seed se ejecuta al arrancar la API. El CLI tiene que ejecutarse con `db` saludable y con las mismas variables runtime de la API. No copiar credenciales dentro de la imagen.
+El segundo comando carga los catálogos de localidades, deportes y formatos y es idempotente. El seed está compilado con `tsconfig.seed.json` y conserva la ruta relativa a `localidades.json`; no requiere tsx en runtime. Para fixtures ficticios usar explícitamente el override local y `node prisma/seed.js --development`. Ninguna migración ni seed se ejecuta al arrancar la API. El CLI tiene que ejecutarse con `db` saludable y con las mismas variables runtime de la API. No copiar credenciales dentro de la imagen.
 
 Todas las variables de la API son runtime; el build no necesita `DATABASE_URL`, secretos ni claves de email. `DATABASE_URL` dentro del contenedor apunta al hostname Docker `db`, nunca a `localhost`; la variable `DOCKER_DATABASE_URL` de Compose mantiene ese valor independiente de la conexión usada por herramientas del host. `JWT_SECRET` y `CSRF_SECRET` deben ser aleatorios, distintos y de al menos 32 caracteres. `FRONTEND_URL` y `CORS_ORIGINS` apuntan al origen público que utiliza el navegador, no al hostname interno `web`.
 

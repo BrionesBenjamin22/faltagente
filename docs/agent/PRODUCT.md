@@ -135,7 +135,8 @@ Un partido contiene:
 
 - organizador;
 - ubicación;
-- formato;
+- deporte;
+- formato opcional perteneciente al deporte;
 - fecha;
 - hora;
 - nombre del lugar;
@@ -145,13 +146,16 @@ Un partido contiene:
 - especificación opcional;
 - estado.
 
-Formatos permitidos inicialmente:
+Catálogo inicial multideporte (MVP-01):
 
 ```text
-Fútbol 5
-Fútbol 6
-Fútbol 7
+Fútbol: Fútbol 5, Fútbol 6, Fútbol 7
+Pádel: Dobles
+Básquet: 3x3, 5x5
+Vóley: sin formatos iniciales
 ```
+
+El deporte pertenece al partido, no al usuario ni a su participación. Deportes y formatos pueden deshabilitarse conservando sus relaciones históricas. MVP-01 expone el catálogo y adapta el listado; no agrega publicación ni filtros deportivos.
 
 Estados:
 
@@ -252,7 +256,7 @@ Filtros del MVP:
 
 - zona;
 - fecha;
-- tipo de fútbol.
+- deporte (objetivo de una tarea posterior a MVP-01).
 
 No existe búsqueda de texto libre inicialmente.
 

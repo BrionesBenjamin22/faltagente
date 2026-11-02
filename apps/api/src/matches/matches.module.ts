@@ -36,7 +36,8 @@ export class MatchesService {
           select: {
             id: true,
             location: { select: { id: true, name: true, type: true } },
-            footballType: true,
+            sport: { select: { id: true, name: true, slug: true } },
+            sportFormat: { select: { id: true, name: true, slug: true } },
             startsAt: true,
             venueName: true,
             address: true,
