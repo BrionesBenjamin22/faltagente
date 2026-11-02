@@ -1,4 +1,4 @@
-# Validación de las vertical slices de Hacha y Tiza
+# Validación de las vertical slices de Falta Gente
 
 Las pruebas utilizan exclusivamente servicios locales y una base PostgreSQL aislada. No ejecutarlas contra producción. La suite de integración rechaza URLs que no apunten a `localhost` o `127.0.0.1` y a una base llamada `hyt_slice` o `hyt_slice_test`. Eliminar únicamente fixtures creados por la suite preserva los seeds.
 

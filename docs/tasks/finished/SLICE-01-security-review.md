@@ -71,7 +71,7 @@ El contador del throttler es local al proceso. Antes de ejecutar múltiples rép
 - Revisor ejecutó pnpm --filter api test: 12/12 aprobados, incluyendo la regresión de entrega pendiente.
 - Orquestación informó ejecución final de integración PostgreSQL: 15/15 aprobados, once casos slice y cuatro casos HTTP base, con migraciones 001 y 002 aplicadas. El revisor inspeccionó los tests añadidos: refresh concurrente produce un único sucesor y revocación por reutilización; verificación y reset concurrentes consumen el enlace una sola vez y reset revoca sesiones. Las pruebas esperan explícitamente la entrega asíncrona capturada.
 - Testing informó 4/4 pruebas mobile Playwright aprobadas. Orquestación confirmó lint, typecheck, unitarios 19/19 (API 12, web 7) y build aprobados sobre la implementación final. El revisor ejecutó también git diff --check sin errores.
-- Dominios productivos definitivos requieren verificar cookies y políticas same-site; no asumir equivalencia de hosts compartidos Vercel/Render con dominios Hacha y Tiza.
+- Dominios productivos definitivos requieren verificar cookies y políticas same-site; no asumir equivalencia de hosts compartidos Vercel/Render con dominios Falta Gente.
 
 ## Recomendación al Orchestrator
 

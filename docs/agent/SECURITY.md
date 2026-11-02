@@ -1,4 +1,4 @@
-# HyT — Security Implementation Rules
+# Falta Gente — Security Implementation Rules
 
 ## Regla general
 
@@ -10,7 +10,7 @@ Ningún agente puede simplificar o remover controles de seguridad para completar
 
 # Sesión
 
-HyT utilizará:
+Falta Gente utilizará:
 
 ```text
 Access Token
@@ -71,7 +71,7 @@ app.<dominio-controlado>
 api.<dominio-controlado>
 ```
 
-Frontend y API deberán operar bajo dominios controlados por Hacha y Tiza. Los nombres efectivos de cookies existentes se conservan por compatibilidad; los ejemplos anteriores describen sus atributos, sin autorizar renombrarlas.
+Frontend y API deberán operar bajo dominios controlados por Falta Gente. Los nombres efectivos de cookies existentes se conservan por compatibilidad; los ejemplos anteriores describen sus atributos, sin autorizar renombrarlas.
 
 Esto simplifica políticas de cookies, CORS y CSRF.
 
@@ -311,7 +311,7 @@ No confiar únicamente en `SameSite`.
 Producción:
 
 ```text
-origin = frontend Hacha y Tiza
+origin = frontend Falta Gente
 credentials = true
 ```
 

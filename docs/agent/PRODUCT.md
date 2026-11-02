@@ -1,8 +1,8 @@
-# PRODUCT.md — Hacha y Tiza
+# PRODUCT.md — Falta Gente
 
 ## 1. Propósito
 
-Hacha y Tiza resuelve un problema simple: alguien ya tiene un partido organizado y le faltan jugadores.
+Falta Gente resuelve un problema simple: alguien ya tiene un partido organizado y le faltan jugadores.
 
 El organizador publica los lugares disponibles y otras personas pueden encontrarlos y reservarlos sin necesidad de conocer previamente al grupo.
 
@@ -24,7 +24,7 @@ El producto debe priorizar siempre simplicidad, rapidez y claridad.
 
 El MVP está orientado inicialmente a La Plata, Buenos Aires, Argentina.
 
-Hacha y Tiza no gestiona inicialmente la reserva de la cancha. El organizador ya reservó el lugar por fuera del sistema y publica únicamente los lugares disponibles.
+Falta Gente no gestiona inicialmente la reserva de la cancha. El organizador ya reservó el lugar por fuera del sistema y publica únicamente los lugares disponibles.
 
 El MVP es una aplicación web responsive.
 

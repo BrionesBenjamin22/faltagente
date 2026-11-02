@@ -5,7 +5,7 @@ export function SiteHeader({ authenticated }: { authenticated: boolean }) {
   return (
     <header className="site-header">
       <div className="header-inner">
-        <Link className="brand" href="/">Hacha y Tiza <span>Beta</span></Link>
+        <Link className="brand" href="/">Falta Gente <span>Beta</span></Link>
         <nav aria-label="Cuenta">
           {authenticated ? (
             <><Link href="/">Partidos</Link><AccountMenu /></>

@@ -26,8 +26,8 @@ describe('environment configuration', () => {
       validateEnvironment({
         ...runtime,
         NODE_ENV: 'production',
-        FRONTEND_URL: 'https://app.furvo.test',
-        CORS_ORIGINS: 'https://app.furvo.test',
+        FRONTEND_URL: 'https://app.falta-gente.test',
+        CORS_ORIGINS: 'https://app.falta-gente.test',
       }),
     ).toThrow('email');
   });
@@ -41,8 +41,8 @@ describe('environment configuration', () => {
   });
   it('normalizes a restricted list of CORS origins', () => {
     expect(
-      parseCorsOrigins('https://app.furvo.test,http://localhost:3000'),
-    ).toEqual(['https://app.furvo.test', 'http://localhost:3000']);
+      parseCorsOrigins('https://app.falta-gente.test,http://localhost:3000'),
+    ).toEqual(['https://app.falta-gente.test', 'http://localhost:3000']);
   });
 
   it.each([

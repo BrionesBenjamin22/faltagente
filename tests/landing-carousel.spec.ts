@@ -97,7 +97,7 @@ test('discovery renders a loading skeleton and a real empty locality with an act
 test('manual carousel exposes three benefits and accessible indicators with keyboard navigation', async ({ page }) => {
   await page.goto('/');
   const carousel = page.getByRole('region', { name: 'Más fácil juntarse a jugar', exact: true });
-  const track = page.getByLabel('Beneficios de Hacha y Tiza', { exact: true });
+  const track = page.getByLabel('Beneficios de Falta Gente', { exact: true });
   await expect(carousel.getByRole('button', { name: 'Anterior', exact: true })).toHaveCount(0);
   await expect(carousel.getByRole('button', { name: 'Siguiente', exact: true })).toHaveCount(0);
   async function current(index: number) {
@@ -149,7 +149,7 @@ test('manual carousel exposes three benefits and accessible indicators with keyb
 test('a real mobile swipe updates the selected slide without rotating automatically', async ({ page, context }) => {
   await page.goto('/');
   const carousel = page.getByRole('region', { name: 'Más fácil juntarse a jugar', exact: true });
-  const track = page.getByLabel('Beneficios de Hacha y Tiza', { exact: true });
+  const track = page.getByLabel('Beneficios de Falta Gente', { exact: true });
   await track.scrollIntoViewIfNeeded();
   await expect.poll(() => track.evaluate(element => {
     const rect = element.getBoundingClientRect();

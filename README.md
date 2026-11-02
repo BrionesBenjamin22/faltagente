@@ -1,4 +1,6 @@
-# Hacha y Tiza (HyT)
+# Falta Gente
+
+Nombre y convenciones vigentes: [identidad de Falta Gente](docs/agent/NAMING.md). Los identificadores técnicos heredados que mantienen sesiones o datos se conservan por compatibilidad.
 
 Para ejecutar la aplicación localmente, seguir el [instructivo de desarrollo](#levantar-el-proyecto-en-desarrollo).
 
@@ -6,7 +8,7 @@ Para ejecutar la aplicación localmente, seguir el [instructivo de desarrollo](#
 
 Una idea simple: me faltan 4 para un fútbol 6 en Megaestadio, 1 y 63. El que quiera jugar puede reservar su lugar, y el de su compañero si quiere llevar a alguien.
 
-HyT nace para resolver una necesidad concreta: **reclutar jugadores para completar los lugares necesarios para una cancha, sin que tengan que ser conocidos entre sí**.
+Falta Gente nace para resolver una necesidad concreta: **reclutar jugadores para completar los lugares necesarios para una cancha, sin que tengan que ser conocidos entre sí**.
 
 El problema lo tiene cualquiera que organice partidos de fútbol y dependa siempre del mismo grupo de gente. Hay días en los que conseguir jugadores se vuelve más difícil por horarios, compromisos o incluso por partidos importantes. Por ejemplo, un martes a las 22:00 puede jugar Boca por Copa y varios de los que normalmente juegan pueden bajarse, mientras que otras personas que sí están disponibles podrían ocupar esos lugares.
 
@@ -18,7 +20,7 @@ La idea es simplemente conectar esas dos situaciones.
 
 Cualquier persona puede reservar.
 
-La primera versión de HyT se basa en algo muy simple: la buena fe de la gente.
+La primera versión de Falta Gente se basa en algo muy simple: la buena fe de la gente.
 
 > **Cualquier persona puede reservar, me debo a la buena fe de la gente y el respeto por el fútbol ajeno. En la tierra de Maradona no bardeen con el fútbol ajeno.**
 
@@ -32,12 +34,12 @@ La aplicación no busca complicar algo que debería ser sencillo. El objetivo es
 
 ## Qué busca resolver
 
-HyT apunta únicamente a este flujo:
+Falta Gente apunta únicamente a este flujo:
 
 1. Alguien reserva una cancha.
 2. Le faltan jugadores.
 3. Publica cuántos lugares tiene disponibles.
-4. Otra persona entra a Hacha y Tiza.
+4. Otra persona entra a Falta Gente.
 5. Encuentra el partido.
 6. Reserva uno o más lugares.
 7. Va a jugar.
@@ -48,7 +50,7 @@ Al menos al principio.
 
 ## Idea a futuro
 
-A futuro estaría buenísimo que las propias canchas puedan utilizar Hacha y Tiza para ofrecer sus servicios, publicar disponibilidad o integrarse al flujo de reservas.
+A futuro estaría buenísimo que las propias canchas puedan utilizar Falta Gente para ofrecer sus servicios, publicar disponibilidad o integrarse al flujo de reservas.
 
 Pero eso viene después.
 

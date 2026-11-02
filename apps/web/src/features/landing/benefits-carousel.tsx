@@ -52,7 +52,7 @@ export function BenefitsCarousel() {
         id={`${id}-track`}
         className="benefits-track"
         role="group"
-        aria-label="Beneficios de Hacha y Tiza"
+        aria-label="Beneficios de Falta Gente"
         tabIndex={0}
         onKeyDown={onKeyDown}
         onPointerDown={event => {

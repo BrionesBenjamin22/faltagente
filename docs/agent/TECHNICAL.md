@@ -1,4 +1,6 @@
-# TECHNICAL.md — Hacha y Tiza
+# TECHNICAL.md — Falta Gente
+
+La identidad pública y los identificadores técnicos nuevos siguen [NAMING.md](NAMING.md). Las excepciones persistidas requieren migración explícita.
 
 ## 1. Objetivo
 

@@ -1,4 +1,4 @@
-# Perfil y cambio de contraseña de Hacha y Tiza
+# Perfil y cambio de contraseña de Falta Gente
 
 Esta iteración extiende el monolito existente, sin cambiar la estrategia de sesión ni los campos funcionales del usuario. El perfil permite editar nombre y localidad principal. El email es de solo lectura y el teléfono no forma parte del modelo implementado. La localidad del perfil es persistente; la selección temporal del Home permanece independiente.
 

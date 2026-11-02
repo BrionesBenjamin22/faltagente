@@ -13,7 +13,7 @@ FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY apps/api/package.json ./apps/api/package.json
-RUN --mount=type=cache,id=hyt-web-pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=falta-gente-web-pnpm,target=/pnpm/store \
     pnpm install --filter web... --frozen-lockfile --store-dir /pnpm/store
 
 FROM dependencies AS builder

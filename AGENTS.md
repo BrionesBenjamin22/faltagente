@@ -2,7 +2,9 @@
 
 ## Propósito y fuentes de verdad
 
-Hacha y Tiza (HyT) conecta organizadores que necesitan jugadores con personas que desean reservar lugares. Mantener el MVP simple: no agregar reglas, estados, entidades o infraestructura sin justificación.
+Falta Gente conecta organizadores que necesitan jugadores con personas que desean reservar lugares. Mantener el MVP simple: no agregar reglas, estados, entidades o infraestructura sin justificación.
+
+Usar **Falta Gente** como nombre del producto y `falta-gente` para identificadores técnicos nuevos. Consultar `docs/agent/NAMING.md` para convenciones y excepciones de compatibilidad; no renombrar identificadores persistidos mediante reemplazos editoriales.
 
 Antes de implementar, leer sólo lo necesario:
 

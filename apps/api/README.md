@@ -1,6 +1,8 @@
-# HyT API
+# Falta Gente API
 
-API de Hacha y Tiza construida con NestJS, Express y TypeScript.
+API de Falta Gente construida con NestJS, Express y TypeScript.
+
+OpenAPI y correos usan Falta Gente. Los nombres de cookies, emisor/audiencia JWT e identificadores deterministas existentes mantienen compatibilidad; ver [convenciones de identidad](../../docs/agent/NAMING.md).
 
 ## Funcionalidad base
 
@@ -36,7 +38,7 @@ PORT=3001
 CORS_ORIGINS=http://localhost:3000
 ```
 
-En producción, `CORS_ORIGINS` debe contener exclusivamente el origen controlado del frontend Hacha y Tiza. CORS usa `credentials: true` y nunca combina credenciales con un comodín.
+En producción, `CORS_ORIGINS` debe contener exclusivamente el origen controlado del frontend Falta Gente. CORS usa `credentials: true` y nunca combina credenciales con un comodín.
 
 ## Contratos HTTP
 
@@ -87,7 +89,7 @@ pnpm --filter api build
 
 ## Docker
 
-El contexto de build es la raíz del monorepo: `docker build -f apps/api/Dockerfile -t hyt-api:local .`. La imagen usa Node 22.23.3 sobre Debian Bookworm, pnpm 10.33.2 y el lockfile compartido. Instala únicamente las dependencias del workspace API; el runtime contiene dependencias de producción, el cliente Prisma generado para Linux, `dist/`, el schema y las migraciones. Prisma CLI se conserva como dependencia operativa para migraciones controladas; Nest CLI, Vitest, tsx y pnpm no forman parte del runtime.
+El contexto de build es la raíz del monorepo: `docker build -f apps/api/Dockerfile -t falta-gente-api:local .`. La imagen usa Node 22.23.3 sobre Debian Bookworm, pnpm 10.33.2 y el lockfile compartido. Instala únicamente las dependencias del workspace API; el runtime contiene dependencias de producción, el cliente Prisma generado para Linux, `dist/`, el schema y las migraciones. Prisma CLI se conserva como dependencia operativa para migraciones controladas; Nest CLI, Vitest, tsx y pnpm no forman parte del runtime.
 
 La API se ejecuta como `node` (UID/GID 1000), con `node dist/main.js`, y recibe señales directamente. Los hooks de shutdown de Nest activan el cierre de Prisma existente al recibir SIGTERM. Compose proporciona init, tiempo de cierre, redes y límites; los logs continúan en stdout/stderr. `GET /health` conserva su contrato de disponibilidad básica y no verifica persistencia: además del healthcheck se debe probar una operación real contra PostgreSQL.
 
