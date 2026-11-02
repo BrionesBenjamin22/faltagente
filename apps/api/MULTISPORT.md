@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Falta Gnt conserva el listado existente y agrega un catálogo público persistido. No incorpora filtros deportivos, publicación, reservas ni administración del catálogo.
+MVP-01 conserva el listado existente y agrega un catálogo público persistido. Los filtros deportivos y de fecha se incorporan posteriormente en [MVP-02](DISCOVERY.md). Publicación, reservas y administración del catálogo no forman parte de estas tareas.
 
 ## Modelos y relaciones
 
@@ -14,7 +14,7 @@ Falta Gnt conserva el listado existente y agrega un catálogo público persistid
 
 `GET /api/v1/sports` es público y no recibe payload. Devuelve `{items:[{id,name,slug,formats:[{id,name,slug}]}]}`. Filtra deportes activos y formatos activos, ordenados por nombre e identificador. No expone timestamps, usuarios ni información de autenticación. No hay endpoints mutables ni historial de cambios del catálogo en esta task.
 
-`GET /api/v1/matches?locationId=<uuid>&page=1` conserva filtros, orden, páginas de nueve, total y hasMore. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`, además de los restantes campos previos. No admite aún filtro `sportId`. La desactivación del catálogo no oculta ni borra partidos relacionados: el listado mantiene sus reglas anteriores y muestra la identidad deportiva persistida.
+`GET /api/v1/matches?locationId=<uuid>&page=1` conserva filtros, orden, páginas de nueve, total y hasMore. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`, además de los restantes campos previos. MVP-02 agrega filtros opcionales `sportId`, `sportFormatId` y `date`; ver [contrato de descubrimiento](DISCOVERY.md). La desactivación del catálogo no oculta ni borra partidos relacionados: el listado mantiene sus reglas anteriores y muestra la identidad deportiva persistida.
 
 Los errores conservan `{code,message,requestId}`, la validación global de query y los controles HTTP existentes. No se agregan permisos de administración ni superficies de escritura. Auth, cookies y CSRF permanecen intactos.
 

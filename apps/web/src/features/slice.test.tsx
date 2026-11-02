@@ -27,6 +27,7 @@ beforeEach(() => {
     if (path.endsWith("/auth/session")) body = current;
     else if (path.endsWith("/auth/csrf")) body = { csrfToken: "csrf" };
     else if (path.endsWith("/locations")) body = { items: [tolosa, cityBell] };
+    else if (path.endsWith("/sports")) body = { items: [{ id: "20000000-0000-4000-8000-000000000001", name: "Fútbol", slug: "futbol", formats: [] }] };
     else if (path.endsWith("/matches")) { const location = new URL(url).searchParams.get("locationId") === tolosa.id ? tolosa : cityBell; body = { items: [{ id: location.id, location, sport: { id: "sport-football", name: "Fútbol", slug: "futbol" }, sportFormat: { id: "format-football-5", name: "Fútbol 5", slug: "futbol-5" }, startsAt: "2026-11-01T22:00:00Z", venueName: `Cancha ${location.name}`, address: "Calle 1", pricePerPerson: "5000", availablePlaces: 2, status: "OPEN", description: null }], total: 1, page: 1, pageSize: 9, hasMore: false }; }
     else if (path.endsWith("/users/me/location")) { const input = JSON.parse(init?.body as string); current.user = { ...user, primaryLocation: input.primaryLocationId === tolosa.id ? tolosa : cityBell }; body = current.user; }
     else if (path.endsWith("/users/me/history")) body = { items: [], total: 0, page: 1, pageSize: 3, hasMore: false };
@@ -206,7 +207,7 @@ it("shows an empty match listing without inventing matches", async () => {
   const base = fetchMock.getMockImplementation()!;
   fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => new URL(url).pathname.endsWith("/matches") ? new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 9, hasMore: false })) : base(url, init));
   render(<Providers><Home /></Providers>);
-  expect(await screen.findByText("Todavía no hay partidos en esta localidad. Probá con otra zona.")).toBeInTheDocument();
+  expect(await screen.findByText("No hay partidos disponibles en esta zona.")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Cargar más partidos" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Cambiar localidad" }));
   expect(await screen.findByPlaceholderText("Buscar localidad…")).toHaveFocus();
@@ -225,7 +226,7 @@ it("replaces decorative match skeletons with real results after loading", async 
   const view = render(<Providers><Home /></Providers>);
   expect(await screen.findByText("Cargando partidos…")).toBeInTheDocument();
   expect(view.container.querySelector('.skeleton[aria-hidden="true"]')).toBeInTheDocument();
-  expect(screen.queryByText("Todavía no hay partidos en esta localidad. Probá con otra zona.")).not.toBeInTheDocument();
+  expect(screen.queryByText("No hay partidos disponibles en esta zona.")).not.toBeInTheDocument();
   await act(async () => { release(); await gate; });
   expect(await screen.findByText("Cancha Tolosa")).toBeInTheDocument();
   expect(screen.queryByText("Cargando partidos…")).not.toBeInTheDocument();

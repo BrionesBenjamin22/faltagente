@@ -1,4 +1,4 @@
-# Vertical slice de Hacha y Tiza
+﻿# Vertical slice de Hacha y Tiza
 
 ## Vistas
 
@@ -23,9 +23,9 @@ Los enlaces nuevos abiertos sobre la misma pantalla se capturan también mediant
 
 `features/auth/service.ts` define DTOs de sesión y usuario y las mutaciones de autenticación. `features/locations/service.ts` consume `GET /locations` (`{items}`) y `features/matches/service.ts` consume `GET /matches?locationId=<uuid>&page=<n>` (`{items,total,page,pageSize,hasMore}`). El backend conserva las reglas del listado y páginas de 9; el cliente ofrece carga progresiva. Fechas se muestran en `America/Argentina/Buenos_Aires`, precios en ARS.
 
-MVP-01 generaliza el contrato de partido: `sport` contiene `{id,name,slug}` y `sportFormat` contiene `{id,name,slug}` o `null`. `MatchCard` muestra el nombre del deporte y, cuando existe, el formato recibido del backend, seguido de la localidad; no mantiene enums ni mapas de formatos deportivos. El resto de los campos públicos del partido se conserva. No hay selector de deporte ni parámetros deportivos en la consulta de esta iteración. El catálogo público `GET /sports` queda disponible en backend, sin añadir un consumidor frontend hasta que exista el flujo correspondiente.
+MVP-01 generaliza el contrato de partido: `sport` contiene `{id,name,slug}` y `sportFormat` contiene `{id,name,slug}` o `null`. `MatchCard` muestra el nombre del deporte y, cuando existe, el formato recibido del backend, seguido de la localidad; no mantiene enums ni mapas de formatos deportivos. El resto de los campos públicos del partido se conserva. MVP-02 agrega descubrimiento por deporte, formato opcional y fecha local; `features/sports/service.ts` y `useSports` consumen `GET /sports` como única fuente del catálogo.
 
-TanStack Query gestiona estado remoto; `useLocations` reutiliza el catálogo. React Hook Form controla formularios y Zod valida nombre, email, contraseña y UUID de localidad. `session.tsx` recupera sesión autoritativa, programa aviso configurable y expiración. El selector temporal vive en memoria del provider, asociado a la identidad; no actualiza el perfil y se limpia al logout. No se agregaron operaciones de reserva ni publicación a esta slice.
+TanStack Query gestiona estado remoto; `useLocations` reutiliza el catálogo. React Hook Form controla formularios y Zod valida nombre, email, contraseña y UUID de localidad. `session.tsx` recupera sesión autoritativa, programa aviso configurable y expiración. El selector temporal conserva el provider por identidad y se representa también en la URL del descubrimiento; no actualiza el perfil. No se agregaron operaciones de reserva ni publicación a esta slice.
 
 `components/shell.tsx` compone `SiteHeader` y `SiteFooter`, conserva el aviso de sesión, feedback y acceso rápido por teclado al contenido. `site-header.tsx` recibe únicamente el estado autenticado para presentar la navegación; `site-footer.tsx` presenta el pie compartido. La navegación pública ofrece Ingresar y Crear cuenta en todas las rutas; Partidos y Mi cuenta se muestran únicamente con sesión vigente. Estados remotos incluyen carga, vacío, error y reintento. La base es mobile-first, con etiquetas, foco visible y anuncios accesibles. Las páginas son Server Components; formularios y estado remoto son Client Components.
 
@@ -71,3 +71,15 @@ Variables públicas: `NEXT_PUBLIC_API_URL` incluye `/api/v1`, por defecto `http:
 `pnpm --filter web lint`, `typecheck`, `test`, `build`. Vitest/RTL cubren registro, ubicación inicial, cambio temporal, localidad faltante, perfil e historial, aislamiento de caché entre identidades y protección de tokens de email; HTTP cubre credenciales, CSRF fresco y ausencia de renovación automática. La persistencia real, recuperación, temas y cookies del navegador se verifican en tests de integración/E2E de la slice.
 
 `features/matches/match-card.test.tsx` verifica la presentación de Fútbol/Fútbol 5, Pádel/Dobles y Vóley sin formato. El fixture de partidos de `slice.test.tsx` utiliza el mismo contrato anidado sin modificar los escenarios de cuenta, sesión o localidad.
+
+## MVP-02: descubrimiento multideporte
+
+`DiscoveryFilters` extiende el Home y `/partidos` con chips horizontales de deportes, formatos dependientes y fechas Todas / Hoy / Mañana / Elegir fecha. Los datos provienen exclusivamente de `/sports`, con loading, error/reintento y catálogo vacío. Cambiar deporte elimina el formato anterior. El selector de localidad existente se reutiliza sin modificarlo; conserva los demás filtros y no envía cambios de perfil. Los chips son botones con `aria-pressed`, borde y peso de selección, foco visible y altura mínima de 44 px. El scroll se limita a cada grupo, sin animaciones nuevas ni cambios a estilos globales.
+
+`matchesService.list(locationId,page,filters?)` envía únicamente `sportId`, `sportFormatId` y `date` presentes. TanStack Query identifica cada combinación mediante `matches,locationId,sportId,sportFormatId,date`; la página vive en `pageParam`. Al cambiar filtros, localidad o volver por el historial se conserva como máximo la primera página de la combinación de destino, evitando mezclar resultados o restaurar páginas progresivas anteriores. Las siguientes páginas siguen cargándose de nueve en nueve.
+
+`discovery-state.ts` conserva filtros como UUID en query params `location`, `sport`, `format` y fecha calendario `date`; mantiene el pathname actual y los parámetros ajenos (por ejemplo `success`). Usa History API y escucha `popstate`, sin reemplazar el router ni agregar rutas. Ignora UUIDs o fechas de calendario inválidos; la API vuelve a validar relaciones y parámetros. Hoy/Mañana se calculan explícitamente en `America/Argentina/Buenos_Aires` independientemente de la zona del navegador. Elegir fecha usa un input nativo, sin calendario adicional.
+
+Un resultado vacío con filtros consulta de forma diferida el total de la localidad sin filtros, con una clave independiente `matches-baseline`: permite distinguir una zona sin partidos de una combinación sin resultados. Ofrece Limpiar filtros conservando localidad, o Cambiar localidad. No oculta errores de esa consulta como un resultado vacío.
+
+`features/matches/discovery.test.tsx` cubre catálogo, selección deporte/formato, cambio incompatible, todos, fecha local y calendario inválido, localidad temporal, caché/paginación, restauración de historial, loading, reintentos y ambos vacíos. No agrega publicación, detalle, reservas ni navegación futura. Auth, cookies y CSRF mantienen los contratos previos.

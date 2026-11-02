@@ -22,7 +22,18 @@ El seed de desarrollo crea partidos ficticios en Tolosa, City Bell y Los Hornos.
 
 Aplicar también la migración `202611010001_multisport_domain` en la base aislada antes de ejecutar la integración. La migración crea el catálogo inicial; el seed lo mantiene por slug sin duplicados. Nunca aplicar las pruebas de migración sobre la base habitual.
 
-`apps/api/test/sports.e2e-spec.ts` verifica el catálogo público activo, pertenencia de formatos, campos públicos, contrato de partidos con formato opcional, slugs únicos y rechazo PostgreSQL de formatos de otro deporte tanto al crear como al actualizar. El listado conserva su contrato de filtros por localidad y página; un filtro deportivo todavía se rechaza.
+`apps/api/test/sports.e2e-spec.ts` verifica el catálogo público activo, pertenencia de formatos, campos públicos, contrato de partidos con formato opcional, slugs únicos y rechazo PostgreSQL de formatos de otro deporte tanto al crear como al actualizar. En MVP-01 el listado sólo aceptaba localidad y página; MVP-02 incorpora los filtros descritos a continuación.
+
+### MVP-02: descubrimiento multideporte
+
+`apps/api/test/matches-discovery.e2e-spec.ts` recorre filtros por localidad, deporte, formato y fecha, solos y combinados. Comprueba paginación de nueve, total/hasMore, estados públicos, fechas futuras, formatos incompatibles o sin deporte, UUID inválidos, días inexistentes, años bisiestos y límites exactos de medianoche de Buenos Aires. Conserva consultas a identidades deportivas persistidas aunque el catálogo esté inactivo.
+
+`tests/multisport-discovery.spec.ts` usa el catálogo persistido y crea trece partidos propios en Tolosa (Fútbol 5, Fútbol 7, Pádel y Vóley). Verifica el recorrido real de selección, fecha elegida, paginación 9+1, cambio de deporte con limpieza de formato, localidad temporal, URL y navegación atrás/adelante. Comprueba chips de al menos 44 px, teclado, ausencia de overflow de página y presencia de partidos en el viewport móvil. Sus fixtures se eliminan al finalizar; no reemplaza respuestas deportivas ni usa la base habitual. La captura `.runtime/mvp02-discovery-mobile.png` queda ignorada por Git.
+
+```powershell
+pnpm --filter api test:e2e --maxWorkers=1 --no-file-parallelism
+pnpm exec playwright test tests/multisport-discovery.spec.ts tests/vertical-slice.spec.ts tests/account-recovery.spec.ts
+```
 
 `apps/api/test/multisport-migration.e2e-spec.ts` crea un schema aleatorio dentro de `hyt_slice_test`, aplica las migraciones históricas, inserta fixtures explícitos del modelo anterior y ejecuta la migración multideporte real. Compara todos los campos previos de los partidos y las participaciones, verifica la correspondencia Fútbol 5/6/7 y vuelve a probar las restricciones de participación y valores no negativos. El schema temporal se elimina al finalizar; los datos del schema habitual de pruebas se conservan.
 
@@ -71,6 +82,16 @@ pnpm exec playwright test tests/landing-carousel.spec.ts
 No ejecutar todos los archivos contra la API de desarrollo: las suites con harness requieren su base aislada y el puerto 3001 libre, como se explica arriba.
 
 ## Verificaciones finales
+
+### MVP-02: validación del 2 de noviembre de 2026
+
+Lint, typecheck, build y `git diff --check` aprobaron. `pnpm test --maxWorkers=1` aprobó 104 unitarios (37 API y 67 frontend). La primera ejecución con paralelismo predeterminado agotó el timeout de arranque de `main.spec.ts`; la repetición con un worker pasó sin modificar ese test ni sus límites.
+
+La integración completa aprobó 34 casos en siete archivos contra PostgreSQL aislado `hyt_slice_test`, incluido el caso de fecha actual que fija sólo el reloj de JavaScript y excluye partidos ya iniciados del mismo día local. No se modificó la base habitual.
+
+Chromium aprobó los 10 recorridos de `multisport-discovery`, `vertical-slice` y `account-recovery` sobre los builds finales y la API real del harness. La primera ejecución detectó una carrera del test de perfil: consultaba la sesión al observar el envío del PATCH, antes de su respuesta. El test ahora espera HTTP 200 antes de consultar la sesión; la repetición completa pasó. El recorrido móvil verificó controles de 44 px, ausencia de overflow, primera tarjeta y horario en viewport, filtros combinados, paginación 9+1 e historial de URL. Se inspeccionó la captura móvil en `.runtime/`.
+
+La revisión independiente no encontró defectos funcionales. El transporte de email sigue sustituido por el harness; no se verificó entrega externa. No se creó ningún commit.
 
 ```powershell
 pnpm lint

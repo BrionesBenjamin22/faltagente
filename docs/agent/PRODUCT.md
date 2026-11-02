@@ -256,7 +256,10 @@ Filtros del MVP:
 
 - zona;
 - fecha;
-- deporte (objetivo de una tarea posterior a MVP-01).
+- deporte;
+- formato opcional dentro del deporte.
+
+MVP-02 permite combinar estos filtros en el listado existente. Sin deporte se muestran todos; sin formato se incluyen todos los formatos del deporte. Cambiar de deporte limpia el formato seleccionado. La fecha representa un día local de Buenos Aires y no habilita partidos pasados. La selección temporal de localidad conserva los filtros compatibles y nunca modifica la localidad principal. El catálogo real alimenta selectores horizontales compactos; no se agregan detalle, publicación ni reservas en esta etapa.
 
 No existe búsqueda de texto libre inicialmente.
 

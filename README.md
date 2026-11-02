@@ -66,6 +66,8 @@ La segunda iteración agrega edición del perfil con historial privado, cambio d
 
 MVP-01 generaliza el dominio de partidos a deporte y formato opcional. El catálogo persistido incluye Fútbol, Pádel, Básquet y Vóley; el listado conserva sus filtros por localidad y muestra los nombres recibidos de la API. No agrega selección de deporte, publicación ni reservas. Consultar [el contrato y la migración multideporte](apps/api/MULTISPORT.md).
 
+MVP-02 extiende ese listado con filtros combinables de deporte, formato opcional y fecha local de Buenos Aires. Los selectores consumen el catálogo real, conservan la localidad temporal y la carga progresiva de nueve resultados. Los filtros se reflejan en la URL y admiten navegación atrás/adelante. Detalle, publicación y reservas continúan fuera de esta entrega.
+
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).
 - [Frontend: vistas, sesión y filtros](apps/web/FRONTEND.md).

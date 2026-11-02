@@ -16,7 +16,7 @@ API de Hacha y Tiza construida con NestJS, Express y TypeScript.
 
 La primera vertical slice agrega autenticación local, cookies seguras, CSRF, sesiones revocables, verificación y recuperación de contraseña, localidades y partidos filtrados. Ver [VERTICAL-SLICE.md](VERTICAL-SLICE.md) para configuración completa, persistencia y contratos actuales.
 
-MVP-01 generaliza la identidad deportiva y agrega `GET /api/v1/sports`. Ver [MULTISPORT.md](MULTISPORT.md) para modelos, migración, seeds y contratos. El listado mantiene sus filtros anteriores, sin filtro deportivo todavía.
+MVP-01 generaliza la identidad deportiva y agrega `GET /api/v1/sports`. Ver [MULTISPORT.md](MULTISPORT.md) para modelos, migración, seeds y contratos. MVP-02 extiende el listado con filtros combinables por deporte, formato opcional y fecha local, conservando la localidad obligatoria y nueve resultados por página. Ver [DISCOVERY.md](DISCOVERY.md) para reglas, validaciones y contrato.
 
 ## Configuración
 

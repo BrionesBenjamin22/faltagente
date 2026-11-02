@@ -67,7 +67,7 @@ describe('multisport catalog and match persistence', () => {
     expect(response.body).not.toHaveProperty('organizer');
   });
 
-  it('match list returns nested sport, optional format and no legacy contract, without new filters', async () => {
+  it('match list returns nested sport, optional format and no legacy contract', async () => {
     const base = { organizerId, locationId, sportId: activeSport.id, startsAt: new Date(Date.now() + 86400000), address: 'Test address', pricePerPerson: '1234.50', availablePlaces: 2 };
     const formatted = await db.match.create({ data: { ...base, sportFormatId: activeFormat.id, venueName: 'With format' } });
     const unformatted = await db.match.create({ data: { ...base, sportId: otherSport.id, startsAt: new Date(Date.now() + 172800000), venueName: 'Without format' } });
@@ -81,7 +81,8 @@ describe('multisport catalog and match persistence', () => {
       expect(item).not.toHaveProperty('footballType');
       expect(item).not.toHaveProperty('organizerId');
     }
-    await request(app.getHttpServer()).get(`/api/v1/matches?locationId=${locationId}&sportId=${activeSport.id}`).expect(400);
+    const filtered = await request(app.getHttpServer()).get(`/api/v1/matches?locationId=${locationId}&sportId=${activeSport.id}`).expect(200);
+    expect(filtered.body.items.map((item: { id: string }) => item.id)).toEqual([formatted.id]);
   });
 
   it('database rejects cross-sport formats on create and updates, and permits null format', async () => {
