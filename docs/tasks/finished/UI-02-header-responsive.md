@@ -1,3 +1,15 @@
+﻿---
+id: UI-02
+title: Header responsive y selector de tema visible
+status: finished
+phase: ui
+depends_on: []
+created_at: null
+updated_at: 2026-11-03T18:59:12-03:00
+started_at: null
+resolved_at: 2026-11-03T18:59:12-03:00
+resolution_commit: null
+---
 # UI-02 — Header responsive y selector de tema visible
 
 ## Contexto
@@ -566,3 +578,57 @@ BLOCKERS:
 ```
 
 No comenzar UI-03 automáticamente.
+## Resultado de implementación
+
+TASK: UI-02 — Header responsive y selector de tema visible
+
+STATUS: completed
+
+HEADER DESKTOP:
+- brand: Falta Gente y Beta conservados.
+- navigation: Partidos con sesión; Ingresar y Crear cuenta sin sesión.
+- account: menú existente conservado en desktop.
+- theme control: acceso visible para visitantes y usuarios autenticados.
+
+HEADER MOBILE:
+- visible: marca, Beta y selector de tema.
+- hidden: navegación y cuenta por debajo de 640 px.
+- layout: una fila flex sin wrap, padding vertical de 8 px, control de 44 px; sin hamburguesa ni bottom navigation.
+
+THEME:
+- source of truth: useTheme existente; sin segundo store.
+- menu: Radix Dropdown Menu, opciones radio Claro/sol, Oscuro/luna, Sistema/monitor.
+- persistence: hyt-theme-v1, bootstrap y snapshot SSR existentes conservados.
+- synchronization: tests verifican ambos sentidos con Apariencia, remount y evento storage.
+
+ACCESSIBILITY:
+- keyboard: apertura, flechas, selección con Enter, Escape y retorno de foco verificados.
+- focus: conserva foco visible global; opciones con indicador de selección y texto.
+- aria: botón anuncia el modo, Radix aporta expanded y menuitemradio/checked; iconos decorativos.
+
+VALIDATION:
+- lint: pnpm lint aprobado; lint web repetido después de agregar tests, aprobado.
+- typecheck: pnpm typecheck aprobado; typecheck web repetido, aprobado.
+- tests: backend 38/38; frontend 106/106 con pnpm --filter web test --maxWorkers=2; header/tema 14/14 incluidos.
+- ejecución inicial concurrente: timeout de arranque backend y espera de catálogo frontend; las repeticiones indicadas pasaron sin modificar esos módulos ni sus tests.
+- build: pnpm build aprobado; imagen web final compilada correctamente mediante Docker.
+- revisión: git diff --check aprobado. Revisión React de estructura, hooks, accesibilidad y dependencias; sin dependencias nuevas.
+- responsive: tests de integración de clase y revisión de cascada CSS. CSS Module sin capa evita que nav global prevalezca sobre hidden de Tailwind. La disposición visual mobile/desktop queda para revisión manual del desarrollador, como pide esta tarea; no se ejecutaron capturas ni comparación de imágenes.
+- database: Prisma migrate status dentro de api confirma 4 migraciones y esquema actualizado. Sin cambios de esquema ni seeds necesarios.
+- runtime: docker compose -f docker-compose.yml -f docker-compose.dev.yml build web y up -d --no-deps --force-recreate --wait web. Servicio web saludable; HTTP /, API /health y /api/v1/sports responden 200. HTML servido incluye selector de tema.
+
+OUT OF SCOPE PRESERVED:
+- landing: conservada.
+- matches: conservados.
+- account content: conservado.
+- session feedback: conservado.
+- bottom navigation: no agregada.
+- layout global, router, auth, hooks compartidos y estilos base: sin cambios.
+
+BLOCKERS:
+- none.
+
+Documentación: apps/web/FRONTEND.md. Backend sin cambios de contratos o comportamiento.
+No se creó commit ni se inició UI-03. Mensaje sugerido: feat(header): adaptar navegación responsive y agregar selector de tema
+
+Las fechas históricas de creación/inicio no estaban registradas; permanecen en null. resolution_commit permanece null porque no se solicitó ejecutar un commit.

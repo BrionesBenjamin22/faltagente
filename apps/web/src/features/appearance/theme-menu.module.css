@@ -1,0 +1,38 @@
+.trigger {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--solid);
+  color:var(--ink);
+  cursor:pointer;
+}
+
+.trigger:hover,
+.trigger[data-state="open"] { background:var(--notice); }
+
+.menu {
+  z-index:60;
+  min-width:180px;
+  max-width:calc(100vw - 24px);
+  padding:6px;
+  border-radius:12px;
+}
+
+.option {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:44px;
+  padding:8px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  outline-offset:-3px;
+}
+
+.option[data-highlighted] { background:var(--notice); }
+.indicator { display:flex; margin-left:auto; }

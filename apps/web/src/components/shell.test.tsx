@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { Shell } from "./shell";
+import headerStyles from "./site-header.module.css";
 
 const state = vi.hoisted(() => ({
   session: { authenticated: false, refreshAvailable: false, user: null as { name: string } | null },
@@ -28,4 +29,18 @@ it("preserves the authenticated home match link and account menu", () => {
   render(<Shell>Home</Shell>);
   expect(screen.getByRole("link", { name: "Partidos" })).toHaveAttribute("href", "/");
   expect(screen.getByRole("button", { name: "Mi cuenta" })).toBeInTheDocument();
+});
+
+it.each([false, true])("keeps desktop navigation in a responsive container and the theme control outside it (authenticated=%s)", (authenticated) => {
+  state.session.authenticated = authenticated;
+  state.session.user = authenticated ? { name: "Benjamín" } : null;
+  render(<Shell>Contenido</Shell>);
+  const banner = screen.getByRole("banner");
+  const navigation = within(banner).getByRole("navigation", { name: "Cuenta" });
+  // JSDOM checks the responsive CSS hook; actual breakpoint layout is reviewed manually.
+  expect(navigation).toHaveClass(headerStyles.navigation);
+  const theme = within(banner).getByRole("button", { name: /Cambiar tema/ });
+  expect(navigation).not.toContainElement(theme);
+  expect(within(banner).getByRole("link", { name: "Falta Gente Beta" })).toHaveAttribute("href", "/");
+  expect(within(banner).getAllByRole("navigation")).toHaveLength(1);
 });
