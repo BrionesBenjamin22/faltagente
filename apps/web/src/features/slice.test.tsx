@@ -98,7 +98,7 @@ it("shows the visitor landing and preserves public discovery without auth", asyn
   current = { ...current, authenticated: false, user: null };
   const view = render(<Providers><Home /></Providers>);
   expect(await screen.findByRole("heading", { name: /Te falta uno/ })).toBeInTheDocument();
-  expect(screen.getByText("Futbol en La Argentina")).toBeInTheDocument();
+  expect(screen.getByText("Partidos en Argentina")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Buscar un partido" })).toHaveAttribute("href", "/partidos");
   view.unmount();
   render(<Providers><Home discovery /></Providers>);
