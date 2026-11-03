@@ -1,8 +1,11 @@
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+const publicApiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const apiBase = typeof window === "undefined"
+    ? process.env.API_INTERNAL_URL ?? publicApiBase
+    : publicApiBase;
   const response = await fetch(`${apiBase}${path}`, { ...init, credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json", ...init.headers } });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(response.status, body.code ?? "REQUEST_FAILED", typeof body.message === "string" ? body.message : "No pudimos completar la solicitud. Intente nuevamente.");

@@ -4,6 +4,8 @@
     max-size: "${DOCKER_LOG_MAX_SIZE:-10m}"
     max-file: "${DOCKER_LOG_MAX_FILE:-3}"
 
+name: falta-gente
+
 services:
   web:
     image: falta-gente-web:local
@@ -17,6 +19,7 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "3000"
+      API_INTERNAL_URL: http://api:3001/api/v1
     ports:
       - "${DOCKER_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-3000}:3000"
     networks: [app_network]
@@ -83,7 +86,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-hyt}
     volumes:
-      - hyt-postgres:/var/lib/postgresql/data
+      - postgres:/var/lib/postgresql/data
     networks: [db_network]
     healthcheck:
       test: [CMD-SHELL, "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -105,4 +108,4 @@ networks:
     internal: true
 
 volumes:
-  hyt-postgres:
+  postgres:

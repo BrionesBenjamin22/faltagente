@@ -1,8 +1,40 @@
 # Docker de Falta Gente
 
-Las imágenes actuales son `falta-gente-web:local` y `falta-gente-api:local`. El volumen y los nombres de base existentes se mantienen por compatibilidad; consultar [convenciones de identidad](agent/NAMING.md). No cambiar el nombre del proyecto Compose de una instalación existente: forma parte del nombre efectivo de sus volúmenes.
+Las imágenes actuales son `falta-gente-web:local` y `falta-gente-api:local`. El archivo base declara `name: falta-gente`; no se necesitan aliases, funciones ni `-p`. El volumen lógico `postgres` se crea como `falta-gente_postgres`. Los nombres de usuario/base `hyt` se conservan; consultar [convenciones de identidad](agent/NAMING.md).
 
 Tres servicios: Next.js (`web`), NestJS (`api`) y PostgreSQL/PostGIS (`db`). Ejecutar los comandos desde la raíz con Docker Compose moderno y el motor Linux iniciado. No hay proxy ni terminación TLS en este stack.
+
+## Operación cotidiana
+
+El agente prepara la base al finalizar cada etapa. Con `.env` configurado y esa preparación completada, el usuario sólo necesita los comandos normales de Compose:
+
+```powershell
+# Levantar los servicios y esperar sus healthchecks
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait
+
+# Reconstruir e incorporar cambios de código
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+
+# Ver estado
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
+
+# Seguir logs; Ctrl+C termina el seguimiento
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f --tail 100
+
+# Seguir únicamente la API
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f --tail 100 api
+
+# Reiniciar un servicio sin reconstruir su imagen
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart api
+
+# Detener, conservando contenedores y datos
+docker compose -f docker-compose.yml -f docker-compose.dev.yml stop
+
+# Eliminar contenedores y redes, conservando datos
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+```
+
+`up --build` incorpora código nuevo; `restart` reutiliza la imagen existente. El stack compilado no tiene recarga automática. Los datos persisten en `falta-gente_postgres`; `down -v` los elimina y no forma parte de la operación habitual. Cambiar password en `.env` no altera usuarios de un volumen existente.
 
 ## Entorno
 
@@ -10,41 +42,35 @@ Copiar `.env.example` a `.env` y completar `POSTGRES_PASSWORD`, `JWT_SECRET`, `C
 
 La API recibe sólo variables explícitas: `NODE_ENV`, `PORT`, `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET`, `FRONTEND_URL`, `CORS_ORIGINS`, `RESEND_API_KEY`, `EMAIL_FROM`. Compose base fuerza `NODE_ENV=production`: requiere orígenes HTTPS exactos y email configurado según el contrato actual. No iniciar la base como producción con los ejemplos HTTP locales. El despliegue remoto necesita HTTPS externo previamente configurado; este trabajo no lo proporciona.
 
-`NEXT_PUBLIC_API_URL` (incluye `/api/v1`) y `NEXT_PUBLIC_SESSION_WARNING_SECONDS` son argumentos públicos de build, incorporados al JavaScript del navegador. Cambiarlos requiere reconstruir web. No son secretos; no usar hostname `api` en la URL que consume el navegador. El runtime web recibe únicamente `NODE_ENV=production`, `HOSTNAME=0.0.0.0` y `PORT=3000`.
+`NEXT_PUBLIC_API_URL` (incluye `/api/v1`) y `NEXT_PUBLIC_SESSION_WARNING_SECONDS` son argumentos públicos de build, incorporados al JavaScript del navegador. Cambiarlos requiere reconstruir web. No son secretos; no usar hostname `api` en la URL que consume el navegador. El runtime web recibe `NODE_ENV=production`, `HOSTNAME=0.0.0.0`, `PORT=3000` y `API_INTERNAL_URL=http://api:3001/api/v1`. Esta última URL sólo se usa en consultas del servidor Next.js, como el detalle de partido; el navegador continúa usando `NEXT_PUBLIC_API_URL`.
 
 Para localhost usar `docker-compose.dev.yml`: ejecuta la misma API compilada con `NODE_ENV=development`, permitiendo los orígenes HTTP ya soportados. Next.js continúa en producción. No cambia cookies Secure/HttpOnly, CSRF ni CORS. Acceder desde `http://localhost:3000`, conservando `FRONTEND_URL=http://localhost:3000`, `CORS_ORIGINS=http://localhost:3000` y `NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1`. El override publica DB sólo en loopback para Prisma Studio y herramientas del host y establece `db_network.internal=false` para permitir ese forwarding; omitirlo fuera del desarrollo. No añade hot reload ni bind mounts.
 
-## Build y primer inicio local
+## Preparación local a cargo del agente
+
+Al finalizar cada etapa, el agente ejecuta las migraciones pendientes y los seeds que correspondan, comprueba consultas reales y entrega el entorno listo. Si no cambió el esquema, verifica que no haya migraciones pendientes. Estos comandos documentan su procedimiento; no son tareas cotidianas del usuario. Sobre un volumen nuevo se requiere la preparación completa:
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait db
 docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --no-deps api node node_modules/prisma/build/index.js migrate deploy
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --no-deps api node prisma/seed.js
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --no-deps api node prisma/seed.js --development
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait
 ```
 
-El seed de catálogo es una operación explícita. Para partidos ficticios locales, ejecutar el mismo comando seed con `--development`; nunca usarlo contra producción. Ni startup ni restart ejecutan migraciones o seeds. Revisar migraciones y disponer de respaldo antes de aplicarlas sobre datos importantes. El CLI Prisma existente se incluye como dependencia operacional de la imagen API, junto con schema/migraciones y seed compilado; no se incluye el compilador TypeScript ni Nest CLI en runtime.
+El seed con `--development` carga catálogo y partidos ficticios locales; sin ese argumento carga únicamente catálogo. Son operaciones explícitas e idempotentes. Nunca usar datos ficticios contra producción. Ni startup, reconstrucción ni restart ejecutan migraciones o seeds. El agente comprueba que las migraciones estén aplicadas y que el catálogo/listado/detalle puedan consultarse antes del cierre. Las pruebas de integración usan una base aislada. El CLI Prisma existente se incluye como dependencia operacional de la imagen API, junto con schema/migraciones y seed compilado; no se incluye el compilador TypeScript ni Nest CLI en runtime.
 
-Para base production-like utilizar los mismos comandos sin `-f docker-compose.dev.yml` y con la configuración de producción válida. El frontend escucha internamente en 3000 y la API en 3001; los puertos del host se ajustan con `WEB_PORT`/`API_PORT`. `DOCKER_BIND_ADDRESS` es loopback por defecto. Una publicación remota requiere establecer explícitamente la interfaz apropiada y configurar URLs públicas, HTTPS externo y orígenes exactos.
+En producción usar la configuración base sin `-f docker-compose.dev.yml`, con configuración válida y migraciones como paso controlado tras revisión y respaldo. La regla de cierre de desarrollo no autoriza migraciones automáticas ni regenerar datos productivos. El frontend escucha internamente en 3000 y la API en 3001; los puertos del host se ajustan con `WEB_PORT`/`API_PORT`. `DOCKER_BIND_ADDRESS` es loopback por defecto. Una publicación remota requiere establecer explícitamente la interfaz apropiada y configurar URLs públicas, HTTPS externo y orígenes exactos.
 
-## Operación
+## Persistencia y logs
 
-```powershell
-docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
-docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f --tail 100
-docker compose -f docker-compose.yml -f docker-compose.dev.yml stop
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait
-```
-
-`stop` termina los procesos; `down` además elimina contenedores/redes. Ambos conservan el volumen `hyt-postgres` (prefijado por el proyecto Compose). No usar `down -v` si se desean conservar datos. Cambiar password en `.env` no altera usuarios de un volumen existente. Los logs van a stdout/stderr y Docker rota `json-file` con 10 MB y tres archivos por servicio, configurable mediante `DOCKER_LOG_MAX_SIZE`/`DOCKER_LOG_MAX_FILE`. Evitar imprimir `docker compose config` completo o inspecciones del entorno: contienen secretos runtime.
+El usuario autorizó regenerar el volumen anterior de desarrollo asociado al proyecto `furvo`. El proyecto vigente usa `falta-gente_postgres`; esa regeneración es un paso acotado y no se repite al cerrar otras etapas. No borrar volúmenes ajenos ni usar limpieza global Docker. Los logs van a stdout/stderr y Docker rota `json-file` con 10 MB y tres archivos por servicio, configurable mediante `DOCKER_LOG_MAX_SIZE`/`DOCKER_LOG_MAX_FILE`. Evitar imprimir `docker compose config` completo o inspecciones del entorno: contienen secretos runtime.
 
 ## Redes, salud y recursos
 
 Web sólo pertenece a `app_network`; API pertenece a `app_network` y `db_network`; DB sólo a `db_network`, interna en la base. El override local habilita forwarding del puerto loopback mediante `internal=false`; web sigue fuera de esa red. El navegador llama directamente a la API pública, como antes; no se agregó proxy. DB base no tiene `ports`.
 
-Startup espera `pg_isready`, luego `/health` de API y finalmente HTTP `/` de web. `/health` mantiene su contrato de disponibilidad básica, no certifica migraciones ni acceso a datos. Compose espera la salud de DB antes de iniciar API; Prisma puede conectar al realizar la primera consulta. Comprobar además operaciones reales y aplicar migraciones manualmente antes del primer uso.
+Startup espera `pg_isready`, luego `/health` de API y finalmente HTTP `/` de web. `/health` mantiene su contrato de disponibilidad básica, no certifica migraciones ni acceso a datos. Compose espera la salud de DB antes de iniciar API; Prisma puede conectar al realizar la primera consulta. El agente valida además operaciones reales y deja migraciones y seeds preparados antes de entregar cada etapa.
 
 Los tres servicios usan init y 30 segundos de gracia. API habilita hooks Nest para desconectar Prisma al recibir SIGTERM; Next standalone recibe señales directamente. PostgreSQL conserva el stop signal de la imagen oficial. Restart `on-failure:5` limita reintentos para no ocultar indefinidamente errores de configuración; después de corregirlos, iniciar explícitamente. No reinicia automáticamente por healthcheck fallido.
 
