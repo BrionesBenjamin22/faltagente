@@ -1,3 +1,16 @@
+---
+id: UI-03
+title: Sistema reutilizable de feedback efímero
+status: finished
+phase: ui
+depends_on: []
+created_at: null
+updated_at: 2026-11-03T19:10:49.7881765-03:00
+started_at: 2026-11-03T19:03:23.4569768-03:00
+resolved_at: 2026-11-03T19:10:49.7881765-03:00
+resolution_commit: null
+---
+
 # UI-03 — Sistema reutilizable de feedback efímero
 
 ## Contexto
@@ -900,3 +913,77 @@ BLOCKERS:
 ```
 
 No comenzar otra task automáticamente.
+
+## Resultado de implementación
+
+TASK: UI-03 — Sistema reutilizable de feedback efímero
+
+STATUS: completed
+
+CURRENT IMPLEMENTATION:
+- previous logout feedback mechanism: `setFeedback` en el provider de sesión, renderizado por Shell como notice.
+- root cause of persistence: el provider permanece montado al navegar y el mensaje carecía de vencimiento y consumo.
+
+NOTIFICATION SYSTEM:
+- implementation/library: módulo propio pequeño; reutiliza Lucide y Motion instalados, sin dependencias nuevas.
+- application API: `useNotify().success/error/warning/info(message, { id?, duration? })`.
+- supported variants: success, error, warning, info; icono, texto y tratamiento visual.
+- position desktop: superior derecha desde 700 px.
+- position mobile: superior con márgenes de 16 px, 88 px sobre el contenido y safe area.
+- max visible: tres activas, descarte de la más antigua sin cola; salida breve de 150 ms.
+
+LIFECYCLE:
+- default durations: success/info 4 s, warning 5 s, error 6 s; override positivo y finito.
+- progress indicator: barra descendente y vencimiento comparten un reloj de 50 ms por aviso.
+- manual close: elimina el aviso activo inmediatamente e inicia salida breve.
+- pause behavior: hover y foco pausan de forma combinada; continúa desde el tiempo restante al terminar ambos.
+- deduplication: ID explícito del evento mientras siga activo; textos iguales con IDs distintos son eventos legítimos. Clave interna independiente evita que un aviso saliente cierre una nueva instancia del mismo evento.
+
+ACCESSIBILITY:
+- semantics: error usa alert; otras variantes status; iconos decorativos y etiqueta de variante para lectores de pantalla.
+- keyboard: cierre accesible, aria-label y objetivo táctil de 44 px.
+- focus: visible, no se roba foco, pausa al enfocar.
+- reduced motion: sin desplazamiento ni transición; vencimiento y barra permanecen funcionales.
+
+LOGOUT INTEGRATION:
+- trigger: éxito del POST existente, limpieza de caché y consulta de sesión; emisión directa con ID session-logout.
+- redirect: navegación existente preservada. Home muestra la landing cuando la sesión queda visitante; no se agrega redirección universal. Las rutas protegidas conservan sus reglas.
+- consumption: no existe flash pendiente; sólo notificación en memoria desde el handler exitoso.
+- refresh behavior: desaparece al remontar/recargar; no hay evento persistido para reconstruirla.
+- subsequent navigation: no vuelve a emitir; puede continuar durante su duración si el provider sigue montado.
+
+AUTH PRESERVED:
+- cookies: sin cambios; credentials include conserva su contrato.
+- refresh: sin cambios.
+- CSRF: petición protegida existente preservada y verificada por tests.
+- revocation: endpoint, limpieza de caché y consulta de sesión preservados.
+
+VALIDATION:
+- lint: pnpm lint aprobado tras corregir un efecto lateral del harness de prueba.
+- typecheck: pnpm typecheck aprobado, repetido con código final.
+- tests: backend 38/38; frontend 114/114 en 16 archivos con pnpm --filter web test --maxWorkers=2; incluye seis pruebas del sistema y dos de logout.
+- build: pnpm build aprobado; imagen web final reconstruida correctamente con docker compose -f docker-compose.yml -f docker-compose.dev.yml build web.
+- revisión independiente: detectó carrera al reutilizar ID durante salida, corregida mediante key interna y dismiss por key. Pruebas del reloj aíslan internals de Motion; la carrera se verificó por revisión de código.
+- runtime: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --no-deps --force-recreate --wait web; web saludable. HTTP /, API /health y /api/v1/sports devuelven 200.
+- database: Prisma migrate status dentro de api confirma cuatro migraciones aplicadas y esquema actualizado. Sin cambios de esquema ni seeds específicos necesarios.
+- visual: revisión manual del desarrollador pendiente, según el alcance explícito de UI-03; no se ejecutaron screenshots, regresión visual ni navegador automatizado.
+- git diff --check aprobado.
+
+OUT OF SCOPE PRESERVED:
+- confirmation dialogs: no implementados.
+- inline form errors: conservados, incluidos errores de logout y feedback de renovación.
+- landing: sin cambios.
+- header: sin cambios.
+- account: sin cambios.
+- matches: sin cambios.
+- layout global, router principal, estilos base, Shell y backend: sin cambios.
+- montaje en Providers y aviso exitoso de logout: cambios mínimos expresamente requeridos por UI-03.
+
+BLOCKERS:
+- none.
+
+Documentación: sección «UI-03: feedback efímero» de apps/web/FRONTEND.md. Sin contratos ni comportamiento backend modificados.
+
+No se creó commit ni se inició otra tarea. Mensaje sugerido: feat(notifications): agregar feedback efímero e integrar cierre de sesión
+
+created_at permanece null porque no se registró la fecha histórica. resolution_commit permanece null porque no se solicitó ejecutar un commit.

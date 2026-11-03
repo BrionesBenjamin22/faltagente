@@ -2,6 +2,8 @@
 
 ## Vistas
 
+La landing ofrece `Ingresar` hacia `/auth/login`. El pie de login muestra `No tenés cuenta? Registrate`, con enlace a `/auth/register`; el registro conserva `Ya tenés cuenta? Ingresar` hacia login. Esta navegación no modifica la autenticación ni sus validaciones.
+
 - `/`: presentación breve para visitantes; Home de partidos disponibles para usuarios autenticados, iniciado con `user.primaryLocation`. Una sesión sin localidad redirige a `/auth/location`.
 - `/partidos`: descubrimiento público con el mismo listado y filtros del Home.
 - `/account/profile`: edición del nombre y localidad principal, email de solo lectura, auditoría e historial con páginas de 3 cambios. Envía exclusivamente diferencias; sin cambios no llama al backend.
@@ -43,7 +45,7 @@ La paleta de club azul/gris incorpora superficies translúcidas moderadas, token
 
 ## Carrusel informativo de la landing
 
-El hero conserva el título `Te falta uno. A alguien le falta partido.`, los CTAs Buscar un partido (`/partidos`) y Crear cuenta (`/auth/register`), y la estructura copy + recurso visual. UI-01 actualiza el eyebrow a `Partidos en Argentina` y la descripción a encontrar deportes cerca sin conocer al organizador ni depender de un grupo. `features/landing/sports-visual.tsx` reemplaza la cancha por una matriz estática 2x2 de Fútbol, Pádel, Básquet y Vóley con igual jerarquía, etiquetas y SVG locales/Lucide; no consulta ni modifica el catálogo. `landing.module.css` encapsula los ajustes de presentación sin cambiar estilos base.
+El hero conserva el título `Te falta uno. A alguien le falta partido.`, los CTAs Buscar un partido (`/partidos`) e Ingresar (`/auth/login`), y la estructura copy + recurso visual. UI-01 actualiza el eyebrow a `Partidos en Argentina` y la descripción a encontrar deportes cerca sin conocer al organizador ni depender de un grupo. `features/landing/sports-visual.tsx` reemplaza la cancha por una matriz estática 2x2 de Fútbol, Pádel, Básquet y Vóley con igual jerarquía, etiquetas y SVG locales/Lucide; no consulta ni modifica el catálogo. `landing.module.css` encapsula los ajustes de presentación sin cambiar estilos base.
 
 Debajo del hero, `features/landing/benefits-carousel.tsx` conserva `Más fácil juntarse a jugar`: Elegí dónde jugar, Encontrá un partido y Sumá a tus compañeros. Explica localidad, deporte, lugar, fecha, horario, formato, precio y lugares libres, reserva de un lugar sin conocer al resto y varios lugares para compañeros. No implementa operaciones de reserva ni agrega enlaces a flujos futuros.
 
@@ -89,3 +91,40 @@ Variables públicas: `NEXT_PUBLIC_API_URL` incluye `/api/v1`, por defecto `http:
 Un resultado vacío con filtros consulta de forma diferida el total de la localidad sin filtros, con una clave independiente `matches-baseline`: permite distinguir una zona sin partidos de una combinación sin resultados. Ofrece Limpiar filtros conservando localidad, o Cambiar localidad. No oculta errores de esa consulta como un resultado vacío.
 
 `features/matches/discovery.test.tsx` cubre catálogo, selección deporte/formato, cambio incompatible, todos, fecha local y calendario inválido, localidad temporal, caché/paginación, restauración de historial, loading, reintentos y ambos vacíos. No agrega publicación, detalle, reservas ni navegación futura. Auth, cookies y CSRF mantienen los contratos previos.
+
+## UI-03: feedback efímero
+
+`features/notifications/notifications.tsx` contiene `NotificationProvider` y el hook `useNotify`. El provider se monta una vez dentro de `Providers`, por encima de la sesión, y mantiene las notificaciones exclusivamente en memoria. Reutiliza Lucide y Motion ya instalados; los estilos están encapsulados en `notifications.module.css` y utilizan los tokens de ambos temas.
+
+### API y ciclo de vida
+
+```tsx
+const notify = useNotify();
+notify.success("Partido publicado.");
+notify.error("Lo sentimos! No pudimos completar la operación. Intente nuevamente.");
+notify.warning("Quedan pocos lugares.");
+notify.info("Su perfil está incompleto.");
+notify.success("Perfil actualizado.", { id: eventId, duration: 5000 });
+```
+
+Los ejemplos muestran la API disponible; la primera y única integración actual es logout. Las duraciones centralizadas son 4000 ms para success/info, 5000 ms para warning y 6000 ms para error. `duration` acepta un override positivo y finito cuando esté justificado. Se muestran hasta tres notificaciones activas; una cuarta descarta la más antigua, con una salida breve de 150 ms y sin cola.
+
+`id` permite deduplicar la repetición accidental de un evento mientras esté activo, incluidos efectos en Strict Mode. Los eventos legítimos usan IDs distintos o dejan que se genere uno; no se deduplica por texto. Cada instancia tiene una clave interna independiente para evitar que un aviso saliente cierre uno nuevo con el mismo ID.
+
+Un reloj por aviso actualiza cada 50 ms tanto la barra descendente como el vencimiento. Hover y foco de teclado pausan el tiempo; sólo se reanuda cuando terminan ambos, desde el tiempo restante. El cierre manual elimina inmediatamente el aviso activo e inicia su salida breve. Los temporizadores se limpian al desmontar.
+
+### Presentación y accesibilidad
+
+La pila tiene posición fija superior derecha desde 700 px; en mobile ocupa el ancho disponible con márgenes de 16 px y separación superior de 88 px más safe area. No modifica el layout y permite interactuar fuera de las tarjetas. Cada variante comunica su estado con icono, texto y tratamiento visual. Error usa `role="alert"`; las demás variantes, `role="status"`. Los iconos son decorativos y la variante tiene una etiqueta para lectores de pantalla.
+
+El cierre ofrece un objetivo de 44 px, `aria-label="Cerrar notificación"` y foco visible. No se toma el foco automáticamente. `prefers-reduced-motion` elimina el desplazamiento y reduce la transición a cero; la barra y el vencimiento siguen funcionando con el mismo reloj.
+
+### Integración de logout y límites
+
+Después del POST de logout, la limpieza de caché y la consulta de sesión existentes, se emite `notify.success("Sesión cerrada correctamente.", { id: "session-logout" })`. Antes, ese texto quedaba en `feedback` de sesión y Shell lo mostraba sin vencimiento al navegar. Ahora se emite directamente desde el handler exitoso, sin flash pendiente, query params, cookies ni storage. Navegar no reconstruye el evento; recargar o remontar el provider descarta las notificaciones. En Home, la sesión visitante muestra la landing; las rutas protegidas conservan su navegación existente.
+
+Los errores de logout y el feedback de renovación conservan su presentación inline. Los Toasts no reemplazan validaciones de campos ni confirmaciones que requieren una decisión. No cambian endpoints, payloads, permisos, CSRF, credenciales, revocación, cookies ni refresh; no hay cambios backend, migraciones o seeds específicos.
+
+### Pruebas
+
+`features/notifications/notifications.test.tsx` cubre variantes, límite activo, duraciones y override, barra, pausa combinada, cierre, deduplicación en Strict Mode, eventos legítimos y remontaje. Aísla la animación de Motion para verificar el reloj propio. `features/auth/logout-feedback.test.tsx` cubre éxito único, navegación y remontaje sin reconstrucción, fallo seguro y conservación del POST con credenciales y CSRF. La carrera de reutilización de ID durante la salida se verificó mediante revisión de código. UI-03 reserva la comprobación visual al desarrollador y no agrega capturas, regresión visual ni Playwright.
