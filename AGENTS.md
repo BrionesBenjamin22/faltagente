@@ -56,4 +56,6 @@ Usar tests unitarios para reglas puras, PostgreSQL real para integración y Play
 
 Antes de cerrar: revisar `git status` y `git diff`; confirmar criterios de aceptación, lint, typecheck, tests y build. No incluir cambios ajenos. No hacer commit si falla una verificación. Cuando se solicite un commit, usar la skill `commit-work` y mensajes como `feat(matches): agregar publicación de partidos`.
 
+Al finalizar cada etapa de cambios en desarrollo, el agente debe aplicar las migraciones pendientes y los seeds que correspondan, y comprobar que la base y los flujos entregados están preparados para usar. No delegar esta preparación al usuario ni ejecutarla automáticamente al iniciar/reiniciar contenedores. El usuario opera el stack con comandos completos `docker compose -f docker-compose.yml -f docker-compose.dev.yml ...`, sin aliases ni funciones auxiliares. El nombre Compose `falta-gente` está declarado en el archivo base; no hace falta `-p`. Esta regla no autoriza migraciones, seeds ficticios ni reinicios de datos en producción; cualquier bloqueo de preparación local debe informarse al cierre.
+
 El flujo Git objetivo es `feature/* -> dev -> main`. Mientras `FND-08` no se complete, no renombrar ramas ni modificar el remoto automáticamente.

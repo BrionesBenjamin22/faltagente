@@ -307,6 +307,14 @@ Database → PostgreSQL administrado
 
 No introducir infraestructura adicional sin requerimiento.
 
+## Cierre de etapas en desarrollo
+
+El agente entrega cada etapa con la base local preparada: aplica las migraciones pendientes y los seeds necesarios para la funcionalidad, valida datos y consultas reales, e informa los comandos y resultados. Si no hay cambios de esquema, confirma que no quedan migraciones pendientes. No presenta migraciones o seeds como pasos habituales a cargo del usuario.
+
+La operación cotidiana utiliza comandos completos `docker compose -f docker-compose.yml -f docker-compose.dev.yml ...`, sin aliases, funciones ni `-p`: el archivo base fija `name: falta-gente`. El volumen lógico `postgres` se materializa como `falta-gente_postgres`. Levantar, reconstruir o reiniciar servicios no ejecuta migraciones ni seeds automáticamente.
+
+Los seeds ficticios se ejecutan explícitamente sólo contra desarrollo. Un volumen recreado requiere preparación completa antes de entregar el entorno. Las suites mantienen su PostgreSQL aislado y nunca utilizan la base habitual. En producción, las migraciones siguen siendo un paso controlado con revisión y respaldo; la regla de cierre local no autoriza su ejecución automática ni borrados de datos.
+
 ---
 
 # Principio de implementación

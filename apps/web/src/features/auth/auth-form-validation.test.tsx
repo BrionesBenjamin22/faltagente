@@ -32,6 +32,9 @@ function fieldError(control: HTMLElement, message: string) {
 
 it('login reports associated field errors without sending credentials and clears them after a corrected submission', async () => {
   render(<Providers><AuthForm mode="login" /></Providers>);
+  const registrationLink = screen.getByRole('link', { name: 'Registrate' });
+  expect(registrationLink).toHaveAttribute('href', '/auth/register');
+  expect(registrationLink.parentElement).toHaveTextContent('No tenés cuenta? Registrate');
   const email = screen.getByLabelText('Email', { exact: true });
   const password = screen.getByLabelText('Contraseña', { exact: true });
   fireEvent.change(email, { target: { value: 'invalid-email' } });

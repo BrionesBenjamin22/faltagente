@@ -2,6 +2,8 @@
 
 ## Vistas
 
+La landing ofrece `Ingresar` hacia `/auth/login`. El pie de login muestra `No tenés cuenta? Registrate`, con enlace a `/auth/register`; el registro conserva `Ya tenés cuenta? Ingresar` hacia login. Esta navegación no modifica la autenticación ni sus validaciones.
+
 - `/`: presentación breve para visitantes; Home de partidos disponibles para usuarios autenticados, iniciado con `user.primaryLocation`. Una sesión sin localidad redirige a `/auth/location`.
 - `/partidos`: descubrimiento público con el mismo listado y filtros del Home.
 - `/account/profile`: edición del nombre y localidad principal, email de solo lectura, auditoría e historial con páginas de 3 cambios. Envía exclusivamente diferencias; sin cambios no llama al backend.
@@ -31,6 +33,10 @@ TanStack Query gestiona estado remoto; `useLocations` reutiliza el catálogo. Re
 
 ## Segunda iteración: cuenta y presentación
 
+UI-02 mantiene `SiteHeader` en una sola fila: marca y Beta a la izquierda, selector de tema a la derecha. La navegación de escritorio (Partidos y cuenta con sesión, Ingresar y Crear cuenta sin sesión) se oculta por debajo del breakpoint Tailwind `sm` (640 px). No agrega rutas, menú hamburguesa ni navegación inferior. El contenedor usa clases de Tailwind y `site-header.module.css` encapsula la visibilidad de navegación: una regla local sin capa evita que el `display:flex` del `nav` global prevalezca sobre las utilidades. No modifica layout, estilos base ni contenido de cuenta.
+
+`features/appearance/theme-menu.tsx` utiliza Radix Dropdown Menu y el hook existente `useTheme`: Claro/sol, Oscuro/luna y Sistema/monitor. Las opciones son radio items con texto y marca de selección; el botón anuncia el modo actual, ofrece un área de 44 por 44 px y conserva foco visible. Radix gestiona teclado, Escape, foco y posicionamiento mediante portal. Los estilos del menú se encapsulan en `theme-menu.module.css` y reutilizan los tokens existentes. Apariencia y header se sincronizan mediante el mismo store, eventos y clave `hyt-theme-v1`; no cambia el script previo al pintado ni el snapshot de hidratación. No existen endpoints, payloads, permisos o validaciones de dominio nuevos; el control está disponible para visitantes y usuarios autenticados. No requiere cambios backend, migraciones ni seeds.
+
 `features/account/service.ts` consume `GET /users/me`, `PATCH /users/me` (`{name?,primaryLocationId?}`), `GET /users/me/history?page=n` y `POST /auth/password/change` (`{currentPassword,newPassword}`). El DTO privado agrega `hasLocalPassword`, `createdAt` y `updatedAt`. No se cambia email ni se introduce teléfono. Las consultas privadas usan claves que incluyen `session.user.id`; no se reutilizan datos de una cuenta al ingresar con otra. El historial muestra sólo cambios de campos, en páginas de 3.
 
 `features/locations/location-combobox.tsx` reutiliza catálogo y búsqueda por nombre en registro, selección pendiente, Home y perfil. Usa cmdk + Radix Popover con opciones accesibles, teclado, Escape, retorno de foco y estados remotos. `components/account-menu.tsx` usa Radix Dropdown Menu: Perfil, Seguridad, Apariencia y Cerrar sesión. Los íconos son Lucide decorativos; todas las acciones tienen texto o nombre accesible. No se agregan destinos futuros.
@@ -39,15 +45,17 @@ La paleta de club azul/gris incorpora superficies translúcidas moderadas, token
 
 ## Carrusel informativo de la landing
 
-El hero conserva su título, descripción y acciones; el texto superior es `Futbol en La Argentina`, conforme al texto aprobado. La navegación oculta `Partidos` para visitantes en todas las rutas y conserva la opción en el Home autenticado. Las preguntas de los formularios usan signo de cierre sin signo de apertura y mantienen las tildes.
+El hero conserva el título `Te falta uno. A alguien le falta partido.`, los CTAs Buscar un partido (`/partidos`) e Ingresar (`/auth/login`), y la estructura copy + recurso visual. UI-01 actualiza el eyebrow a `Partidos en Argentina` y la descripción a encontrar deportes cerca sin conocer al organizador ni depender de un grupo. `features/landing/sports-visual.tsx` reemplaza la cancha por una matriz estática 2x2 de Fútbol, Pádel, Básquet y Vóley con igual jerarquía, etiquetas y SVG locales/Lucide; no consulta ni modifica el catálogo. `landing.module.css` encapsula los ajustes de presentación sin cambiar estilos base.
 
-Debajo del hero, `features/landing/benefits-carousel.tsx` presenta `Más fácil juntarse a jugar`: Elegí dónde jugar, Anotate a un partido y Sumá a tus compañeros. Es información aprobada del producto, sin implementar nuevas operaciones de reserva ni agregar enlaces a flujos futuros.
+Debajo del hero, `features/landing/benefits-carousel.tsx` conserva `Más fácil juntarse a jugar`: Elegí dónde jugar, Encontrá un partido y Sumá a tus compañeros. Explica localidad, deporte, lugar, fecha, horario, formato, precio y lugares libres, reserva de un lugar sin conocer al resto y varios lugares para compañeros. No implementa operaciones de reserva ni agrega enlaces a flujos futuros.
 
-El carrusel usa un escenario CSS 3D y estado React local, sin nuevas dependencias ni avance automático. El escenario se adapta al ancho de la sección con un máximo de 960 px. Las tarjetas de hasta 480 px usan una proporción cuadrada como tamaño preferido, con altura mínima según el contenido para evitar recortes. La tarjeta activa queda frontal; las laterales usan perspectiva, rotación y profundidad. Todas las tarjetas tienen superficie opaca con `var(--solid)` y opacidad completa en ambos temas, sin blur ni transparencias que superpongan textos y sin modificar los tokens base.
+El carrusel mantiene el escenario CSS 3D y estado React local, sin dependencias nuevas ni avance automático. La tarjeta activa queda frontal y las laterales parcialmente visibles; conservan superficies opacas según tema. Las tarjetas laterales se seleccionan directamente para llevarlas al centro, sin botones Anterior/Siguiente. Conserva indicadores, swipe horizontal con Pointer Events y teclado ArrowLeft/ArrowRight/Home/End sobre el grupo enfocable. Gestos inferiores a 40 px, verticales, cancelados o cuya captura se perdió no cambian la selección. Se permiten scroll vertical y pinch zoom. Las transiciones locales duran 250 ms y se desactivan con `prefers-reduced-motion`. El contenido de las slides inactivas mantiene `aria-hidden` e `inert`, con controles accesibles sobre las tarjetas laterales; el estado se anuncia a lectores de pantalla.
 
-Permite gestos horizontales manuales con Pointer Events, tres indicadores accesibles de 44 px y teclado ArrowLeft/ArrowRight/Home/End sobre el grupo enfocable. No contiene botones Anterior/Siguiente. Los gestos inferiores a 40 px, predominantemente verticales o cancelados no cambian la selección; el desplazamiento vertical de página y pinch zoom siguen habilitados. La navegación respeta los extremos y usa transiciones CSS suaves de 650 ms, desactivadas al solicitar reducción de movimiento. Las diapositivas inactivas tienen `aria-hidden` e `inert`. Un anuncio `sr-only` informa la posición a lectores de pantalla, sin contador visible. Tests unitarios cubren contenido aprobado, indicadores, teclado, gestos y cancelación, ausencia de autoplay y visibilidad contextual de navegación. Las pruebas de navegador cubren también teclado, gesto táctil y reducción de movimiento. La validación visual queda a cargo del usuario.
+Los tests de componentes cubren controles, extremos, indicadores, teclado, swipe, cancelación y ausencia de autoplay. La validación responsive y visual manual corresponde al desarrollador; UI-01 no usa screenshots, comparaciones de imágenes ni inspección visual automatizada. No modifica header, footer, tema, sesión, perfil ni pantallas de partidos. Es una presentación pública sin nuevos contratos, services, permisos, validaciones de entrada ni cambios backend o de persistencia.
 
 ## Componentes compartidos y estados
+
+UI-01.1 contiene el overflow del carrusel en su sección y viewport mediante límites de ancho y `min-width:0`. El track usa una columna `minmax(0,1fr)` para evitar expansión por el contenido; conserva el máximo desktop de 960 px y el ancho proporcional de las tarjetas. El foco de viewport e indicadores se dibuja hacia dentro para respetar el recorte. No modifica contenido, navegación, gestos ni transiciones. La comprobación visual en 320, 375, 390 y 430 px corresponde al desarrollador; los tests existentes verifican la interacción.
 
 Los elementos reutilizables de presentación viven en `components/`: `SiteHeader`, `SiteFooter`, menú de cuenta y `ui/`. Se mantienen separados de los services, hooks y reglas de cada feature; `Shell` conserva su composición y el aviso de sesión.
 
@@ -83,3 +91,40 @@ Variables públicas: `NEXT_PUBLIC_API_URL` incluye `/api/v1`, por defecto `http:
 Un resultado vacío con filtros consulta de forma diferida el total de la localidad sin filtros, con una clave independiente `matches-baseline`: permite distinguir una zona sin partidos de una combinación sin resultados. Ofrece Limpiar filtros conservando localidad, o Cambiar localidad. No oculta errores de esa consulta como un resultado vacío.
 
 `features/matches/discovery.test.tsx` cubre catálogo, selección deporte/formato, cambio incompatible, todos, fecha local y calendario inválido, localidad temporal, caché/paginación, restauración de historial, loading, reintentos y ambos vacíos. No agrega publicación, detalle, reservas ni navegación futura. Auth, cookies y CSRF mantienen los contratos previos.
+
+## UI-03: feedback efímero
+
+`features/notifications/notifications.tsx` contiene `NotificationProvider` y el hook `useNotify`. El provider se monta una vez dentro de `Providers`, por encima de la sesión, y mantiene las notificaciones exclusivamente en memoria. Reutiliza Lucide y Motion ya instalados; los estilos están encapsulados en `notifications.module.css` y utilizan los tokens de ambos temas.
+
+### API y ciclo de vida
+
+```tsx
+const notify = useNotify();
+notify.success("Partido publicado.");
+notify.error("Lo sentimos! No pudimos completar la operación. Intente nuevamente.");
+notify.warning("Quedan pocos lugares.");
+notify.info("Su perfil está incompleto.");
+notify.success("Perfil actualizado.", { id: eventId, duration: 5000 });
+```
+
+Los ejemplos muestran la API disponible; la primera y única integración actual es logout. Las duraciones centralizadas son 4000 ms para success/info, 5000 ms para warning y 6000 ms para error. `duration` acepta un override positivo y finito cuando esté justificado. Se muestran hasta tres notificaciones activas; una cuarta descarta la más antigua, con una salida breve de 150 ms y sin cola.
+
+`id` permite deduplicar la repetición accidental de un evento mientras esté activo, incluidos efectos en Strict Mode. Los eventos legítimos usan IDs distintos o dejan que se genere uno; no se deduplica por texto. Cada instancia tiene una clave interna independiente para evitar que un aviso saliente cierre uno nuevo con el mismo ID.
+
+Un reloj por aviso actualiza cada 50 ms tanto la barra descendente como el vencimiento. Hover y foco de teclado pausan el tiempo; sólo se reanuda cuando terminan ambos, desde el tiempo restante. El cierre manual elimina inmediatamente el aviso activo e inicia su salida breve. Los temporizadores se limpian al desmontar.
+
+### Presentación y accesibilidad
+
+La pila tiene posición fija superior derecha desde 700 px; en mobile ocupa el ancho disponible con márgenes de 16 px y separación superior de 88 px más safe area. No modifica el layout y permite interactuar fuera de las tarjetas. Cada variante comunica su estado con icono, texto y tratamiento visual. Error usa `role="alert"`; las demás variantes, `role="status"`. Los iconos son decorativos y la variante tiene una etiqueta para lectores de pantalla.
+
+El cierre ofrece un objetivo de 44 px, `aria-label="Cerrar notificación"` y foco visible. No se toma el foco automáticamente. `prefers-reduced-motion` elimina el desplazamiento y reduce la transición a cero; la barra y el vencimiento siguen funcionando con el mismo reloj.
+
+### Integración de logout y límites
+
+Después del POST de logout, la limpieza de caché y la consulta de sesión existentes, se emite `notify.success("Sesión cerrada correctamente.", { id: "session-logout" })`. Antes, ese texto quedaba en `feedback` de sesión y Shell lo mostraba sin vencimiento al navegar. Ahora se emite directamente desde el handler exitoso, sin flash pendiente, query params, cookies ni storage. Navegar no reconstruye el evento; recargar o remontar el provider descarta las notificaciones. En Home, la sesión visitante muestra la landing; las rutas protegidas conservan su navegación existente.
+
+Los errores de logout y el feedback de renovación conservan su presentación inline. Los Toasts no reemplazan validaciones de campos ni confirmaciones que requieren una decisión. No cambian endpoints, payloads, permisos, CSRF, credenciales, revocación, cookies ni refresh; no hay cambios backend, migraciones o seeds específicos.
+
+### Pruebas
+
+`features/notifications/notifications.test.tsx` cubre variantes, límite activo, duraciones y override, barra, pausa combinada, cierre, deduplicación en Strict Mode, eventos legítimos y remontaje. Aísla la animación de Motion para verificar el reloj propio. `features/auth/logout-feedback.test.tsx` cubre éxito único, navegación y remontaje sin reconstrucción, fallo seguro y conservación del POST con credenciales y CSRF. La carrera de reutilización de ID durante la salida se verificó mediante revisión de código. UI-03 reserva la comprobación visual al desarrollador y no agrega capturas, regresión visual ni Playwright.

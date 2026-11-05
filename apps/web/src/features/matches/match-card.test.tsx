@@ -37,4 +37,5 @@ it.each<{ sport: MatchSport; sportFormat: MatchSportFormat | null; label: string
   expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: baseMatch.venueName })).toBeInTheDocument();
   expect(screen.getByText("2 lugares disponibles")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: `Ver partido en ${baseMatch.venueName}` })).toHaveAttribute("href", `/partidos/${baseMatch.id}`);
 });

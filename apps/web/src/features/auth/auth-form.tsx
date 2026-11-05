@@ -37,6 +37,6 @@ export function AuthForm({ mode, success }: { mode: "login" | "register"; succes
       {registerMode ? <div className="field"><Controller name="primaryLocationId" control={control} render={({ field }) => <LocationCombobox id="primaryLocationId" label="Localidad principal" value={field.value} onChange={field.onChange} invalid={!!errors.primaryLocationId} describedBy={errors.primaryLocationId ? "location-error" : undefined} disabled={isSubmitting} />} />{errors.primaryLocationId ? <p id="location-error" className="error">{errors.primaryLocationId.message}</p> : null}</div> : null}
       {error ? <p role="alert" className="error auth-form-error">{error}</p> : null}
       <button className="button wide" disabled={isSubmitting || (registerMode && !locations.data?.length)}>{isSubmitting ? "Un momento…" : registerMode ? "Crear cuenta" : "Ingresar"}</button>
-    </form><footer className="auth-form-footer"><p>{registerMode ? <>Ya tenés cuenta? <Link href="/auth/login">Ingresar</Link></> : <>Todavía no tenés cuenta? <Link href="/auth/register">Crear cuenta</Link></>}</p>{!registerMode ? <Link className="auth-form-recovery" href="/auth/forgot-password">Olvidé mi contraseña</Link> : null}</footer>
+    </form><footer className="auth-form-footer"><p>{registerMode ? <>Ya tenés cuenta? <Link href="/auth/login">Ingresar</Link></> : <>No tenés cuenta? <Link href="/auth/register">Registrate</Link></>}</p>{!registerMode ? <Link className="auth-form-recovery" href="/auth/forgot-password">Olvidé mi contraseña</Link> : null}</footer>
   </section>;
 }

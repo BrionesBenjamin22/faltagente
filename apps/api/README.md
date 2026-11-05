@@ -20,6 +20,8 @@ La primera vertical slice agrega autenticación local, cookies seguras, CSRF, se
 
 MVP-01 generaliza la identidad deportiva y agrega `GET /api/v1/sports`. Ver [MULTISPORT.md](MULTISPORT.md) para modelos, migración, seeds y contratos. MVP-02 extiende el listado con filtros combinables por deporte, formato opcional y fecha local, conservando la localidad obligatoria y nueve resultados por página. Ver [DISCOVERY.md](DISCOVERY.md) para reglas, validaciones y contrato.
 
+MVP-03 agrega `GET /api/v1/matches/:id`, un detalle público con organizador mínimo y representación de los tres estados del partido. Ver [MATCH-DETAIL.md](MATCH-DETAIL.md) para contrato, visibilidad y pruebas.
+
 ## Configuración
 
 Copiar los placeholders de `../../.env.example` a un archivo `.env` local. No versionar valores reales. Además de las variables HTTP siguientes, la slice requiere `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET` y `FRONTEND_URL`; los secretos deben ser distintos y tener al menos 32 caracteres. Resend requiere `RESEND_API_KEY` y `EMAIL_FROM` para la entrega real de emails; ambas son obligatorias en producción.
