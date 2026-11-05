@@ -54,7 +54,7 @@ export class UsersService {
           where: {
             id: dto.primaryLocationId,
             active: true,
-            type: { in: ['LOCALIDAD', 'BARRIO', 'ZONA'] },
+            type: { in: ['CIUDAD', 'LOCALIDAD', 'BARRIO', 'ZONA'] },
           },
           select: { id: true, name: true },
         });

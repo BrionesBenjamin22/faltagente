@@ -20,6 +20,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
   let db: PrismaService;
   let tolosa: string;
   let cityBell: string;
+  let laPlata: string;
   let footballSportId: string;
   let fiveFormatId: string;
   let sevenFormatId: string;
@@ -79,6 +80,16 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
       locationIds.push(location.id);
     }
     [tolosa, cityBell] = locationIds;
+    const ciudad = await db.location.create({
+      data: {
+        name: 'La Plata test',
+        type: 'CIUDAD',
+        active: true,
+      },
+    });
+
+    laPlata = ciudad.id;
+    locationIds.push(laPlata);
   });
 
   afterAll(async () => {
@@ -112,6 +123,36 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
       expect(cookie).toContain('Path=/');
     }
     expect((await browser.send('get', '/auth/session')).body.user.id).toBe(id);
+  });
+  
+  it('permite registrar usuarios con una ciudad activa', async () => {
+    const browser = new Browser();
+    await browser.prepare();
+
+    const email = `ciudad-${randomUUID()}@example.test`;
+
+    const listado = await browser.send('get', '/locations');
+
+    expect(listado.status).toBe(200);
+    expect(JSON.stringify(listado.body)).toContain(laPlata);
+
+    const response = await browser.send('post', '/auth/register', {
+      name: 'Usuario Ciudad',
+      email,
+      password,
+      primaryLocationId: laPlata,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.user.primaryLocation.id).toBe(laPlata);
+
+    userIds.push(response.body.user.id);
+
+    const user = await db.user.findUniqueOrThrow({
+      where: { id: response.body.user.id },
+    });
+
+    expect(user.primaryLocationId).toBe(laPlata);
   });
 
   it('rejects missing CSRF, hostile Origin, invalid locality and injected identity', async () => {

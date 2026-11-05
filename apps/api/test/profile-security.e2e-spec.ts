@@ -9,6 +9,7 @@ import { configureApplication } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.module.js';
 import { AuthService } from '../src/auth/auth.service.js';
 import { EmailService } from '../src/auth/email.service.js';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 describe('profile and password security against real PostgreSQL', { timeout: 30_000 }, () => {
   let app: INestApplication;
@@ -47,9 +48,17 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
   beforeAll(async () => {
     const url = new URL(process.env.DATABASE_URL!);
     if (!['localhost', '127.0.0.1'].includes(url.hostname) || !/^\/hyt_slice(?:_test)?$/.test(url.pathname)) throw new Error('Tests require isolated local database.');
-    const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(EmailService)
-      .useValue({ send: async (to: string, kind: string, token: string) => { mails.push({ to, kind, token }); } }).compile();
-    app = module.createNestApplication(); configureApplication(app); await app.init(); db = app.get(PrismaService);
+    const module = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+      .overrideProvider(EmailService)
+      .useValue({
+        send: async (to: string, kind: string, token: string) => {
+          mails.push({ to, kind, token });
+        },
+      })
+      .compile();
+    app = module.createNestApplication(); configureApplication(app); await app.init(); db = app.get(PrismaService); vi.spyOn(ThrottlerGuard.prototype, 'canActivate').mockResolvedValue(true);
     for (const name of ['Profile Tolosa', 'Profile City Bell']) locationIds.push((await db.location.create({ data: { name, type: 'LOCALIDAD' } })).id);
   });
   afterAll(async () => {
@@ -61,6 +70,41 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
       await db.location.deleteMany({ where: { id: { in: locationIds } } });
     }
     await app?.close();
+  });
+
+    it('permite actualizar el perfil con una ciudad activa', async () => {
+    const ciudad = await db.location.create({
+      data: {
+        name: 'La Plata profile test',
+        type: 'CIUDAD',
+        active: true,
+      },
+    });
+
+    locationIds.push(ciudad.id);
+
+    const browser = new Browser();
+    const user = await fixture(browser);
+
+    const perfil = await browser.send('patch', '/users/me', {
+      primaryLocationId: ciudad.id,
+    });
+
+    expect(perfil.status).toBe(200);
+    expect(perfil.body.primaryLocation.id).toBe(ciudad.id);
+
+    const ubicacion = await browser.send('patch', '/users/me/location', {
+      primaryLocationId: ciudad.id,
+    });
+
+    expect(ubicacion.status).toBe(200);
+    expect(ubicacion.body.primaryLocation.id).toBe(ciudad.id);
+
+    const actualizado = await db.user.findUniqueOrThrow({
+      where: { id: user.id },
+    });
+
+    expect(actualizado.primaryLocationId).toBe(ciudad.id);
   });
 
   it('updates only requested profile differences and paginates private field history by three', async () => {
@@ -134,7 +178,15 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
       const stale = new Browser(); await stale.prepare();
       const pending = stale.send('post', '/auth/login', { email: user.email, password });
       try {
-        await reachedPromise;
+        await Promise.race([
+          reachedPromise,
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('El login no alcanzó createSession')),
+              5000,
+            ),
+          ),
+        ]);
         if (kind === 'reset') {
           await browser.send('post', '/auth/password/forgot', { email: user.email });
           await vi.waitFor(() => expect(mails.some(mail => mail.to === user.email && mail.kind === 'RESET')).toBe(true));
