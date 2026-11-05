@@ -8,7 +8,7 @@ export class LocationsService {
   async list() {
     return {
       items: await this.db.location.findMany({
-        where: { active: true, type: { in: ['LOCALIDAD', 'BARRIO', 'ZONA'] } },
+        where: { active: true, type: { in: ['CIUDAD', 'LOCALIDAD', 'BARRIO', 'ZONA'] } },
         select: { id: true, name: true, type: true, parentId: true },
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
         take: 100,

@@ -108,7 +108,7 @@ export class UsersService {
         where: {
           id,
           active: true,
-          type: { in: ['LOCALIDAD', 'BARRIO', 'ZONA'] },
+          type: { in: ['CIUDAD', 'LOCALIDAD', 'BARRIO', 'ZONA'] },
         },
       }))
     )
