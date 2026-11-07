@@ -36,7 +36,7 @@ tests
 build
 ```
 
-Agregar integration tests cuando ya existan y sean viables dentro del pipeline.
+Ejecutar todas las suites existentes de integración PostgreSQL/PostGIS y navegador Chromium. Construir ambas imágenes Docker sin publicarlas. Usar bases descartables `falta_gente_test`; no conectar las suites a las bases habituales.
 
 Utilizar caché de dependencias cuando sea apropiado, sin agregar complejidad innecesaria.
 
@@ -46,6 +46,12 @@ Utilizar caché de dependencias cuando sea apropiado, sin agregar complejidad in
 - cualquier validación fallida bloquea el pipeline;
 - frontend y backend son validados;
 - workflow no utiliza secretos hardcodeados.
+
+## Implementación y aceptación pendiente
+
+La implementación se realiza en `feature/ci-github-actions`, con PR hacia `dev`. El workflow `ci.yml` define `quality`, `integration`, `browser`, `docker` y el check agregado `ci-required`; los disparadores también cubren push a `dev`/`main` y ejecución manual. Ver [CI](../../CI.md).
+
+El estado permanece pendiente hasta registrar una ejecución real exitosa en GitHub y probar un fallo deliberado y su corrección en un PR, sin integrar esa regresión. Verificar que un job omitido no apruebe el gate y que nuevos commits cancelen la ejecución previa del PR. Los resultados locales deben reportarse separadamente; no sustituyen la aceptación remota.
 
 ---
 

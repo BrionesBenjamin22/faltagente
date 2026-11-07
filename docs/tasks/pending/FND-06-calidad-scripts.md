@@ -50,6 +50,10 @@ Configurar linting y formatting de forma consistente.
 - un fallo en frontend o backend hace fallar el comando correspondiente;
 - no existen pasos manuales ocultos para validar el proyecto.
 
+## Estado de conciliación con CI
+
+Los comandos raíz de lint, tipos, unitarios, integración, navegador y build ya existen. La CI completa su preparación automática con bases aisladas y documenta sus requisitos en [CI](../../CI.md). El estado permanece pendiente hasta consolidar los resultados de validación y los criterios de esta tarea; la existencia de scripts no demuestra por sí sola que todas las verificaciones pasen.
+
 ---
 
 ## Reglas de ejecución

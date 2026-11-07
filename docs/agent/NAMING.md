@@ -16,11 +16,13 @@ El cambio de marca no migra sesiones ni datos. Estos identificadores heredados s
 | JWT `issuer=hyt-api`, `audience=hyt-web` | Validar tokens ya emitidos. |
 | Prefijo determinista del seed `hyt:` | Conservar UUIDs y evitar duplicar datos al repetir el seed. |
 | Preferencia `hyt-theme-v1` y evento `hyt-theme-change` | Mantener la preferencia guardada y sincronización del tema. |
-| Usuario/base de ejemplo `hyt`, bases aisladas `hyt_slice` y `hyt_slice_test` | Mantener configuración y protecciones de las suites existentes. |
+| Usuario/base de desarrollo `hyt` | Mantener la configuración local persistida existente. Las bases de prueba nuevas usan `falta_gente_test`. |
 
 Los nombres concretos registrados en evidencia histórica de Docker se conservan como hechos de esas ejecuciones. Los comandos operativos vigentes usan la nueva convención; la evidencia histórica no es una plantilla de configuración.
 
 ## Identidad Docker de desarrollo
+
+La base y el usuario de pruebas se llaman `falta_gente_test`, por decisión explícita del usuario. Se usan guiones bajos para facilitar su uso como identificadores PostgreSQL. Las protecciones de las suites admiten exclusivamente ese nombre en loopback; no mantienen aliases de nombres anteriores. Este cambio no renombra bases persistidas ni modifica sesiones, JWT o identificadores de seed. Consultar [CI](../CI.md).
 
 El archivo base declara `name: falta-gente`. Los contenedores usan ese proyecto sin requerir `-p`; el volumen lógico `postgres` se crea como `falta-gente_postgres`. Las imágenes siguen siendo `falta-gente-web:local` y `falta-gente-api:local`.
 

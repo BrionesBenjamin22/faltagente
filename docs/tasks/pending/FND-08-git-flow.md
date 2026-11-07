@@ -43,11 +43,12 @@ producción
 ## Tareas
 
 - documentar flujo de ramas;
-- renombrar la rama inicial `master` a `main` y actualizar el remoto de forma coordinada;
+- verificar los nombres `dev` y `main`, ya renombrados por el usuario;
 - tratar `main` como producción estable;
 - utilizar `dev` como rama de integración;
 - establecer PR obligatorio;
-- requerir CI exitoso antes del merge cuando la configuración del repositorio lo permita.
+- requerir `ci-required` exitoso y rama actualizada antes del merge, con restricciones también para administradores;
+- bloquear force push y eliminación en `dev` y `main`; no exigir aprobaciones adicionales inicialmente.
 
 No realizar desarrollo directo sobre `main`.
 
@@ -56,6 +57,12 @@ No realizar desarrollo directo sobre `main`.
 - flujo queda documentado;
 - agentes pueden identificar claramente rama destino;
 - las reglas coinciden con `AGENTS.md`.
+
+## Estado de implementación
+
+El flujo acordado es `feature/* → dev → main`; la rama actual de esta entrega es `feature/ci-github-actions`. El usuario realizó el renombrado. La guía [CI](../../CI.md) documenta las reglas de protección y su verificación.
+
+La tarea permanece pendiente mientras no se comprueben el check real en un PR y las protecciones de ambas ramas en GitHub. Registrar primero una ejecución de `ci-required`, luego seleccionarlo como obligatorio. La configuración del workflow no equivale a configurar la protección remota. No modificar remotos, crear commits, publicar ramas ni hacer merges automáticamente.
 
 ---
 
