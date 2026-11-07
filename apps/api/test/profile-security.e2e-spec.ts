@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
@@ -45,8 +46,7 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     return user;
   }
   beforeAll(async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || !/^\/hyt_slice(?:_test)?$/.test(url.pathname)) throw new Error('Tests require isolated local database.');
+    isolatedDatabaseUrl(process.env.DATABASE_URL);
     const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(EmailService)
       .useValue({ send: async (to: string, kind: string, token: string) => { mails.push({ to, kind, token }); } }).compile();
     app = module.createNestApplication(); configureApplication(app); await app.init(); db = app.get(PrismaService);

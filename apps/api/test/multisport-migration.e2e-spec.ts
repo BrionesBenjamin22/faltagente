@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -6,10 +7,7 @@ import { PrismaClient } from '@prisma/client';
 
 describe('legacy football migration on isolated PostgreSQL schema', () => {
   it('maps FIVE/SIX/SEVEN without changing Match data or participation constraints', { timeout: 90_000 }, async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') {
-      throw new Error('Migration test requires isolated local hyt_slice_test.');
-    }
+    const url = isolatedDatabaseUrl(process.env.DATABASE_URL);
     const schema = `mvp01_${randomUUID().replaceAll('-', '')}`;
     url.searchParams.set('schema', schema);
     const db = new PrismaClient({ datasources: { db: { url: url.toString() } } });
