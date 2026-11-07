@@ -2,24 +2,26 @@ import { test, expect } from '@playwright/test';
 import { chooseLocation } from './support/ui';
 
 // Public, read-only suite: deliberately uses no auth/Prisma/email harness.
-const titles = ['Elegí dónde jugar', 'Anotate a un partido', 'Sumá a tus compañeros'];
+const titles = ['Elegí dónde jugar', 'Encontrá un partido', 'Sumá a tus compañeros'];
 const descriptions = [
-  'Podrás buscar partidos en las localidades disponibles y consultar todo lo que necesitás saber: cancha, fecha, horario, formato, precio y lugares libres.',
-  'Tenés ganas de jugar? Elegí un partido y reservá tu lugar, no necesitás conocer a los jugadores para participar.',
+  'Explorá partidos por localidad y deporte. Consultá el lugar, la fecha, el horario, el formato, el precio y los lugares libres.',
+  'Tenés ganas de jugar. Elegí un partido y reservá tu lugar. No necesitás conocer al resto de los jugadores.',
   'Si vas con amigos, podrás reservar también sus lugares en el mismo partido. Vos te anotás y sumás a los que se prenden.',
 ];
 
 test('visitor pages preserve hero and CTAs with the shared public navigation', async ({ page }) => {
+  // UI-02 keeps public header navigation on desktop; mobile is covered separately.
+  await page.setViewportSize({ width: 1024, height: 812 });
   const mutations: string[] = [];
   page.on('request', request => {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method())) mutations.push(request.url());
   });
   await page.goto('/');
-  await expect(page.getByText('Futbol en La Argentina', { exact: true })).toBeVisible();
+  await expect(page.getByText('Partidos en Argentina', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Te falta uno.A alguien le falta partido.');
   await expect(page.getByText('Explorá los partidos sin crear una cuenta.', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Partidos', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Ingresar', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Cuenta', exact: true }).getByRole('link', { name: 'Ingresar', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Crear cuenta', exact: true }).last()).toHaveAttribute('href', '/auth/register');
   await page.getByRole('link', { name: 'Buscar un partido', exact: true }).click();
   await expect(page).toHaveURL(/\/partidos$/);
@@ -33,7 +35,7 @@ test('visitor pages preserve hero and CTAs with the shared public navigation', a
   await expect(page.locator('main')).not.toContainText('¿');
   await page.goto('/auth/login');
   await expect(page.getByRole('link', { name: 'Partidos', exact: true })).toHaveCount(0);
-  await expect(page.getByText('Todavía no tenés cuenta?', { exact: false })).toBeVisible();
+  await expect(page.getByText('No tenés cuenta?', { exact: false })).toBeVisible();
   await expect(page.locator('main')).not.toContainText('¿');
   expect(mutations).toEqual([]);
 });
