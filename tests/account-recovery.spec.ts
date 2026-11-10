@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { test, expect, api, prismaFixture, hashFixturePassword } from './support/harness';
-import { chooseLocation, expectHomeLocation } from './support/ui';
+import { chooseLocation, expectHomeLocation, openAccountMenu } from './support/ui';
 
 const password = 'Account browser password 123!';
 const newPassword = 'New account browser password 456!';
@@ -40,7 +40,12 @@ async function register(page: Page) {
 test('landing offers registration and public discovery without an authenticated session', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
-  await expect(page.getByRole('link', { name: 'Crear cuenta', exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Cuenta', exact: true })).toBeHidden();
+  await page.getByRole('link', { name: 'Ingresar', exact: true }).click();
+  await page.getByRole('link', { name: 'Registrate', exact: true }).click();
+  await expect(page).toHaveURL(/\/auth\/register$/);
+  await expect(page.getByLabel('Nombre', { exact: true })).toBeVisible();
+  await page.goto('/');
   await expect(page.getByRole('contentinfo')).toContainText('Hecho en Argentina para los que siempre buscan uno más.');
   await page.screenshot({ path: '.runtime/iteration2-landing-light.png', fullPage: true, animations: 'disabled' });
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -57,7 +62,7 @@ test('profile sends real differences and password change revokes every session a
   const email = await register(page);
   const patches: object[] = [];
   page.on('request', request => { if (request.method() === 'PATCH' && new URL(request.url()).pathname === '/api/v1/users/me') patches.push(request.postDataJSON()); });
-  await page.getByRole('button', { name: 'Mi cuenta', exact: true }).click();
+  await openAccountMenu(page);
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Mi perfil', exact: true })).toBeVisible();
   await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute('readonly', '');
@@ -179,7 +184,7 @@ test('light, dark and system themes persist without authentication storage and r
 
 test('revoked account cache cannot expose its profile or history to the next login', async ({ page }) => {
   const firstEmail = await register(page);
-  await page.getByRole('button', { name: 'Mi cuenta', exact: true }).click();
+  await openAccountMenu(page);
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Private account A');
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
@@ -211,7 +216,7 @@ test('revoked account cache cannot expose its profile or history to the next log
       if (route.request().method() === 'GET') await profileBarrier;
       await route.continue();
     });
-    await page.getByRole('button', { name: 'Mi cuenta', exact: true }).click();
+    await openAccountMenu(page);
     await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
     try {
       await expect(page.getByText('Cargando perfil…', { exact: true })).toBeVisible();

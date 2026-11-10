@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from '../../apps/api/test/isolated-database';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -11,8 +12,7 @@ const requireApi = createRequire(resolve('apps/api/package.json'));
 
 export function isolatedDatabase() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for the isolated browser test harness.');
-  const database = new URL(process.env.DATABASE_URL);
-  if (!['localhost', '127.0.0.1'].includes(database.hostname) || !/^\/hyt_slice(?:_test)?$/.test(database.pathname)) throw new Error('Unsafe fixture database');
+  isolatedDatabaseUrl(process.env.DATABASE_URL);
   return process.env.DATABASE_URL;
 }
 

@@ -29,9 +29,9 @@ PostgreSQL + PostGIS
 Despliegue:
 
 ```text
-Frontend → Vercel
-Backend  → Render
-Database → PostgreSQL administrado
+Frontend → Azure (servicio por definir)
+Backend  → Azure (servicio por definir)
+Database → PostgreSQL administrado (servicio por definir)
 ```
 
 El backend es un monolito modular.
@@ -542,7 +542,7 @@ producción
 
 No desarrollar directamente sobre `main`.
 
-El repositorio parte temporalmente de `master`. Su migración al flujo anterior pertenece a `FND-08`; no renombrar ramas o modificar el remoto antes de esa tarea.
+El usuario renombró las ramas a `dev` y `main`. Cada implementación se realiza en una rama `feature/*` creada desde `dev` y se integra mediante PR. No renombrar ramas ni modificar el remoto automáticamente. La aceptación de las protecciones remotas corresponde a `FND-08`.
 
 Los PR deben tener CI exitoso antes de merge.
 
@@ -550,17 +550,17 @@ Los PR deben tener CI exitoso antes de merge.
 
 ## 23. CI
 
-GitHub Actions debe ejecutar como mínimo:
+GitHub Actions ejecuta en PR hacia `dev` y `main`, push a ambas ramas y ejecución manual:
 
 ```text
-pnpm install
-lint
-typecheck
-tests
-build
+quality: lint → typecheck → unitarios → build
+integration: PostgreSQL/PostGIS → migraciones → integración API
+browser: builds → servicios reales → todas las suites Chromium
+docker: construir imágenes web y API sin publicar
+ci-required: exigir éxito de todos los jobs
 ```
 
-El merge debe bloquearse si falla una verificación requerida.
+La instalación usa el lockfile congelado, Node de `.nvmrc` y pnpm de `packageManager`. Las suites usan bases descartables `falta_gente_test`; no acceden a bases habituales ni a producción. El merge requiere PR, rama actualizada y check `ci-required` exitoso, configurados en GitHub y aplicados también a administradores. Las protecciones deben verificarse remotamente antes de declarar el cierre. Consultar [CI](../CI.md).
 
 ---
 
@@ -575,7 +575,7 @@ production
 
 No crear staging hasta que exista una necesidad real.
 
-Vercel Preview Deployments pueden utilizarse para revisar cambios frontend antes de producción.
+No se incorporan entornos preview en esta etapa. Su necesidad y soporte en Azure se decidirán al definir CD.
 
 ---
 
@@ -631,17 +631,13 @@ Consultar `SECURITY.md`.
 
 ## 28. Deploy
 
-### Frontend
+### Frontend y backend
 
-Vercel.
-
-### Backend
-
-Render.
+Azure es el destino acordado. Los servicios concretos y el mecanismo de CD se definen después de completar CI.
 
 ### Database
 
-PostgreSQL administrado.
+PostgreSQL administrado; servicio concreto por definir en la etapa Azure.
 
 El deploy de aplicación puede integrarse con Git.
 

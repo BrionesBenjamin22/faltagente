@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
@@ -27,10 +28,7 @@ describe('public multisport discovery filters', () => {
     request(app.getHttpServer()).get('/api/v1/matches').query({ locationId, ...filters });
 
   beforeAll(async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') {
-      throw new Error('Discovery tests require isolated local hyt_slice_test.');
-    }
+    isolatedDatabaseUrl(process.env.DATABASE_URL);
     const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = module.createNestApplication();
     configureApplication(app);

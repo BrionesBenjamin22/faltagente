@@ -257,7 +257,7 @@ Implementar:
 GET /health
 ```
 
-Debe poder utilizarse desde Render.
+Debe poder utilizarse desde la infraestructura Azure que se defina para CD.
 
 ---
 
@@ -293,16 +293,16 @@ install
 → build
 ```
 
-El pipeline debe fallar ante cualquier paso fallido.
+El pipeline debe fallar ante cualquier paso fallido. También ejecuta integración con PostgreSQL/PostGIS, todas las suites de navegador existentes y construcción de imágenes Docker. `ci-required` agrega los resultados y debe configurarse como obligatorio en `dev` y `main`. Consultar [CI](../CI.md) para servicios, datos aislados y aceptación remota.
 
 ---
 
 # Deploy
 
 ```text
-Frontend → Vercel
-Backend  → Render
-Database → PostgreSQL administrado
+Frontend → Azure (servicio por definir)
+Backend  → Azure (servicio por definir)
+Database → PostgreSQL administrado (servicio por definir)
 ```
 
 No introducir infraestructura adicional sin requerimiento.
