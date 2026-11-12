@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/features/auth/session";
 import { ApiError, errorMessage } from "@/lib/http";
-import { matchesService } from "./service";
+import { matchesService } from "../service";
 
 const auditDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" });
 const retry = (attempt: number, error: Error) => !(error instanceof ApiError && error.status < 500) && attempt < 1;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Match } from "./service";
+import type { Match } from "./types";
 import { matchDateFormat, matchPriceFormat } from "./format";
 
 export function MatchCard({ match }: { match: Match }) {

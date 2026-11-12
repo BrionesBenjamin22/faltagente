@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { validLocalDate } from "./discovery-state";
-import type { CreateMatchInput } from "./service";
+import { validLocalDate } from "../local-date";
+import type { CreateMatchInput } from "../types";
 
 export const createMatchSchema = z.object({
   sportId: z.string().uuid("Seleccione un deporte."),

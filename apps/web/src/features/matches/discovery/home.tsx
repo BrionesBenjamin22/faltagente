@@ -7,14 +7,15 @@ import { useSession } from "@/features/auth/session";
 import { authService } from "@/features/auth/service";
 import { useLocations } from "@/features/locations/hooks";
 import { errorMessage } from "@/lib/http";
-import { matchesService, type MatchFilters, type MatchPage } from "./service";
+import { matchesService } from "../service";
+import type { MatchFilters, MatchPage } from "../types";
 import { Landing } from "@/features/landing/landing";
 import { DiscoveryFilters } from "./discovery-filters";
 import { parseDiscovery, useDiscoverySearch, writeDiscovery } from "./discovery-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SessionLoading } from "@/features/auth/session-loading";
-import { MatchesLoading } from "./matches-loading";
-import { MatchCard } from "./match-card";
+import { MatchesLoading } from "../matches-loading";
+import { MatchCard } from "../match-card";
 import styles from "./discovery-filters.module.css";
 
 export function Home({ success, discovery = false }: { success?: string; discovery?: boolean }) {

@@ -40,7 +40,12 @@ async function register(page: Page) {
 test('landing offers registration and public discovery without an authenticated session', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
-  await expect(page.getByRole('link', { name: 'Crear cuenta', exact: true }).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Ingresar', exact: true }).click();
+  await expect(page).toHaveURL(/\/auth\/login$/);
+  await page.getByRole('link', { name: 'Registrate', exact: true }).click();
+  await expect(page).toHaveURL(/\/auth\/register$/);
+  await expect(page.getByRole('button', { name: 'Crear cuenta', exact: true })).toBeVisible();
+  await page.goto('/');
   await expect(page.getByRole('contentinfo')).toContainText('Hecho en Argentina para los que siempre buscan uno más.');
   await page.screenshot({ path: '.runtime/iteration2-landing-light.png', fullPage: true, animations: 'disabled' });
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -54,6 +59,8 @@ test('landing offers registration and public discovery without an authenticated 
 });
 
 test('profile sends real differences and password change revokes every session and returns to login', async ({ page, context, browser }) => {
+  // The account header navigation is available from the sm breakpoint.
+  await page.setViewportSize({ width: 1280, height: 900 });
   const email = await register(page);
   const patches: object[] = [];
   page.on('request', request => { if (request.method() === 'PATCH' && new URL(request.url()).pathname === '/api/v1/users/me') patches.push(request.postDataJSON()); });
@@ -178,6 +185,7 @@ test('light, dark and system themes persist without authentication storage and r
 });
 
 test('revoked account cache cannot expose its profile or history to the next login', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   const firstEmail = await register(page);
   await page.getByRole('button', { name: 'Mi cuenta', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();

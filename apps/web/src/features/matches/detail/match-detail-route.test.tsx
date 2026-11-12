@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/http";
-import { matchesService } from "./service";
+import { matchesService } from "../service";
 import MatchPage from "@/app/partidos/[id]/page";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

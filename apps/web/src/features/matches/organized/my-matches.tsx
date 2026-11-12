@@ -8,10 +8,10 @@ import { useSession } from "@/features/auth/session";
 import { SessionLoading } from "@/features/auth/session-loading";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ApiError, errorMessage } from "@/lib/http";
-import { matchesService } from "./service";
-import type { OrganizedMatchFilter } from "./service";
-import { MatchCard } from "./match-card";
-import { MatchesLoading } from "./matches-loading";
+import { matchesService } from "../service";
+import type { OrganizedMatchFilter } from "../types";
+import { MatchCard } from "../match-card";
+import { MatchesLoading } from "../matches-loading";
 
 const filters: { value: OrganizedMatchFilter; label: string }[] = [{ value: "upcoming", label: "Próximos" }, { value: "past", label: "Pasados" }, { value: "cancelled", label: "Cancelados" }];
 

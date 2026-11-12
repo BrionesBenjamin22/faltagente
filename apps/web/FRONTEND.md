@@ -23,7 +23,7 @@ Los enlaces nuevos abiertos sobre la misma pantalla se capturan también mediant
 
 ## Módulos y contratos
 
-`features/auth/service.ts` define DTOs de sesión y usuario y las mutaciones de autenticación. `features/locations/service.ts` consume `GET /locations` (`{items}`) y `features/matches/service.ts` consume `GET /matches?locationId=<uuid>&page=<n>` (`{items,total,page,pageSize,hasMore}`). El backend conserva las reglas del listado y páginas de 9; el cliente ofrece carga progresiva. Fechas se muestran en `America/Argentina/Buenos_Aires`, precios en ARS.
+`features/auth/types.ts` define los contratos de sesión y usuario; `features/auth/service.ts` conserva las mutaciones de autenticación. `features/locations/service.ts` consume `GET /locations` (`{items}`) y `features/matches/service.ts` consume `GET /matches?locationId=<uuid>&page=<n>` (`{items,total,page,pageSize,hasMore}`). El backend conserva las reglas del listado y páginas de 9; el cliente ofrece carga progresiva. Fechas se muestran en `America/Argentina/Buenos_Aires`, precios en ARS.
 
 MVP-01 generaliza el contrato de partido: `sport` contiene `{id,name,slug}` y `sportFormat` contiene `{id,name,slug}` o `null`. `MatchCard` muestra el nombre del deporte y, cuando existe, el formato recibido del backend, seguido de la localidad; no mantiene enums ni mapas de formatos deportivos. El resto de los campos públicos del partido se conserva. MVP-02 agrega descubrimiento por deporte, formato opcional y fecha local; `features/sports/service.ts` y `useSports` consumen `GET /sports` como única fuente del catálogo.
 
@@ -78,7 +78,7 @@ Variables públicas: `NEXT_PUBLIC_API_URL` incluye `/api/v1`, por defecto `http:
 
 `pnpm --filter web lint`, `typecheck`, `test`, `build`. Vitest/RTL cubren registro, ubicación inicial, cambio temporal, localidad faltante, perfil e historial, aislamiento de caché entre identidades y protección de tokens de email; HTTP cubre credenciales, CSRF fresco y ausencia de renovación automática. La persistencia real, recuperación, temas y cookies del navegador se verifican en tests de integración/E2E de la slice.
 
-`features/matches/match-card.test.tsx` verifica la presentación de Fútbol/Fútbol 5, Pádel/Dobles y Vóley sin formato. El fixture de partidos de `slice.test.tsx` utiliza el mismo contrato anidado sin modificar los escenarios de cuenta, sesión o localidad.
+`features/matches/match-card.test.tsx` verifica la presentación de Fútbol/Fútbol 5, Pádel/Dobles y Vóley sin formato. El fixture de partidos de `src/test/integration/vertical-slice.test.tsx` utiliza el mismo contrato anidado sin modificar los escenarios de cuenta, sesión o localidad.
 
 ## MVP-02: descubrimiento multideporte
 
@@ -86,7 +86,7 @@ Variables públicas: `NEXT_PUBLIC_API_URL` incluye `/api/v1`, por defecto `http:
 
 `matchesService.list(locationId,page,filters?)` envía únicamente `sportId`, `sportFormatId` y `date` presentes. TanStack Query identifica cada combinación mediante `matches,locationId,sportId,sportFormatId,date`; la página vive en `pageParam`. Al cambiar filtros, localidad o volver por el historial se conserva como máximo la primera página de la combinación de destino, evitando mezclar resultados o restaurar páginas progresivas anteriores. Las siguientes páginas siguen cargándose de nueve en nueve.
 
-`discovery-state.ts` conserva filtros como UUID en query params `location`, `sport`, `format` y fecha calendario `date`; mantiene el pathname actual y los parámetros ajenos (por ejemplo `success`). Usa History API y escucha `popstate`, sin reemplazar el router ni agregar rutas. Ignora UUIDs o fechas de calendario inválidos; la API vuelve a validar relaciones y parámetros. Hoy/Mañana se calculan explícitamente en `America/Argentina/Buenos_Aires` independientemente de la zona del navegador. Elegir fecha usa un input nativo, sin calendario adicional.
+`features/matches/discovery/discovery-state.ts` conserva filtros como UUID en query params `location`, `sport`, `format` y fecha calendario `date`; mantiene el pathname actual y los parámetros ajenos (por ejemplo `success`). Usa History API y escucha `popstate`, sin reemplazar el router ni agregar rutas. Ignora UUIDs o fechas de calendario inválidos; la API vuelve a validar relaciones y parámetros. Hoy/Mañana se calculan explícitamente en `America/Argentina/Buenos_Aires` independientemente de la zona del navegador. Elegir fecha usa un input nativo, sin calendario adicional.
 
 Un resultado vacío con filtros consulta de forma diferida el total de la localidad sin filtros, con una clave independiente `matches-baseline`: permite distinguir una zona sin partidos de una combinación sin resultados. Ofrece Limpiar filtros conservando localidad, o Cambiar localidad. No oculta errores de esa consulta como un resultado vacío.
 

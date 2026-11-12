@@ -10,7 +10,7 @@ import { LocationCombobox } from "@/features/locations/location-combobox";
 import { useLocations } from "@/features/locations/hooks";
 import { useSports } from "@/features/sports/hooks";
 import { ApiError, errorMessage } from "@/lib/http";
-import { useCreateMatch } from "./hooks";
+import { useCreateMatch } from "./use-create-match";
 import { createMatchInput, createMatchSchema, type CreateMatchValues } from "./create-validation";
 import styles from "./create-match.module.css";
 

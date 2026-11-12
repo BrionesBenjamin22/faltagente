@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, errorMessage } from "@/lib/http";
-import { useMatchDetail } from "./hooks";
-import { matchDateFormat, matchPriceFormat } from "./format";
+import { useMatchDetail } from "./use-match-detail";
+import { matchDateFormat, matchPriceFormat } from "../format";
 import { MatchDetailLoading } from "./match-detail-loading";
 import { MatchManagement } from "./match-management";
-import type { MatchDetail } from "./service";
+import type { MatchDetail } from "../types";
 import styles from "./match-detail.module.css";
 
 export function MatchDetailScreen({ id, initialData }: { id: string; initialData?: MatchDetail }) {

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/http";
-import { matchesService, type MatchDetail } from "@/features/matches/service";
-import { MatchDetailScreen } from "@/features/matches/match-detail";
+import { matchesService } from "@/features/matches/service";
+import type { MatchDetail } from "@/features/matches/types";
+import { MatchDetailScreen } from "@/features/matches/detail/match-detail";
 
 export const metadata: Metadata = { title: "Detalle de partido | Falta Gente" };
 

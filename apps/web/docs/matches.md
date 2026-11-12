@@ -29,8 +29,16 @@ La API valida UUID y es la autoridad sobre visibilidad y estados. El frontend co
 
 `/mis-partidos` muestra sólo publicaciones del usuario, en todas las localidades, con filtros próximos/pasados/cancelados y nueve elementos por página. Cambiar filtro reinicia la página. La caché privada incluye identidad, filtro y página. Accesos desde el contenido de partidos; no se cambia layout ni navegación global.
 
-`service.ts` tipa creación, gestión, historial y listado propio; `hooks.ts` coordina la mutación e invalidación de listados. `create-validation.ts` centraliza validación y conversión del formulario a payload; `create-match.tsx` implementa formulario y control de sesión. `my-matches.tsx` presenta filtros y paginación. La sesión vencida vuelve al login; no hay renovación silenciosa.
+`types.ts` define los contratos de creación, gestión, historial y listado propio; `service.ts` conserva el transporte. `publication/use-create-match.ts` coordina la mutación e invalidación de listados y `detail/use-match-detail.ts` la consulta pública. `publication/create-validation.ts` centraliza validación y conversión del formulario a payload; `publication/create-match.tsx` implementa formulario y control de sesión. `organized/my-matches.tsx` presenta filtros y paginación. La sesión vencida vuelve al login; no hay renovación silenciosa.
 
 El detalle público mantiene su contrato. `match-management.tsx` consulta auditoría e historial únicamente para el organizador autenticado, con claves de caché por usuario/partido y páginas de tres eventos. Las autorizaciones se aplican otra vez en backend. Se muestra actor y fecha de publicación. Edición y cancelación quedan para etapas posteriores.
 
 Tests del formulario y detalle cubren validaciones, payload, errores, sesión y privacidad. `tests/match-create.spec.ts` recorre publicación, regreso al home, listado propio y detalle con API/PostgreSQL reales, además de reintentos y revocación de sesión.
+
+## Organización interna
+
+Los flujos de partidos se agrupan en `src/features/matches/discovery/`, `publication/`, `detail/` y `organized/`, con sus componentes, estilos, validaciones, hooks y pruebas locales. Las rutas de Next.js conservan sus URLs y delegan en esos flujos. `match-card.tsx`, `matches-loading.tsx`, `format.ts`, `service.ts` y `types.ts` permanecen en la raíz porque se comparten dentro del módulo.
+
+`local-date.ts` contiene únicamente `validLocalDate` y `localDate`: funciones puras compartidas por descubrimiento y publicación sin importar React ni History API. Los contratos de sesión y usuario viven en `features/auth/types.ts`; el historial de perfil en `features/account/types.ts`. Los providers globales, la sesión temporal, los controles CSRF, las claves de caché y las reglas de paginación mantienen su implementación.
+
+La suite transversal se encuentra en `src/test/integration/vertical-slice.test.tsx`; conserva el mismo harness y los mismos escenarios de sesión, cuenta, apariencia, descubrimiento y navegación. Las notificaciones de `features/notifications/` son feedback de interfaz en memoria; no representan notificaciones persistidas del dominio.
