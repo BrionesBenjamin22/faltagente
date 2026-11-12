@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module.js';
-import type { CreateMatchDto } from './create-match.dto.js';
-import type { MyMatchesQueryDto } from './my-matches.dto.js';
+import type { CreateMatchDto } from './dto/match-publication.dto.js';
+import type { MyMatchesQueryDto } from './dto/my-matches.dto.js';
 
 @Injectable()
-export class MatchPublicationService {
+export class MatchManagementService {
   constructor(private readonly db: PrismaService) {}
 
   async ownList(userId: string, query: MyMatchesQueryDto) {

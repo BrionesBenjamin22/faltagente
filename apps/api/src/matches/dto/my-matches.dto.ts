@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
-import { MatchResponse } from '../common/http/response.dto.js';
+import { MatchResponse } from './matches-response.dto.js';
 
 export class MyMatchesQueryDto {
   @ApiPropertyOptional({ enum: ['upcoming', 'past', 'cancelled'], default: 'upcoming' })

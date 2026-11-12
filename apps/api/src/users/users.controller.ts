@@ -4,9 +4,9 @@ import type { Request } from 'express';
 import { AuthService } from '../auth/auth.service.js';
 import { LocationDto } from '../auth/auth.dto.js';
 import { UsersService } from './users.service.js';
-import { UserResponse } from '../common/http/response.dto.js';
+import { UserResponse } from './user-response.dto.js';
 import { UpdateProfileDto, ProfileHistoryQueryDto } from './profile.dto.js';
-import { ProfileHistoryResponse } from '../common/http/response.dto.js';
+import { ProfileHistoryResponse } from './profile-response.dto.js';
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {

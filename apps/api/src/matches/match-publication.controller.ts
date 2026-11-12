@@ -13,19 +13,21 @@ import { AuthService } from '../auth/auth.service.js';
 import {
   CreateMatchDto,
   CreatedMatchResponse,
+} from './dto/match-publication.dto.js';
+import {
   MatchHistoryQueryDto,
-  MatchIdDto,
   MatchHistoryResponse,
   MatchManagementResponse,
-} from './create-match.dto.js';
-import { MatchPublicationService } from './match-publication.service.js';
+} from './dto/match-management.dto.js';
+import { MatchIdDto } from './dto/match-id.dto.js';
+import { MatchManagementService } from './match-management.service.js';
 
 @ApiTags('Matches')
 @ApiUnauthorizedResponse({ description: 'Sesión requerida.' })
 @Controller('matches')
 export class MatchPublicationController {
   constructor(
-    private readonly service: MatchPublicationService,
+    private readonly service: MatchManagementService,
     private readonly auth: AuthService,
   ) {}
   @ApiCreatedResponse({ type: CreatedMatchResponse })
