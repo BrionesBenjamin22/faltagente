@@ -37,7 +37,7 @@ export async function discoveryFixtures() {
   const voley = await db.sport.findUniqueOrThrow({ where: { slug: 'voley' } });
   const day = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   const prefix = `Discovery ${suffix.slice(0, 8)}`;
-  const common = { organizerId: organizer.id, locationId: location.id, startsAt: new Date(`${day}T18:00:00-03:00`), address: 'Dirección de prueba', pricePerPerson: 4200, availablePlaces: 3 };
+  const common = { organizerId: organizer.id, locationId: location.id, startsAt: new Date(`${day}T18:00:00-03:00`), address: 'Dirección de prueba', pricePerPerson: 4200, availablePlaces: 3, totalPlaces: 3 };
   try {
     await db.match.createMany({ data: [
       ...Array.from({ length: 10 }, (_, index) => ({ ...common, sportId: football.id, sportFormatId: football.formats.find((format: { slug: string }) => format.slug === 'futbol-5').id, venueName: `${prefix} Fútbol 5 ${index + 1}` })),

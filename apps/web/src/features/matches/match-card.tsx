@@ -3,7 +3,7 @@ import type { Match } from "./service";
 import { matchDateFormat, matchPriceFormat } from "./format";
 
 export function MatchCard({ match }: { match: Match }) {
-  const available = match.availablePlaces > 0;
+  const available = match.status === "OPEN" && match.availablePlaces > 0;
   return (
     <article className="match">
       <time dateTime={match.startsAt}>{matchDateFormat.format(new Date(match.startsAt))}</time>
@@ -12,7 +12,7 @@ export function MatchCard({ match }: { match: Match }) {
       <p className="muted">{match.address}</p>
       <p>{matchPriceFormat.format(Number(match.pricePerPerson))} por persona</p>
       <p className={available ? "available" : "muted"}>
-        {available
+        {match.status === "CANCELLED" ? "Partido cancelado" : available
           ? `${match.availablePlaces} ${match.availablePlaces === 1 ? "lugar disponible" : "lugares disponibles"}`
           : "Partido completo"}
       </p>

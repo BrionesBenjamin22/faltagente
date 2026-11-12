@@ -166,7 +166,9 @@ MVP-02 extiende ese listado con filtros combinables de deporte, formato opcional
 
 MVP-03 agrega el detalle público navegable en `/partidos/[id]` y `GET /api/v1/matches/:id`, con datos mínimos del organizador, formato y descripción opcionales y estados abierto/cerrado/cancelado. Las cards ofrecen Ver partido; publicación y reservas siguen pendientes. Consultar [el contrato del detalle](apps/api/MATCH-DETAIL.md) y [las vistas de partidos](apps/web/docs/matches.md).
 
-Google OAuth también continúa pendiente. Los flujos de publicación y reserva descritos en la visión del producto representan el objetivo del MVP.
+MVP-04 agrega publicación autenticada en `/partidos/nuevo`, creación atómica de la participación del organizador e historial privado de publicación. Los lugares ofrecidos corresponden a jugadores y no incluyen al organizador. `/mis-partidos` permite recuperar las publicaciones propias. Edición y cancelación se entregan en etapas posteriores e independientes.
+
+Google OAuth y reservas también continúan pendientes.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).

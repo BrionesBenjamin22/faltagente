@@ -6,6 +6,7 @@ import { ApiError, errorMessage } from "@/lib/http";
 import { useMatchDetail } from "./hooks";
 import { matchDateFormat, matchPriceFormat } from "./format";
 import { MatchDetailLoading } from "./match-detail-loading";
+import { MatchManagement } from "./match-management";
 import type { MatchDetail } from "./service";
 import styles from "./match-detail.module.css";
 
@@ -20,7 +21,7 @@ export function MatchDetailScreen({ id, initialData }: { id: string; initialData
         <p className="error" role="alert">{errorMessage(query.error)}</p>
         <button type="button" className="button secondary" onClick={() => void query.refetch()} disabled={query.isFetching}>{query.isFetching ? "Reintentando…" : "Reintentar"}</button>
       </div> : null}
-      {query.data ? <MatchDetailContent match={query.data} /> : null}
+      {query.data ? <><MatchDetailContent match={query.data} /><MatchManagement id={id} organizerId={query.data.organizer.id} /></> : null}
     </>}
   </div>;
 }

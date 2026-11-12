@@ -6,6 +6,7 @@ import { MatchDetailContent, MatchDetailScreen } from "./match-detail";
 import type { MatchDetail } from "./service";
 
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NEXT_NOT_FOUND"); } }));
+vi.mock("@/features/auth/session", () => ({ useSession: () => ({ session: { authenticated: false } }) }));
 
 const match: MatchDetail = {
   id: "10000000-0000-4000-8000-000000000001",

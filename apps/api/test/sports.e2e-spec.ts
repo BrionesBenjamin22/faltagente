@@ -68,7 +68,7 @@ describe('multisport catalog and match persistence', () => {
   });
 
   it('match list returns nested sport, optional format and no legacy contract', async () => {
-    const base = { organizerId, locationId, sportId: activeSport.id, startsAt: new Date(Date.now() + 86400000), address: 'Test address', pricePerPerson: '1234.50', availablePlaces: 2 };
+    const base = { organizerId, locationId, sportId: activeSport.id, startsAt: new Date(Date.now() + 86400000), address: 'Test address', pricePerPerson: '1234.50', totalPlaces: 2, availablePlaces: 2 };
     const formatted = await db.match.create({ data: { ...base, sportFormatId: activeFormat.id, venueName: 'With format' } });
     const unformatted = await db.match.create({ data: { ...base, sportId: otherSport.id, startsAt: new Date(Date.now() + 172800000), venueName: 'Without format' } });
     const response = await request(app.getHttpServer()).get(`/api/v1/matches?locationId=${locationId}`).expect(200);
@@ -86,7 +86,7 @@ describe('multisport catalog and match persistence', () => {
   });
 
   it('database rejects cross-sport formats on create and updates, and permits null format', async () => {
-    const data = { organizerId, locationId, sportId: otherSport.id, startsAt: new Date(Date.now() + 86400000), venueName: 'Integrity test', address: 'Test address', pricePerPerson: 0, availablePlaces: 1 };
+    const data = { organizerId, locationId, sportId: otherSport.id, startsAt: new Date(Date.now() + 86400000), venueName: 'Integrity test', address: 'Test address', pricePerPerson: 0, totalPlaces: 1, availablePlaces: 1 };
     await expect(db.match.create({ data: { ...data, sportFormatId: activeFormat.id } })).rejects.toMatchObject({ code: 'P2003' });
     const match = await db.match.create({ data });
     await expect(db.match.update({ where: { id: match.id }, data: { sportFormatId: activeFormat.id } })).rejects.toMatchObject({ code: 'P2003' });

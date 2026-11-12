@@ -1,4 +1,13 @@
-import { BadRequestException, Controller, Get, Injectable, Module, NotFoundException, Param, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Injectable,
+  Module,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import {
   ApiProperty,
   ApiPropertyOptional,
@@ -7,12 +16,25 @@ import {
   ApiNotFoundResponse,
   ApiBadRequestResponse,
 } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsOptional, IsUUID, Matches, Max, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsUUID,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module.js';
 import { MatchesResponse } from '../common/http/response.dto.js';
 import { MatchDetailResponse } from './match-detail-response.dto.js';
+import { AuthModule } from '../auth/auth.module.js';
+import { MatchPublicationController } from './match-publication.controller.js';
+import { MatchPublicationService } from './match-publication.service.js';
+import { MatchIdDto } from './create-match.dto.js';
+import { MyMatchesController } from './my-matches.controller.js';
 
 // Shared public match fields; each endpoint selects its own relation projection.
 const publicMatchFields = {
@@ -28,15 +50,24 @@ const publicMatchFields = {
   description: true,
 } satisfies Prisma.MatchSelect;
 
-export class MatchIdDto {
-  @ApiProperty({ format: 'uuid' }) @IsUUID() id: string;
-}
 export class MatchesQueryDto {
   @ApiProperty({ format: 'uuid' }) @IsUUID() locationId: string;
-  @ApiPropertyOptional({ format: 'uuid' }) @IsOptional() @IsUUID() sportId?: string;
-  @ApiPropertyOptional({ format: 'uuid', description: 'Requires sportId and must belong to that sport.' })
-  @IsOptional() @IsUUID() sportFormatId?: string;
-  @ApiPropertyOptional({ format: 'date', example: '2026-11-03', description: 'Calendar day in America/Argentina/Buenos_Aires.' })
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  sportId?: string;
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Requires sportId and must belong to that sport.',
+  })
+  @IsOptional()
+  @IsUUID()
+  sportFormatId?: string;
+  @ApiPropertyOptional({
+    format: 'date',
+    example: '2026-11-03',
+    description: 'Calendar day in America/Argentina/Buenos_Aires.',
+  })
   @IsOptional()
   @Matches(/^(?!0000)\d{4}-\d{2}-\d{2}$/)
   @IsDateString({ strict: true })
@@ -73,14 +104,20 @@ export class MatchesService {
   async list(query: MatchesQueryDto) {
     if (query.sportFormatId) {
       if (!query.sportId) {
-        throw new BadRequestException({ code: 'INVALID_SPORT_FORMAT_FILTER', message: 'Seleccioná un deporte para filtrar por formato.' });
+        throw new BadRequestException({
+          code: 'INVALID_SPORT_FORMAT_FILTER',
+          message: 'Seleccioná un deporte para filtrar por formato.',
+        });
       }
       const format = await this.db.sportFormat.findFirst({
         where: { id: query.sportFormatId, sportId: query.sportId },
         select: { id: true },
       });
       if (!format) {
-        throw new BadRequestException({ code: 'INVALID_SPORT_FORMAT_FILTER', message: 'El formato seleccionado no pertenece al deporte.' });
+        throw new BadRequestException({
+          code: 'INVALID_SPORT_FORMAT_FILTER',
+          message: 'El formato seleccionado no pertenece al deporte.',
+        });
       }
     }
     const startsAt: Prisma.DateTimeFilter = { gt: new Date() };
@@ -144,5 +181,9 @@ export class MatchesController {
     return this.service.list(query);
   }
 }
-@Module({ controllers: [MatchesController], providers: [MatchesService] })
+@Module({
+  imports: [AuthModule],
+  controllers: [MatchesController, MatchPublicationController, MyMatchesController],
+  providers: [MatchesService, MatchPublicationService],
+})
 export class MatchesModule {}

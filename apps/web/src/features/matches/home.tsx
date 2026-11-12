@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useSession } from "@/features/auth/session";
@@ -59,7 +60,7 @@ function HomeList({ success }: { success?: string }) {
   function changeFilters(next: MatchFilters) { resetPages(selected, next); writeDiscovery({ ...next, locationId: selected || undefined }); }
   function changeLocation(next: string) { resetPages(next, filters); session.selectHomeLocation(next); writeDiscovery({ ...filters, locationId: next }); }
   const locality = locations.data?.find(location => location.id === selected)?.name ?? session.session?.user?.primaryLocation?.name;
-  const messages: Record<string, string> = { registered: "Cuenta creada correctamente.", login: "Sesión iniciada correctamente.", location: "Localidad guardada correctamente." };
+  const messages: Record<string, string> = { registered: "Cuenta creada correctamente.", login: "Sesión iniciada correctamente.", location: "Localidad guardada correctamente.", "match-created": "Partido publicado correctamente." };
   function openLocationSelector() {
     const control = document.getElementById("home-location");
     control?.focus();
@@ -67,6 +68,7 @@ function HomeList({ success }: { success?: string }) {
   }
   return <>{success && messages[success] ? <p className="notice" role="status">{messages[success]}</p> : null}
     <h1 className={styles.heading}>Partidos disponibles</h1><p className="muted">Encontrá un lugar para jugar cerca tuyo.</p>
+    <div className="actions"><Link href="/partidos/nuevo" className="button">Publicar partido</Link>{session.session?.authenticated ? <Link href="/mis-partidos" className="button secondary">Mis partidos</Link> : null}</div>
     {session.session?.authenticated && session.session.user && !session.session.user.emailVerified ? <section className="notice"><p>Verificá tu email con el enlace que enviamos a tu correo.</p><button className="button secondary" disabled={sending} onClick={async () => { setSending(true); try { await authService.resendVerification(); setFeedback("Si corresponde, recibirá un nuevo enlace de verificación."); } catch (error) { setFeedback(errorMessage(error)); } finally { setSending(false); } }}>Reenviar enlace</button>{feedback ? <p role="status" className="mt-4">{feedback}</p> : null}</section> : null}
     <DiscoveryFilters filters={filters} locationId={selected} authenticated={!!session.session?.authenticated} onFilters={changeFilters} onLocation={changeLocation} showClear={matches.data?.pages[0].total !== 0} />
     {selected && !session.session?.authenticated ? <h2 className={styles.listingTitle}>Partidos en {locality ?? "tu localidad"}</h2> : null}

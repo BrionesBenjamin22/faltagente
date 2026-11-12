@@ -1,8 +1,23 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/lib/http";
 import { matchesService, type MatchDetail } from "./service";
+
+export function useCreateMatch() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: matchesService.create,
+    retry: false,
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["matches"] }),
+        client.invalidateQueries({ queryKey: ["matches-baseline"] }),
+        client.invalidateQueries({ queryKey: ["organized-matches"] }),
+      ]);
+    },
+  });
+}
 
 export function useMatchDetail(id: string, initialData?: MatchDetail) {
   return useQuery({

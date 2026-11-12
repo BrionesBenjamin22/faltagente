@@ -139,6 +139,7 @@ try {
             venueName: `Cancha de demostración ${index + 1}`,
             address: 'Dirección ficticia para desarrollo',
             pricePerPerson: 5000,
+            totalPlaces: index + 1,
             availablePlaces: index + 1,
             description: 'Partido ficticio de desarrollo.',
           },

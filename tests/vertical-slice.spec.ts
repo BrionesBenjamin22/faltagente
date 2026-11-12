@@ -4,6 +4,10 @@ import { chooseLocation, logout, expectHomeLocation } from './support/ui';
 
 const password = 'Browser testing password 123!';
 
+// These account-navigation flows exercise the existing desktop header (>=640px).
+// Match publication and discovery have separate mobile browser coverage.
+test.use({ viewport: { width: 1280, height: 900 } });
+
 test('registration, locality discovery, temporary exploration and login restoration', async ({ page, context }) => {
   const email = `browser-${randomUUID()}@example.test`;
   await page.goto('/auth/register');

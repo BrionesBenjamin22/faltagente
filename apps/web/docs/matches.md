@@ -23,3 +23,14 @@ La API valida UUID y es la autoridad sobre visibilidad y estados. El frontend co
 ## Pruebas
 
 `match-detail.test.tsx` cubre campos públicos, formato opcional, descripción ausente/vacía, disponibilidad, CLOSED/CANCELLED, escaping, loading, error y reintento, 404 y datos iniciales sin doble fetch. `match-detail-route.test.tsx` cubre la resolución 404 del Server Component y recuperación ante fallo API; `match-card.test.tsx` comprueba el enlace al detalle. La validación visual y responsive se realiza manualmente, sin capturas ni pruebas visuales automatizadas.
+# Publicación y partidos propios
+
+`/partidos/nuevo` requiere sesión vigente y permite publicar sin email verificado. El formulario usa deportes/formatos y localidades reales, valida fechas futuras en horario de Buenos Aires, precio decimal no negativo y cupos enteros positivos. Incluye placeholders, labels, errores asociados a campos, foco al primer error y feedback recuperable conservando valores. Se envía CSRF mediante el transporte existente. El alta regresa a `/?success=match-created`; no agrega reglas de reservas.
+
+`/mis-partidos` muestra sólo publicaciones del usuario, en todas las localidades, con filtros próximos/pasados/cancelados y nueve elementos por página. Cambiar filtro reinicia la página. La caché privada incluye identidad, filtro y página. Accesos desde el contenido de partidos; no se cambia layout ni navegación global.
+
+`service.ts` tipa creación, gestión, historial y listado propio; `hooks.ts` coordina la mutación e invalidación de listados. `create-validation.ts` centraliza validación y conversión del formulario a payload; `create-match.tsx` implementa formulario y control de sesión. `my-matches.tsx` presenta filtros y paginación. La sesión vencida vuelve al login; no hay renovación silenciosa.
+
+El detalle público mantiene su contrato. `match-management.tsx` consulta auditoría e historial únicamente para el organizador autenticado, con claves de caché por usuario/partido y páginas de tres eventos. Las autorizaciones se aplican otra vez en backend. Se muestra actor y fecha de publicación. Edición y cancelación quedan para etapas posteriores.
+
+Tests del formulario y detalle cubren validaciones, payload, errores, sesión y privacidad. `tests/match-create.spec.ts` recorre publicación, regreso al home, listado propio y detalle con API/PostgreSQL reales, además de reintentos y revocación de sesión.
