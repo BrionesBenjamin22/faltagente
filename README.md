@@ -156,6 +156,8 @@ Primero hay que resolver bien algo mucho más simple:
 
 ## Estado actual del desarrollo
 
+Consultar el [estado consolidado del sistema](docs/PROJECT-STATUS.md) para distinguir lo implementado, las funcionalidades pendientes y la preparación para lanzamiento. Las iteraciones siguientes describen la evolución histórica.
+
 La aplicación implementa registro y login local, sesión segura, verificación de email, recuperación de contraseña y descubrimiento de partidos por localidad. La selección temporal del Home es independiente de la localidad principal del perfil. Google y las reservas quedan para etapas posteriores.
 
 La segunda iteración agrega edición del perfil con historial privado, cambio de contraseña con cierre de todas las sesiones, localidades buscables, navegación de cuenta y temas claro, oscuro y sistema.

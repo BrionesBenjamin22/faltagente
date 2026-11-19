@@ -5,10 +5,10 @@ status: finished
 phase: mvp
 depends_on: [MVP-03]
 created_at: 2026-11-11T16:49:06-03:00
-updated_at: 2026-11-12T01:45:09-03:00
+updated_at: 2026-11-19T13:22:28.789-03:00
 started_at: 2026-11-11T16:49:06-03:00
 resolved_at: 2026-11-12T01:45:09-03:00
-resolution_commit: null
+resolution_commit: 1b4b065
 ---
 
 ## Alcance atómico
@@ -29,7 +29,7 @@ Primera entrega de gestión de partidos: API, persistencia, validaciones, formul
 
 ## Evidencia
 
-Rama `feature/gestion-partidos` creada desde `dev`; sin cambios de CI/CD de la rama anterior. Implementación y validación completas. `resolution_commit` permanece null porque el usuario pidió recibir el mensaje sin ejecutar commits.
+Rama `feature/gestion-partidos` creada desde `dev`; sin cambios de CI/CD de la rama anterior. Implementación y validación completas. En la validación inicial no se creó commit por indicación del usuario. Su autorización posterior permitió registrar esta funcionalidad en `1b4b065`, separada de la refactorización estructural.
 
 - `pnpm lint` y `pnpm typecheck`: aprobados.
 - `pnpm --filter api test --maxWorkers=1`: 38/38 unitarios.
