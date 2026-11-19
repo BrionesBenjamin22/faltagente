@@ -85,7 +85,7 @@ No asumir que:
 
 tendrán el mismo comportamiento de cookies que los dominios productivos.
 
-La configuración de producción deberá verificarse con los dominios definitivos.
+La configuración de producción deberá verificarse con los dominios definitivos. Azure es el destino acordado; los ejemplos de proveedores anteriores no definen la arquitectura vigente.
 
 ---
 
@@ -477,9 +477,8 @@ CSRF secrets
 Usar:
 
 ```text
-Vercel Environment Variables
-Render Environment Variables
-GitHub Secrets
+Configuración segura de Azure (mecanismo por definir en CD)
+GitHub Secrets cuando corresponda
 ```
 
 ---
@@ -535,3 +534,9 @@ no degradar silenciosamente la seguridad
 ```
 
 Si un control impide implementar una tarea, informar el conflicto antes de eliminarlo.
+
+## Integración continua
+
+CI utiliza únicamente bases PostgreSQL/PostGIS descartables en loopback llamadas `falta_gente_test`. Las protecciones de las suites rechazan nombres anteriores, bases habituales y hosts remotos. Los valores de prueba no dan acceso a producción ni requieren credenciales de Azure.
+
+El workflow usa `contents: read`, no persiste credenciales del checkout y fija acciones por SHA. No ejecutar código del PR con `pull_request_target`. No publicar bases, archivos de entorno, buzones, capturas o trazas que puedan contener credenciales o información de sesión. Las suites conservan cookies, CSRF, CORS y autenticación; únicamente el transporte de email del harness se sustituye por memoria. Ver [CI](../CI.md).

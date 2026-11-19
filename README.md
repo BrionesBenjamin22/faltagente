@@ -2,6 +2,8 @@
 
 Nombre y convenciones vigentes: [identidad de Falta Gente](docs/agent/NAMING.md). Los identificadores técnicos heredados que mantienen sesiones o datos se conservan por compatibilidad.
 
+La [guía de integración continua](docs/CI.md) describe los controles de GitHub Actions y el flujo `feature/* → dev → main`. Azure es el destino acordado para la próxima etapa de despliegue.
+
 Para ejecutar la aplicación localmente, usar los [comandos Compose habituales](#operación-local-con-docker-compose). El agente deja migraciones y seeds preparados al finalizar cada etapa.
 
 ## Siempre falta gente para jugar

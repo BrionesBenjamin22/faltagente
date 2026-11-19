@@ -28,7 +28,7 @@ Revisión del 19 de noviembre de 2026, contrastada con módulos, rutas, modelos 
 - Monorepo pnpm, Next.js por features y NestJS por dominio, con PostgreSQL/PostGIS y Prisma. Refactorización estructural R0–R7 completada; contratos, URLs y reglas preservados.
 - Contratos frontend separados del transporte, flujos de partidos agrupados y DTO backend distribuidos por dominio. La composición opcional A1/A2 de auth/providers no se incluyó.
 - Docker Compose para web/API/base, migraciones y seeds explícitos, healthcheck, request ID, errores uniformes, logs HTTP y OpenAPI.
-- Bases locales `falta-gente` y `falta-gente-test`, separadas; las suites de persistencia sólo permiten la base de pruebas en loopback.
+- Base local de desarrollo `falta-gente` y contrato integrado de pruebas `falta_gente_test`, separados; las suites de persistencia sólo permiten la base de pruebas en loopback.
 - Tests unitarios, integración PostgreSQL real y Playwright. La validación de esta etapa registró 174 unitarios, 46 integraciones y 13 recorridos de navegador aprobados, además de builds locales/Docker y comparación OpenAPI idéntica (22 rutas, 34 schemas).
 
 ## Pendiente del producto
@@ -47,10 +47,10 @@ Las etapas de reservas, edición, cancelación y espera deben diseñarse juntas 
 
 ## Pendiente de preparación para integración y lanzamiento
 
-- CI con GitHub Actions: no hay workflow versionado en `.github/`; automatizar lint, typecheck, tests, integración y build según FND-07.
+- CI con GitHub Actions ya está implementada en `.github/workflows/ci.yml`: valida calidad, integración PostgreSQL, navegador, Docker y el gate `ci-required`. Falta comprobar la ejecución remota de la combinación integrada y completar la aceptación de FND-07.
 - Completar/verificar el flujo `feature/* → dev → main` y las protecciones de integración según FND-08. Publicar esta rama no equivale a fusionarla ni cambia las protecciones.
 - Conciliar las tareas Foundation antiguas con la implementación existente y cerrar los criterios que todavía falten, evitando rehacer base de datos, seeds o scripts ya presentes.
-- Preparar y validar el despliegue productivo, dominios, HTTPS, correo real, secretos, migraciones controladas y recuperación. El stack Docker local validado no acredita un despliegue productivo.
+- Preparar y validar el despliegue productivo en Azure, dominios, HTTPS, correo real, secretos, migraciones controladas y recuperación. El stack Docker local validado no acredita un despliegue productivo.
 
 ## Fuera del MVP
 
