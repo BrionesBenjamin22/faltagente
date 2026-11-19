@@ -1,13 +1,13 @@
 # Validación de las vertical slices de Falta Gente
 
-Las pruebas utilizan exclusivamente servicios locales y una base PostgreSQL aislada. No ejecutarlas contra producción. La suite de integración rechaza URLs que no apunten a `localhost` o `127.0.0.1` y a una base llamada `hyt_slice` o `hyt_slice_test`. Eliminar únicamente fixtures creados por la suite preserva los seeds.
+Las pruebas utilizan exclusivamente servicios locales y una base PostgreSQL aislada. No ejecutarlas contra producción. La suite de integración rechaza URLs que no apunten a `localhost` o `127.0.0.1` y a una base llamada `falta-gente-test`. Eliminar únicamente fixtures creados por la suite preserva los seeds.
 
 ## Preparación
 
-Desde la raíz, instalar dependencias con `pnpm install`. Crear una base local vacía `hyt_slice_test`, definir `DATABASE_URL` y ejecutar las migraciones. El puerto debe coincidir con el PostgreSQL local utilizado; el ejemplo usa el puerto 55432.
+Desde la raíz, instalar dependencias con `pnpm install`. Crear una base local vacía `falta-gente-test`, definir `DATABASE_URL` y ejecutar las migraciones. El puerto debe coincidir con el PostgreSQL local utilizado; el ejemplo usa el puerto 55433.
 
 ```powershell
-$env:DATABASE_URL='postgresql://hyt_test@127.0.0.1:55432/hyt_slice_test?schema=public'
+$env:DATABASE_URL='postgresql://hyt:<password-codificada>@127.0.0.1:55433/falta-gente-test?schema=public'
 pnpm --filter api exec prisma generate
 pnpm --filter api exec prisma migrate deploy
 $env:NODE_ENV='development'
@@ -35,7 +35,7 @@ pnpm --filter api test:e2e --maxWorkers=1 --no-file-parallelism
 pnpm exec playwright test tests/multisport-discovery.spec.ts tests/vertical-slice.spec.ts tests/account-recovery.spec.ts
 ```
 
-`apps/api/test/multisport-migration.e2e-spec.ts` crea un schema aleatorio dentro de `hyt_slice_test`, aplica las migraciones históricas, inserta fixtures explícitos del modelo anterior y ejecuta la migración multideporte real. Compara todos los campos previos de los partidos y las participaciones, verifica la correspondencia Fútbol 5/6/7 y vuelve a probar las restricciones de participación y valores no negativos. El schema temporal se elimina al finalizar; los datos del schema habitual de pruebas se conservan.
+`apps/api/test/multisport-migration.e2e-spec.ts` crea un schema aleatorio dentro de `falta-gente-test`, aplica las migraciones históricas, inserta fixtures explícitos del modelo anterior y ejecuta la migración multideporte real. Compara todos los campos previos de los partidos y las participaciones, verifica la correspondencia Fútbol 5/6/7 y vuelve a probar las restricciones de participación y valores no negativos. El schema temporal se elimina al finalizar; los datos del schema habitual de pruebas se conservan.
 
 `apps/web/src/features/matches/match-card.test.tsx` cubre Fútbol con Fútbol 5, Pádel con Dobles y Vóley sin formato. Los tests existentes de la slice consumen el nuevo contrato sin modificar sus reglas de autenticación o localidades.
 
@@ -209,7 +209,7 @@ La orquestación confirmó **83/83 unitarios** (API 36, frontend 47), **20/20 in
 
 ## Smoke contra contenedores Docker
 
-El harness conserva su API real en proceso por defecto. `E2E_EXTERNAL_API=1` evita iniciar esa API y utiliza el contenedor existente; `E2E_API_URL` y `E2E_WEB_URL` permiten elegir sus URLs públicas. Mantener `DATABASE_URL` apuntando únicamente a PostgreSQL aislado en loopback y base `hyt_slice_test`; el override de desarrollo permite publicar ese puerto. Nunca ejecutar los fixtures contra la base habitual o producción.
+El harness conserva su API real en proceso por defecto. `E2E_EXTERNAL_API=1` evita iniciar esa API y utiliza el contenedor existente; `E2E_API_URL` y `E2E_WEB_URL` permiten elegir sus URLs públicas. Mantener `DATABASE_URL` apuntando únicamente a PostgreSQL aislado en loopback y base `falta-gente-test`; el override de desarrollo permite publicar ese puerto. Nunca ejecutar los fixtures contra la base habitual o producción.
 
 Construir web con el mismo `NEXT_PUBLIC_API_URL` que se pasa como `E2E_API_URL`, configurar CORS/FRONTEND_URL con el origen de `E2E_WEB_URL`, aplicar migraciones y seed `--development` explícitamente. Ejecutar `pnpm exec playwright test tests/vertical-slice.spec.ts` con esas variables para probar registro, localidad, sesión, filtros y login contra los tres contenedores reales. Los casos que requieren mailbox/verificación/reset deben ejecutar el harness predeterminado; el modo externo no sustituye emails ni añade endpoints a producción.
 

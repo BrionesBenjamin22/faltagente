@@ -28,8 +28,8 @@ describe('public multisport discovery filters', () => {
 
   beforeAll(async () => {
     const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') {
-      throw new Error('Discovery tests require isolated local hyt_slice_test.');
+    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/falta-gente-test') {
+      throw new Error('Discovery tests require isolated local falta-gente-test.');
     }
     const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = module.createNestApplication();

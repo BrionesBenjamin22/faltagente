@@ -30,7 +30,7 @@ El endpoint es público y de sólo lectura. No acepta identidad de usuario, no a
 
 ## Pruebas
 
-`test/matches-discovery.e2e-spec.ts` usa Nest y PostgreSQL real en una base local aislada llamada `hyt_slice_test`. Cubre filtros individuales y combinados, formatos incompatibles, UUIDs/fechas inválidos, años bisiestos, página vacía, conteo, `hasMore`, catálogo inactivo persistido y límites de medianoche con precisión de milisegundos. La suite previa de deportes conserva su validación de contrato y ahora acepta el filtro deportivo.
+`test/matches-discovery.e2e-spec.ts` usa Nest y PostgreSQL real en una base local aislada llamada `falta-gente-test`. Cubre filtros individuales y combinados, formatos incompatibles, UUIDs/fechas inválidos, años bisiestos, página vacía, conteo, `hasMore`, catálogo inactivo persistido y límites de medianoche con precisión de milisegundos. La suite previa de deportes conserva su validación de contrato y ahora acepta el filtro deportivo.
 
 También fija únicamente el reloj de JavaScript dentro de un día con fixtures reales para comprobar que el filtro de fecha actual excluye partidos pasados y el instante exacto de inicio. Validación final: 34 integraciones aprobadas en la suite completa; ver evidencia en `../../tests/README.md`.
 

@@ -61,8 +61,8 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
 
   beforeAll(async () => {
     const url = new URL(database!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || !/^\/hyt_slice(?:_test)?$/.test(url.pathname)) {
-      throw new Error('Integration tests require an isolated loopback hyt_slice(_test) database.');
+    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/falta-gente-test') {
+      throw new Error('Integration tests require an isolated loopback falta-gente-test database.');
     }
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(EmailService).useValue({ send: async (to: string, kind: string, token: string) => { emails.push({ to, kind, token }); } }).compile();

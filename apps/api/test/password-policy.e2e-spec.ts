@@ -38,7 +38,7 @@ describe('temporary password minimum against isolated PostgreSQL', { timeout: 30
   }
   beforeAll(async () => {
     const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') throw new Error('Password policy integration requires the isolated test database.');
+    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/falta-gente-test') throw new Error('Password policy integration requires the isolated test database.');
     const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(EmailService)
       .useValue({ send: async (_to: string, kind: string, token: string) => { mails.push({ kind, token }); } }).compile();
     app = module.createNestApplication();

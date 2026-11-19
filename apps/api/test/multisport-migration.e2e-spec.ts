@@ -7,8 +7,8 @@ import { PrismaClient } from '@prisma/client';
 describe('legacy football migration on isolated PostgreSQL schema', () => {
   it('maps FIVE/SIX/SEVEN without changing Match data or participation constraints', { timeout: 90_000 }, async () => {
     const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') {
-      throw new Error('Migration test requires isolated local hyt_slice_test.');
+    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/falta-gente-test') {
+      throw new Error('Migration test requires isolated local falta-gente-test.');
     }
     const schema = `mvp01_${randomUUID().replaceAll('-', '')}`;
     url.searchParams.set('schema', schema);

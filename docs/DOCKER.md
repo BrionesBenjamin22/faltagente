@@ -1,6 +1,6 @@
 # Docker de Falta Gente
 
-Las imágenes actuales son `falta-gente-web:local` y `falta-gente-api:local`. El archivo base declara `name: falta-gente`; no se necesitan aliases, funciones ni `-p`. El volumen lógico `postgres` se crea como `falta-gente_postgres`. Los nombres de usuario/base `hyt` se conservan; consultar [convenciones de identidad](agent/NAMING.md).
+Las imágenes actuales son `falta-gente-web:local` y `falta-gente-api:local`. El archivo base declara `name: falta-gente`; no se necesitan aliases, funciones ni `-p`. El volumen lógico `postgres` se crea como `falta-gente_postgres`. La base se llama `falta-gente`; el rol PostgreSQL existente `hyt` se conserva; consultar [convenciones de identidad](agent/NAMING.md).
 
 Tres servicios: Next.js (`web`), NestJS (`api`) y PostgreSQL/PostGIS (`db`). Ejecutar los comandos desde la raíz con Docker Compose moderno y el motor Linux iniciado. No hay proxy ni terminación TLS en este stack.
 
@@ -38,7 +38,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 ## Entorno
 
-Copiar `.env.example` a `.env` y completar `POSTGRES_PASSWORD`, `JWT_SECRET`, `CSRF_SECRET` y `DOCKER_DATABASE_URL`. Generar secretos diferentes de al menos 32 caracteres; no versionarlos. La URL de contenedor debe ser `postgresql://hyt:<password-codificada>@db:5432/hyt?schema=public`, coincidente con `POSTGRES_USER`/`POSTGRES_DB`. `DATABASE_URL` se conserva para procesos ejecutados directamente en el host y utiliza localhost y `POSTGRES_PORT`.
+Copiar `.env.example` a `.env` y completar `POSTGRES_PASSWORD`, `JWT_SECRET`, `CSRF_SECRET` y `DOCKER_DATABASE_URL`. Generar secretos diferentes de al menos 32 caracteres; no versionarlos. La URL de contenedor debe ser `postgresql://hyt:<password-codificada>@db:5432/falta-gente?schema=public`, coincidente con `POSTGRES_USER`/`POSTGRES_DB`. `DATABASE_URL` se conserva para procesos ejecutados directamente en el host y utiliza localhost y `POSTGRES_PORT`.
 
 La API recibe sólo variables explícitas: `NODE_ENV`, `PORT`, `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET`, `FRONTEND_URL`, `CORS_ORIGINS`, `RESEND_API_KEY`, `EMAIL_FROM`. Compose base fuerza `NODE_ENV=production`: requiere orígenes HTTPS exactos y email configurado según el contrato actual. No iniciar la base como producción con los ejemplos HTTP locales. El despliegue remoto necesita HTTPS externo previamente configurado; este trabajo no lo proporciona.
 

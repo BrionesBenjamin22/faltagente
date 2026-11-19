@@ -12,7 +12,7 @@ const requireApi = createRequire(resolve('apps/api/package.json'));
 export function isolatedDatabase() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for the isolated browser test harness.');
   const database = new URL(process.env.DATABASE_URL);
-  if (!['localhost', '127.0.0.1'].includes(database.hostname) || !/^\/hyt_slice(?:_test)?$/.test(database.pathname)) throw new Error('Unsafe fixture database');
+  if (!['localhost', '127.0.0.1'].includes(database.hostname) || database.pathname !== '/falta-gente-test') throw new Error('Unsafe fixture database');
   return process.env.DATABASE_URL;
 }
 
