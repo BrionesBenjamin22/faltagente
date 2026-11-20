@@ -1,0 +1,13 @@
+.page { max-width:760px; margin-inline:auto; min-width:0; }
+.header { margin-bottom:28px; }
+.header h1 { font-size:clamp(1.8rem,5vw,2.4rem); }
+.form { border:1px solid var(--line); border-radius:12px; background:var(--surface); padding:clamp(20px,5vw,36px); }
+.group { border:0; padding:0; margin:0 0 26px; min-width:0; }
+.group + .group { border-top:1px solid var(--line); padding-top:26px; }
+.group legend { padding:0; margin-bottom:18px; font-size:1.2rem; font-weight:700; }
+.pair { display:grid; gap:0 20px; }
+.textarea { width:100%; min-height:120px; background:var(--solid); color:var(--ink); border:1px solid var(--control-border); border-radius:8px; padding:10px 12px; font:inherit; resize:vertical; }
+.textarea[aria-invalid="true"] { border-color:var(--danger); }
+.help { font-size:.9rem; }
+.navigation { margin-bottom:20px; }
+@media(min-width:600px) { .pair { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }

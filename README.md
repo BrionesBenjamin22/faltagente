@@ -158,6 +158,8 @@ Primero hay que resolver bien algo mucho más simple:
 
 ## Estado actual del desarrollo
 
+Consultar el [estado consolidado del sistema](docs/PROJECT-STATUS.md) para distinguir lo implementado, las funcionalidades pendientes y la preparación para lanzamiento. Las iteraciones siguientes describen la evolución histórica.
+
 La aplicación implementa registro y login local, sesión segura, verificación de email, recuperación de contraseña y descubrimiento de partidos por localidad. La selección temporal del Home es independiente de la localidad principal del perfil. Google y las reservas quedan para etapas posteriores.
 
 La segunda iteración agrega edición del perfil con historial privado, cambio de contraseña con cierre de todas las sesiones, localidades buscables, navegación de cuenta y temas claro, oscuro y sistema.
@@ -168,7 +170,9 @@ MVP-02 extiende ese listado con filtros combinables de deporte, formato opcional
 
 MVP-03 agrega el detalle público navegable en `/partidos/[id]` y `GET /api/v1/matches/:id`, con datos mínimos del organizador, formato y descripción opcionales y estados abierto/cerrado/cancelado. Las cards ofrecen Ver partido; publicación y reservas siguen pendientes. Consultar [el contrato del detalle](apps/api/MATCH-DETAIL.md) y [las vistas de partidos](apps/web/docs/matches.md).
 
-Google OAuth también continúa pendiente. Los flujos de publicación y reserva descritos en la visión del producto representan el objetivo del MVP.
+MVP-04 agrega publicación autenticada en `/partidos/nuevo`, creación atómica de la participación del organizador e historial privado de publicación. Los lugares ofrecidos corresponden a jugadores y no incluyen al organizador. `/mis-partidos` permite recuperar las publicaciones propias. Edición y cancelación se entregan en etapas posteriores e independientes.
+
+Google OAuth y reservas también continúan pendientes.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).
@@ -202,7 +206,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 La aplicación queda en `http://localhost:3000` y la API en `http://localhost:3001/api/v1`, salvo puertos personalizados en `.env`. Compose declara el proyecto `falta-gente` y usa `falta-gente_postgres`; no hacen falta aliases ni `-p`. No usar `down -v` para la operación habitual: elimina los datos. `restart` no reconstruye imágenes.
 
-El agente ejecuta las migraciones y seeds necesarios al cerrar cada etapa y verifica que los datos y flujos queden disponibles. No se ejecutan automáticamente al levantar o reiniciar servicios. El volumen anterior de desarrollo con referencias a `furvo` se regenera por autorización explícita; no se cambian los identificadores internos de autenticación ni el usuario/base `hyt`. Ver [la guía Docker](docs/DOCKER.md) para preparación técnica y operación.
+El agente ejecuta las migraciones y seeds necesarios al cerrar cada etapa y verifica que los datos y flujos queden disponibles. No se ejecutan automáticamente al levantar o reiniciar servicios. El volumen anterior de desarrollo con referencias a `furvo` se regenera por autorización explícita; no se cambian los identificadores internos de autenticación ni el rol PostgreSQL `hyt`; la base local usa `falta-gente`. Ver [la guía Docker](docs/DOCKER.md) para preparación técnica y operación.
 
 ## Desarrollo con procesos en el host
 
@@ -242,11 +246,11 @@ CORS_ORIGINS=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
 
 POSTGRES_USER=hyt
-POSTGRES_DB=hyt
+POSTGRES_DB=falta-gente
 POSTGRES_PORT=5432
 POSTGRES_PASSWORD=<contraseña-local>
-DOCKER_DATABASE_URL=postgresql://hyt:<password-codificada>@db:5432/hyt?schema=public
-DATABASE_URL=postgresql://hyt:<contraseña-local>@localhost:5432/hyt?schema=public
+DOCKER_DATABASE_URL=postgresql://hyt:<password-codificada>@db:5432/falta-gente?schema=public
+DATABASE_URL=postgresql://hyt:<contraseña-local>@localhost:5432/falta-gente?schema=public
 
 JWT_SECRET=<secreto-aleatorio>
 CSRF_SECRET=<otro-secreto-aleatorio>
@@ -255,7 +259,7 @@ RESEND_API_KEY=
 EMAIL_FROM=
 ```
 
-> **Nota:** el usuario/base `hyt` se conserva. El proyecto Docker vigente se llama `falta-gente` y utiliza el volumen `falta-gente_postgres`.
+> **Nota:** el rol PostgreSQL `hyt` se conserva y la base se llama `falta-gente`. El proyecto Docker vigente se llama `falta-gente` y utiliza el volumen `falta-gente_postgres`.
 
 Los valores entre `<...>` son marcadores: reemplazarlos. `DATABASE_URL` debe coincidir con el usuario, contraseña, puerto y base configurados para Docker. Si la contraseña contiene caracteres especiales, codificarla para su uso dentro de una URL.
 

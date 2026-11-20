@@ -39,7 +39,7 @@ describe('public match detail', () => {
     const base = {
       organizerId, locationId, sportId, sportFormatId: formatId,
       venueName: 'El Galpón', address: '1 y 63', pricePerPerson: '7000.50',
-      availablePlaces: 2, startsAt: new Date(startsAt), description: 'Nivel intermedio.',
+      totalPlaces: 2, availablePlaces: 2, startsAt: new Date(startsAt), description: 'Nivel intermedio.',
     };
     matchId = (await db.match.create({ data: base })).id;
     closedMatchId = (await db.match.create({ data: {

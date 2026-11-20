@@ -42,9 +42,11 @@ test('landing offers registration and public discovery without an authenticated 
   await page.goto('/');
   await expect(page.getByRole('navigation', { name: 'Cuenta', exact: true })).toBeHidden();
   await page.getByRole('link', { name: 'Ingresar', exact: true }).click();
+  await expect(page).toHaveURL(/\/auth\/login$/);
   await page.getByRole('link', { name: 'Registrate', exact: true }).click();
   await expect(page).toHaveURL(/\/auth\/register$/);
   await expect(page.getByLabel('Nombre', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Crear cuenta', exact: true })).toBeVisible();
   await page.goto('/');
   await expect(page.getByRole('contentinfo')).toContainText('Hecho en Argentina para los que siempre buscan uno más.');
   await page.screenshot({ path: '.runtime/iteration2-landing-light.png', fullPage: true, animations: 'disabled' });

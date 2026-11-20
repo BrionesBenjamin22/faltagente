@@ -53,6 +53,7 @@ model User {
   organizedMatches Match[]
   participations Participation[]
   profileChanges UserProfileChange[]
+  matchChanges MatchChange[]
 }
 model UserProfileChange {
   id String @id @default(uuid()) @db.Uuid
@@ -129,14 +130,29 @@ model Match {
   address String
   pricePerPerson Decimal @db.Decimal(10,2)
   availablePlaces Int
+  totalPlaces Int
+  version Int @default(1)
   description String?
   status MatchStatus @default(OPEN)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   participations Participation[]
+  changes MatchChange[]
+  @@index([organizerId, startsAt, id])
   @@index([locationId, startsAt, id])
   @@index([sportId])
   @@index([sportFormatId, sportId])
+}
+model MatchChange {
+  id String @id @default(uuid()) @db.Uuid
+  matchId String @db.Uuid
+  match Match @relation(fields:[matchId], references:[id], onDelete:Cascade)
+  actorId String @db.Uuid
+  actor User @relation(fields:[actorId], references:[id])
+  occurredAt DateTime @default(now()) @db.Timestamptz(3)
+  event String
+  changes Json
+  @@index([matchId, occurredAt, id])
 }
 model Participation {
   id String @id @default(uuid()) @db.Uuid

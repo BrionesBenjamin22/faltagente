@@ -1,7 +1,8 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authService, type Session } from "./service";
+import { authService } from "./service";
+import type { Session } from "./types";
 import { errorMessage } from "@/lib/http";
 import { NotificationProvider, useNotify } from "@/features/notifications/notifications";
 const SessionContext = createContext<ReturnType<typeof useSessionState> | null>(null);

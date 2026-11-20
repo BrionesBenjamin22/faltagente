@@ -2,7 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@/lib/http";
-import { matchesService, type MatchDetail } from "./service";
+import { matchesService } from "../service";
+import type { MatchDetail } from "../types";
 
 export function useMatchDetail(id: string, initialData?: MatchDetail) {
   return useQuery({

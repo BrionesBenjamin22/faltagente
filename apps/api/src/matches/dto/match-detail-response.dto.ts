@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SportIdentityResponse } from '../common/http/response.dto.js';
+import { SportIdentityResponse } from '../../sports/sports-response.dto.js';
 
 class PublicMatchIdentityResponse {
   @ApiProperty({ format: 'uuid' }) id: string;

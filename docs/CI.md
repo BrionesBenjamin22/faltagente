@@ -34,7 +34,7 @@ Antes de probar se genera Prisma y se aplica `prisma migrate deploy`. Navegador 
 
 Las suites tienen dos ciclos de vida y se ejecutan separadas:
 
-1. `vertical-slice`, `account-recovery` y `multisport-discovery` utilizan el harness: cada worker levanta la API Nest compilada y reemplaza únicamente el envío de correo por memoria. El puerto 3001 debe estar libre al iniciar.
+1. `vertical-slice`, `account-recovery`, `multisport-discovery` y `match-create` utilizan el harness: cada worker levanta la API Nest compilada y reemplaza únicamente el envío de correo por memoria. El puerto 3001 debe estar libre al iniciar.
 2. Después de cerrar el harness, se inicia la API compilada, se espera `/health` y se ejecutan `auth-validation` y `landing-carousel` contra esa API disponible.
 
 El transporte de correo real no se prueba. La API compilada utiliza configuración local `development`: la configuración productiva exige HTTPS y proveedor real de correo. El frontend utiliza su build productivo. No se debilitan cookies, sesiones, CORS ni CSRF para ejecutar CI. El ejecutor rechaza puertos ocupados antes de iniciar servicios y cierra sus procesos al finalizar.

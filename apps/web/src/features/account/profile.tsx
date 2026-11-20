@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import type { User } from "@/features/auth/service";
+import type { User } from "@/features/auth/types";
 import { useSession } from "@/features/auth/session";
 import { LocationCombobox } from "@/features/locations/location-combobox";
 import { errorMessage } from "@/lib/http";

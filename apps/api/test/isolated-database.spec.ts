@@ -14,6 +14,8 @@ describe('isolated fixture database safety', () => {
     'postgresql://localhost/hyt',
     'postgresql://localhost/hyt_slice',
     'postgresql://localhost/hyt_slice_test',
+    'postgresql://localhost/falta-gente',
+    'postgresql://localhost/falta-gente-test',
     'postgresql://localhost/falta_gente',
     'postgresql://localhost/falta_gente_production',
     'postgresql://localhost/falta_gente_test_backup',
