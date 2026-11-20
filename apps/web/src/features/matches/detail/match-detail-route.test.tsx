@@ -15,7 +15,7 @@ it.each([404, 400])("uses the existing not-found convention for API %i", async s
 it("keeps recoverable errors within the detail's client query", async () => {
   vi.spyOn(matchesService, "detail").mockRejectedValue(new Error("offline"));
   const page = await MatchPage({ params: Promise.resolve({ id: "id" }) });
-  expect(page.props).toEqual({ id: "id", initialData: undefined });
+  expect(page.props).toEqual({ id: "id", initialData: undefined, success: undefined });
 });
 
 it("shows loading on the real client recovery path after server retrieval fails", async () => {
