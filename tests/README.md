@@ -1,5 +1,24 @@
 # Validación de las vertical slices de Falta Gente
 
+## MVP-05: edición y cancelación
+
+`apps/api/test/match-mutations.e2e-spec.ts` verifica contra PostgreSQL real los
+permisos, CSRF/Origin, diferencias normalizadas, nulos, catálogos históricos,
+capacidad y estados, fecha local, privacidad del motivo y cancelación idempotente.
+Incluye carreras de dos ediciones y edición contra cancelación. Las pruebas de
+migración comprueban que los campos nuevos permanecen null en registros previos.
+
+`tests/match-edit-cancel.spec.ts` recorre acceso directo, formulario sin cambios,
+payload parcial, conflicto de versión con recarga explícita, errores de red,
+sesión revocada, confirmación y desistimiento de cancelación, foco y feedback.
+Comprueba persistencia y participaciones reales en la base aislada, además de
+pantallas móviles y de escritorio. Sus fixtures propios se eliminan al terminar.
+Los artefactos visuales se guardan en `.runtime/`, ignorado por Git.
+
+Las regresiones que esperan partidos de demostración futuros necesitan el seed
+de desarrollo actualizado exclusivamente en `falta-gente-test`. Renovar esos
+fixtures de pruebas no autoriza regenerar los datos de desarrollo habituales.
+
 Las pruebas utilizan exclusivamente servicios locales y una base PostgreSQL aislada. No ejecutarlas contra producción. La suite de integración rechaza URLs que no apunten a `localhost` o `127.0.0.1` y a una base llamada `falta-gente-test`. Eliminar únicamente fixtures creados por la suite preserva los seeds.
 
 ## Preparación
