@@ -59,3 +59,13 @@ La continuación del 19 de noviembre volvió a aprobar lint, typecheck y los 174
 La refactorización visual permanece pendiente en [UI-04](../pending/UI-04-refactor-ui.md). El [estado consolidado del sistema](../../PROJECT-STATUS.md) distingue capacidades implementadas, pendientes del producto y preparación para lanzamiento. Publicar esta rama no incluye fusionarla en `dev` o `main`.
 
 El renombre local ya se ejecutó: cambiar sólo `POSTGRES_DB` en otra instalación con volumen existente no renombra su base. Esa instalación requiere su propia transición explícita con respaldo.
+
+# Resolución de conflictos de la PR #8
+
+Se integra `dev` (`bce23b5`) en la rama de refactorización mediante un merge, conservando su historial. La resolución mantiene CI, los ajustes de navegador y el helper compartido de aislamiento de base introducidos en desarrollo, junto con los fixtures de capacidad y las funcionalidades de publicación de esta rama.
+
+El contrato integrado de pruebas usa exclusivamente PostgreSQL en loopback con base `falta_gente_test`. Se conservan las comprobaciones de protocolo y se agregan rechazos explícitos de la base habitual `falta-gente` y del nombre anterior `falta-gente-test`. Esta integración no renombra bases persistidas ni modifica autenticación o el esquema.
+
+Los recorridos de cuenta mantienen las aserciones de ambas ramas. El helper adaptativo comprueba el menú oculto en móvil antes de pasar a escritorio; se elimina la configuración global de escritorio incompatible con esa cobertura. Publicación permanece incluida en el descubrimiento automático de suites de CI.
+
+La validación se ejecuta en un worktree separado y PostgreSQL/PostGIS descartable en el puerto 55434, con sus cinco migraciones y seed explícito. No se modifica la base habitual ni se incluyen los cambios locales en curso de MVP-05. Lint, typecheck, 192 unitarios (56 API y 136 frontend), 18 pruebas del gate, 46 integraciones y builds Nest/Next aprobaron. El orquestador de navegador aprobó 20 recorridos (13 con harness y 7 públicos), con código de salida 0 y cierre de sus procesos. La revisión independiente de seguridad no encontró bloqueos. Los logs locales se conservan en `.runtime/pr8-validation/`.

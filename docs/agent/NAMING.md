@@ -30,9 +30,9 @@ Cambiar cualquiera de estos identificadores requiere un plan específico de migr
 
 ## Nombres de bases locales
 
-Por indicación explícita del usuario, el contrato vigente usa `falta-gente` para desarrollo y `falta-gente-test` para integración y navegador. Las suites admiten únicamente esta última base sobre loopback; nunca la base habitual. Los nombres `hyt_slice` y `hyt_slice_test` quedan sólo como evidencia histórica.
+El contrato integrado conserva `falta-gente` para desarrollo. La base y el usuario de integración/CI se llaman `falta_gente_test`, siguiendo la decisión incorporada en `dev`: guiones bajos para los identificadores PostgreSQL y una única base admitida en loopback. El helper compartido valida también el protocolo PostgreSQL y rechaza bases habituales, hosts remotos y nombres anteriores, incluido `falta-gente-test`. Consultar [CI](../CI.md).
 
-La transición local se realiza con respaldo y renombre PostgreSQL de `hyt` a `falta-gente`, conservando datos y rol propietario, seguido de actualización de las URLs locales y recreación de los contenedores afectados. No requiere migración Prisma ni borrar volúmenes. La base de pruebas es independiente y recibe migraciones y seeds explícitos. Esta autorización no incluye recursos remotos ni producción.
+La transición local se realiza con respaldo y renombre PostgreSQL de `hyt` a `falta-gente`, conservando datos y rol propietario, seguido de actualización de las URLs locales y recreación de los contenedores afectados. No requiere migración Prisma ni borrar volúmenes. La base de pruebas es independiente y recibe migraciones y seeds explícitos. La validación local anterior utilizó `falta-gente-test`; ese nombre queda como evidencia histórica y no se renombra automáticamente al integrar CI. Esta autorización no incluye recursos remotos ni producción.
 
 ## Validación del cambio de marca
 

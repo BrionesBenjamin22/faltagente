@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import type { INestApplication } from '@nestjs/common';
@@ -100,14 +101,7 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
     return { user, browser };
   }
   beforeAll(async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (
-      !['localhost', '127.0.0.1'].includes(url.hostname) ||
-      url.pathname !== '/falta-gente-test'
-    )
-      throw new Error(
-        'Publication tests require isolated local falta-gente-test.',
-      );
+    isolatedDatabaseUrl(process.env.DATABASE_URL);
     const module = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

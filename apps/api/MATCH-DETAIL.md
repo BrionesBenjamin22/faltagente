@@ -37,4 +37,4 @@ La proyección Prisma selecciona exclusivamente los campos del contrato. El orga
 - UUID válido inexistente: `404`, código `NOT_FOUND`.
 - Error inesperado: tratamiento seguro global `500`.
 
-Todos siguen `{ code, message, requestId }`. `test/matches-detail.e2e-spec.ts` valida el contrato HTTP real con PostgreSQL aislado `falta-gente-test`, opciones nulas, disponibilidad cero, estados, identidades inactivas y ausencia de campos privados. No requiere migraciones, variables nuevas ni cambios de Docker.
+Todos siguen `{ code, message, requestId }`. `test/matches-detail.e2e-spec.ts` valida el contrato HTTP real con PostgreSQL aislado `falta_gente_test`, opciones nulas, disponibilidad cero, estados, identidades inactivas y ausencia de campos privados. No requiere migraciones, variables nuevas ni cambios de Docker.

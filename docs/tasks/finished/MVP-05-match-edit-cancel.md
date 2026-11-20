@@ -83,3 +83,22 @@ de publicación y refactorización. No se ejecutaron migraciones en producción.
 
 Los cambios se separaron por responsabilidad, incluyendo pruebas y contrato en
 cada implementación y la evidencia transversal en el cierre. No se realizó push.
+
+## Integración posterior con desarrollo
+
+Se incorporó `origin/dev` (`b0f5f15`) en la feature para resolver los conflictos de
+la PR. La prueba de migración conserva el timeout de 180 segundos y las
+comprobaciones de capacidad/cancelación, junto con el helper de aislamiento de CI.
+La documentación conserva las secciones de MVP-05 e integración continua.
+
+El contrato vigente de pruebas de desarrollo usa `falta_gente_test`; el nombre
+`falta-gente-test` de la evidencia anterior es histórico. La prueba de mutaciones
+también utiliza el helper compartido, que valida protocolo PostgreSQL, loopback y
+nombre de base antes de cualquier fixture. Se creó una base de pruebas separada
+y se aplicaron las seis migraciones; no se renombraron ni borraron bases existentes.
+
+Validación de la resolución: lint, typecheck, 18 casos del gate de CI, 60 unitarios
+de API, 153 de frontend por grupos y 56 integraciones PostgreSQL aprobados.
+La revisión independiente de los
+conflictos confirmó que no se eliminaron verificaciones ni se relajó el aislamiento
+de datos. No hay cambios en el código de aplicación respecto del build ya validado.

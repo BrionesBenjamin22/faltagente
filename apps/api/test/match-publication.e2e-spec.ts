@@ -6,6 +6,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { configureApplication } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.module.js';
+import { isolatedDatabaseUrl } from './isolated-database.js';
 
 describe(
   'match publication against real PostgreSQL',
@@ -89,14 +90,7 @@ describe(
       return { user, browser };
     }
     beforeAll(async () => {
-      const url = new URL(process.env.DATABASE_URL!);
-      if (
-        !['localhost', '127.0.0.1'].includes(url.hostname) ||
-        url.pathname !== '/falta-gente-test'
-      )
-        throw new Error(
-          'Publication tests require isolated local falta-gente-test.',
-        );
+      isolatedDatabaseUrl(process.env.DATABASE_URL);
       const module = await Test.createTestingModule({
         imports: [AppModule],
       }).compile();
