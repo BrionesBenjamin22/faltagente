@@ -90,6 +90,12 @@ pnpm test:e2e
 
 Playwright utiliza Chromium instalado, viewport móvil y servicios reales. El harness `tests/support/harness.ts` sustituye únicamente `EmailService.send`, conservando los enlaces en memoria del proceso de pruebas. No agrega endpoints, inbox HTTP, autenticación ficticia ni mecanismos al código de producción. Esto permite recorrer en navegador verificación y recuperación con enlaces válidos, inválidos, expirados y reutilizados, además de comprobar revocación de sesiones.
 
+El harness inicia y cierra una API real por caso, aislando buzón y contadores de
+rate limiting entre pruebas. Los límites y las guardas permanecen activos dentro
+de cada caso. `tests/browser-harness.spec.ts` comprueba que el undécimo login recibe
+429 y que el caso siguiente comienza sin heredar ese bloqueo. El modo externo
+conserva el ciclo de vida de la API existente y omite estas dos comprobaciones.
+
 Cubre registro/login, Tolosa inicial, restauración por recarga, City Bell temporal sin modificar perfil y mantenido durante navegación SPA, logout/login restaurando Tolosa, protección de rutas, visita pública y selección persistida para cuentas sin localidad. El combobox se recorre con búsqueda y teclado. También verifica carga, recuperación de errores de transporte y una localidad real vacía (Abasto). Sólo este último caso provoca deliberadamente un fallo de red; los datos y respuestas exitosas siguen proviniendo del backend y PostgreSQL reales.
 
 La segunda iteración añade landing, perfil con payload de diferencias reales y ausencia de requests sin cambios, contraseña con cierre de todas las sesiones, temas light/dark/system persistidos, reduced motion y aislamiento de caché entre usuarios. El último caso conserva el mismo proceso SPA sin logout ni recarga para demostrar que un login posterior no muestra perfil/historial de la identidad anterior. Las capturas de temas se escriben exclusivamente en `.runtime/`, ignorado por Git.

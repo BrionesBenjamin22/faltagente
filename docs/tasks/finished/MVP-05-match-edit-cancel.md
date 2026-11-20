@@ -102,3 +102,30 @@ de API, 153 de frontend por grupos y 56 integraciones PostgreSQL aprobados.
 La revisión independiente de los
 conflictos confirmó que no se eliminaron verificaciones ni se relajó el aislamiento
 de datos. No hay cambios en el código de aplicación respecto del build ya validado.
+
+## Corrección del harness de navegador
+
+La ejecución [CI 44783205349, job browser](https://github.com/BrionesBenjamin22/faltagente/actions/runs/44783205349/job/136451807152)
+aprobó 15 casos y falló en el login del caso de edición con sesión revocada:
+`POST /auth/login` devolvió 429. El harness compartía una aplicación Nest por
+worker, acumulando los logins de casos independientes dentro del límite de
+10 intentos por minuto. En CI las pruebas alcanzaron ese límite antes de terminar.
+
+El fixture ahora inicia y cierra una aplicación real por caso, con buzón y
+contadores independientes. Conserva guardas, límites, cookies y CSRF reales;
+el modo de API externa conserva su ciclo de vida. El cierre se ejecuta también
+ante errores de configuración o arranque mediante `try/finally`.
+
+Se agregaron dos regresiones: el undécimo login del mismo caso debe responder
+429 y el primer login del caso siguiente debe responder 401 por credenciales
+inválidas, sin heredar el bloqueo previo. Ambas aprobaron. La revisión
+independiente de seguridad aceptó el aislamiento; los builds API/Next.js, lint,
+typecheck y las 18 pruebas del gate de CI también aprobaron.
+
+La ejecución local completa de `pnpm test:e2e:ci`, contra `falta_gente_test` y
+puertos 3002/3003, aprobó 18 casos del harness y siete públicos, con código de
+salida 0 y cierre de servidores. La primera pasada también aprobó los 25 casos,
+pero Windows rechazó el cierre con `taskkill` dentro del sandbox; la repetición
+con permisos de cierre confirmó el ciclo completo. La corrección permanece
+local, sin commit ni push; el resultado remoto requiere una ejecución posterior
+con estos cambios publicados.
