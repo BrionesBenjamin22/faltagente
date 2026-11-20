@@ -24,6 +24,7 @@ Revisión del 19 de noviembre de 2026, contrastada con módulos, rutas, modelos 
 
 ### Interfaz y base técnica
 
+- Normas comunitarias públicas en `/normas`, con enlace en el pie y contacto de soporte configurable por correo. Sin buzón configurado, el canal se muestra como próximo a estar disponible. La futura bandeja administrativa y sus notificaciones no están implementadas. Ver [documentación](../apps/web/docs/community.md).
 - Landing multideporte, carrusel, estados de carga/error/vacío, página 404, temas claro/oscuro/sistema y feedback efímero de éxito/error.
 - Monorepo pnpm, Next.js por features y NestJS por dominio, con PostgreSQL/PostGIS y Prisma. Refactorización estructural R0–R7 completada; contratos, URLs y reglas preservados.
 - Contratos frontend separados del transporte, flujos de partidos agrupados y DTO backend distribuidos por dominio. La composición opcional A1/A2 de auth/providers no se incluyó.
