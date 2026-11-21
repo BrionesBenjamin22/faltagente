@@ -22,6 +22,7 @@ it("keeps anonymous navigation limited to login and register across page content
   expect(within(navigation).queryByRole("link", { name: "Partidos" })).not.toBeInTheDocument();
   expect(screen.getAllByRole("banner")).toHaveLength(1);
   expect(screen.getAllByRole("contentinfo")).toHaveLength(1);
+  expect(within(screen.getByRole("contentinfo")).getByRole("link", { name: "Normas comunitarias" })).toHaveAttribute("href", "/normas");
 });
 
 it("preserves the authenticated home match link and account menu", () => {
