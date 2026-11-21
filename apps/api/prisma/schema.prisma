@@ -54,6 +54,7 @@ model User {
   participations Participation[]
   profileChanges UserProfileChange[]
   matchChanges MatchChange[]
+  reservations Reservation[]
 }
 model UserProfileChange {
   id String @id @default(uuid()) @db.Uuid
@@ -141,6 +142,7 @@ model Match {
   participations Participation[]
   changes MatchChange[]
   @@index([organizerId, startsAt, id])
+  reservations Reservation[]
   @@index([locationId, startsAt, id])
   @@index([sportId])
   @@index([sportFormatId, sportId])
@@ -166,4 +168,16 @@ model Participation {
   localDate DateTime @db.Date
   active Boolean @default(true)
   @@unique([userId, matchId])
+}
+
+model Reservation {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields:[userId], references:[id])
+  matchId String @db.Uuid
+  match Match @relation(fields:[matchId], references:[id])
+  places Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([userId, matchId])
+  @@index([matchId])
 }

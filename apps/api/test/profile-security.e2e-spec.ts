@@ -1,6 +1,7 @@
 import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
+import { getStorageToken, ThrottlerStorageService } from '@nestjs/throttler';
 import type { INestApplication } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import * as argon2 from 'argon2';
@@ -52,6 +53,10 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     app = module.createNestApplication(); configureApplication(app); await app.init(); db = app.get(PrismaService);
     for (const name of ['Profile Tolosa', 'Profile City Bell']) locationIds.push((await db.location.create({ data: { name, type: 'LOCALIDAD' } })).id);
   });
+  beforeEach(() => {
+    // Keep the real guard; independent cases must not consume each other's quota.
+    app.get<ThrottlerStorageService>(getStorageToken()).onApplicationShutdown();
+  });
   afterAll(async () => {
     vi.restoreAllMocks();
     if (db) {
@@ -63,6 +68,15 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     await app?.close();
   });
 
+  it('keeps the real login rate limit within each isolated case', async () => {
+    const browser = new Browser();
+    await browser.prepare();
+    const email = `rate-limit-${randomUUID()}@example.test`;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      expect((await browser.send('post', '/auth/login', { email, password })).status).toBe(401);
+    }
+    expect((await browser.send('post', '/auth/login', { email, password })).status).toBe(429);
+  });
     it('permite actualizar el perfil con una ciudad activa', async () => {
     const ciudad = await db.location.create({
       data: {

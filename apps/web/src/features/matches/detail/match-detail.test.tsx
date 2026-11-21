@@ -8,6 +8,8 @@ import type { MatchDetail } from "../types";
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NEXT_NOT_FOUND"); } }));
 vi.mock("@/features/auth/session", () => ({ useSession: () => ({ session: { authenticated: false } }) }));
 
+vi.mock("./reservation-panel", () => ({ ReservationPanel: () => null }));
+
 const match: MatchDetail = {
   id: "10000000-0000-4000-8000-000000000001",
   sport: { id: "sport", name: "Fútbol", slug: "futbol" },
@@ -96,4 +98,14 @@ it("uses server data immediately without a duplicate fetch", () => {
   open(match);
   expect(screen.getByRole("heading", { name: "Fútbol" })).toBeInTheDocument();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it("places the reservation action in the match footer after its description", () => {
+  render(<MatchDetailContent match={match} reservation={<button>Inscribirme</button>} />);
+  const action = screen.getByRole("button", { name: "Inscribirme" });
+  const article = screen.getByRole("article");
+  expect(article).toContainElement(action);
+  expect(action.closest("footer")).toBe(article.lastElementChild);
+  const description = screen.getByRole("heading", { name: "Sobre el partido" });
+  expect(description.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

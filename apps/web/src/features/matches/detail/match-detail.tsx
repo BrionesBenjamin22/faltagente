@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ApiError, errorMessage } from "@/lib/http";
 import { useMatchDetail } from "./use-match-detail";
@@ -10,6 +11,7 @@ import { MatchManagement } from "./match-management";
 import { MatchFeedback } from "./match-feedback";
 import type { MatchDetail } from "../types";
 import styles from "./match-detail.module.css";
+import { ReservationPanel } from "./reservation-panel";
 
 export function MatchDetailScreen({ id, initialData, success }: { id: string; initialData?: MatchDetail; success?: string }) {
   const query = useMatchDetail(id, initialData);
@@ -23,12 +25,12 @@ export function MatchDetailScreen({ id, initialData, success }: { id: string; in
         <p className="error" role="alert">{errorMessage(query.error)}</p>
         <button type="button" className="button secondary" onClick={() => void query.refetch()} disabled={query.isFetching}>{query.isFetching ? "Reintentando…" : "Reintentar"}</button>
       </div> : null}
-      {query.data ? <><MatchDetailContent match={query.data} /><MatchManagement id={id} organizerId={query.data.organizer.id} /></> : null}
+      {query.data ? <><MatchDetailContent match={query.data} reservation={<ReservationPanel match={query.data} />} /><MatchManagement id={id} organizerId={query.data.organizer.id} /></> : null}
     </>}
   </div>;
 }
 
-export function MatchDetailContent({ match }: { match: MatchDetail }) {
+export function MatchDetailContent({ match, reservation }: { match: MatchDetail; reservation?: ReactNode }) {
   const available = match.availablePlaces > 0;
   return <article className={styles.article} aria-labelledby="match-title">
     <header>
@@ -63,5 +65,6 @@ export function MatchDetailContent({ match }: { match: MatchDetail }) {
       <h2 id="match-description">Sobre el partido</h2>
       <p className={styles.description}>{match.description}</p>
     </section> : null}
+    {reservation ? <footer className={styles.reservationFooter}>{reservation}</footer> : null}
   </article>;
 }

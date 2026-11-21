@@ -4,7 +4,7 @@
 
 `/partidos` permite descubrir partidos. `MatchCard` ofrece un enlace accesible Ver partido hacia `/partidos/[id]`. El enlace Volver a partidos siempre lleva al listado, incluso al acceder directamente por URL.
 
-El detalle funciona para visitantes y usuarios autenticados, sin depender de la sesión. Muestra deporte y formato opcional, fecha y hora de Buenos Aires, estado, disponibilidad, lugar, dirección, localidad, precio ARS por persona, nombre público del organizador y descripción no vacía. CLOSED y CANCELLED conservan su estado explícito y muestran el número de lugares como dato informativo sin ofrecerlos como disponibles. No hay acciones de reserva, publicación ni perfil público.
+El detalle funciona para visitantes y usuarios autenticados, sin depender de la sesión. Muestra deporte y formato opcional, fecha y hora de Buenos Aires, estado, disponibilidad, lugar, dirección, localidad, precio ARS por persona, nombre público del organizador y descripción no vacía. CLOSED y CANCELLED conservan su estado explícito y muestran el número de lugares como dato informativo sin ofrecerlos como disponibles. El detalle incluye inscripción para usuarios autenticados y conserva la gestión del organizador.
 
 ## Contrato y service
 
@@ -59,3 +59,11 @@ Desde el detalle, `CancelMatchPanel` muestra advertencia y motivo opcional de ha
 `use-match-mutations` invalida detalle, descubrimiento, baseline público, listados del titular y gestión. Reinicia el historial y su página visible a uno. Gestión e historial conservan claves con identidad: `[match-management,ownerId,id]` y `[match-history,ownerId,id,page]`. El historial muestra `PUBLISHED`, `UPDATED` y `CANCELLED`, con nombres de relaciones, fechas Buenos Aires, importes y cambios antes/después; la API pagina de tres eventos.
 
 Pruebas: `editing/edit-match.test.tsx`, `detail/match-management.test.tsx` y `tests/match-edit-cancel.spec.ts` cubren diferencias, errores, restricciones, concurrencia optimista, foco, navegación, cancelación, feedback consumido, sesión y vista móvil/escritorio. No se modifican layout, auth, estilos base ni componentes globales.
+
+## Inscripción
+
+`ReservationPanel` se integra al pie de la tarjeta del partido, después de sus datos y descripción. El botón Inscribirme aparece primero, alineado a la izquierda, con la cantidad a su lado y ajuste de línea en pantallas pequeñas. Ya no se presenta como un panel separado debajo de los datos. Consulta la sesión y la reserva propia mediante `reservationsService`. Visitantes acceden al login. Un usuario autenticado puede elegir una cantidad entera entre uno y el cupo disponible y confirmar con CSRF usando el cliente HTTP compartido. Durante el envío se bloquea la edición; tras confirmar se muestra la reserva persistida y se invalidan las consultas de partidos para actualizar detalle y listado.
+
+La clave privada `["reservations", "me", userId, matchId]` separa usuarios. Una recarga consulta nuevamente la reserva, incluso si el partido está completo. El organizador y los partidos sin cupos, cerrados, cancelados o iniciados no admiten nuevas inscripciones. Los conflictos del backend refrescan disponibilidad y reserva propia. Las reglas definitivas se validan siempre en API.
+
+`reservation-panel.test.tsx` cubre confirmación, cantidades inválidas, reintento, estados no disponibles, privacidad de caché y CSRF. `tests/reservations.spec.ts` verifica el recorrido real con login, cupo actualizado, recarga y participación PLAYER en PostgreSQL aislado.

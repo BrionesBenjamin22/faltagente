@@ -15,3 +15,11 @@
 .price { font-size:1.75rem; font-weight:700; line-height:1.2; }
 .description { white-space:pre-wrap; }
 @media(min-width:600px) { .facts { grid-template-columns:1fr 1fr; } }
+
+.reservation { margin:0; min-width:0; }
+.reservationControls { display:flex; align-items:flex-end; justify-content:flex-start; flex-wrap:wrap; gap:12px 20px; }
+.reservationButton { min-height:46px; }
+.reservationQuantity { display:grid; gap:6px; width:150px; max-width:100%; }
+.reservationQuantity label { font-size:.875rem; font-weight:600; }
+.reservationHint { margin:10px 0 0; font-size:.875rem; }
+.reservationFooter { border-top:1px solid var(--line); margin-top:24px; padding-top:24px; }

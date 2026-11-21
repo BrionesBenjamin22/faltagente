@@ -179,6 +179,9 @@ Google OAuth y reservas también continúan pendientes.
 - [Frontend: vistas, sesión y filtros](apps/web/FRONTEND.md).
 - [Pruebas de la vertical slice](tests/README.md).
 
+### Inscripción a partidos
+
+El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md). Cancelación y lista de espera siguen pendientes.
 ## Operación local con Docker Compose
 
 Con Docker Desktop iniciado y `.env` configurado, ejecutar desde la raíz:
