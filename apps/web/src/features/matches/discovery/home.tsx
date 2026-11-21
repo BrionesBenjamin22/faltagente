@@ -68,11 +68,37 @@ function HomeList({ success }: { success?: string }) {
     control?.click();
   }
   return <>{success && messages[success] ? <p className="notice" role="status">{messages[success]}</p> : null}
-    <h1 className={styles.heading}>Partidos disponibles</h1><p className="muted">Encontrá un lugar para jugar cerca tuyo.</p>
-    <div className="actions"><Link href="/partidos/nuevo" className="button">Publicar partido</Link>{session.session?.authenticated ? <Link href="/mis-partidos" className="button secondary">Mis partidos</Link> : null}</div>
-    {session.session?.authenticated && session.session.user && !session.session.user.emailVerified ? <section className="notice"><p>Verificá tu email con el enlace que enviamos a tu correo.</p><button className="button secondary" disabled={sending} onClick={async () => { setSending(true); try { await authService.resendVerification(); setFeedback("Si corresponde, recibirá un nuevo enlace de verificación."); } catch (error) { setFeedback(errorMessage(error)); } finally { setSending(false); } }}>Reenviar enlace</button>{feedback ? <p role="status" className="mt-4">{feedback}</p> : null}</section> : null}
+    <header className={styles.discoveryHeader}>
+      <div className={styles.headerCopy}>
+        <p className={styles.eyebrow}>
+          ENCONTRÁ TU PRÓXIMO PARTIDO
+        </p>
+
+        <h1 className={styles.heading}>
+          Partidos disponibles
+        </h1>
+
+        <p className={styles.intro}>
+          Encontrá tu próximo partido, descubrí lugares
+          libres y sumate a jugar cerca tuyo.
+        </p>
+      </div>
+
+      <div className={styles.headerActions}>
+        <Link href="/partidos/nuevo" className="button">
+          Publicar partido
+        </Link>
+
+        {session.session?.authenticated ? (
+          <Link href="/mis-partidos" className="button secondary">
+            Mis partidos
+          </Link>
+        ) : null}
+      </div>
+    </header>
+    {session.session?.authenticated && session.session.user && !session.session.user.emailVerified ? <section className="notice discovery-email-notice"><p>Verificá tu email con el enlace que enviamos a tu correo.</p><button className="button secondary" disabled={sending} onClick={async () => { setSending(true); try { await authService.resendVerification(); setFeedback("Si corresponde, recibirá un nuevo enlace de verificación."); } catch (error) { setFeedback(errorMessage(error)); } finally { setSending(false); } }}>Reenviar enlace</button>{feedback ? <p role="status" className="mt-4">{feedback}</p> : null}</section> : null}
     <DiscoveryFilters filters={filters} locationId={selected} authenticated={!!session.session?.authenticated} onFilters={changeFilters} onLocation={changeLocation} showClear={matches.data?.pages[0].total !== 0} />
-    {selected && !session.session?.authenticated ? <h2 className={styles.listingTitle}>Partidos en {locality ?? "tu localidad"}</h2> : null}
+    {selected && !session.session?.authenticated ?  <div className={styles.resultsHeader}><div><p className={styles.resultsEyebrow}>DISPONIBLES PARA JUGAR</p><h2 className={styles.listingTitle}>Partidos en {locality ?? "tu localidad"}</h2></div>{matches.data?.pages[0] ? <span className={styles.resultCount}>{matches.data.pages[0].total} {matches.data.pages[0].total === 1 ? "partido" : "partidos"}</span> : null}</div> : null}
     {!selected ? <EmptyState title="Elegí dónde querés jugar" description="Seleccioná una localidad para ver los partidos." action={<button type="button" className="button secondary" onClick={openLocationSelector}>Elegir localidad</button>} /> : matches.isPending ? <MatchesLoading /> : matches.isError && !matches.data ? <><p className="error" role="alert">{errorMessage(matches.error)}</p><button className="button secondary" onClick={() => void matches.refetch()}>Reintentar partidos</button></> : <>
       {matches.data?.pages[0].total === 0 ? filtered && baseline.isPending ? <MatchesLoading /> : filtered && baseline.isError ? <><p className="error" role="alert">{errorMessage(baseline.error)}</p><button className="button secondary" onClick={() => void baseline.refetch()}>Reintentar partidos</button><button className="button secondary" onClick={() => changeFilters({})}>Limpiar filtros</button></> : <EmptyState title={filtered && baseline.data?.total !== 0 ? "No encontramos partidos con estos filtros." : "No hay partidos disponibles en esta zona."} description={filtered && baseline.data?.total !== 0 ? "Probá con otro deporte o fecha." : "Probá con otra localidad."} action={<>{filtered ? <button type="button" className="button secondary" onClick={() => changeFilters({})}>Limpiar filtros</button> : null}<button type="button" className="button secondary" onClick={openLocationSelector}>Cambiar localidad</button></>} /> : <div className="match-grid">{matches.data?.pages.flatMap(page => page.items).map(match => <MatchCard match={match} key={match.id} />)}</div>}
       {matches.isFetchNextPageError ? <p className="error" role="alert">{errorMessage(matches.error)} Vuelva a cargar más partidos.</p> : null}{matches.hasNextPage ? <button className="button secondary" disabled={matches.isFetchingNextPage} onClick={() => void matches.fetchNextPage()}>{matches.isFetchingNextPage ? "Cargando…" : "Cargar más partidos"}</button> : null}
