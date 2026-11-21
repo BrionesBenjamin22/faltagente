@@ -1,2 +1,2 @@
-import { AuthForm } from "@/features/auth/auth-form";
-export default function RegisterPage() { return <AuthForm mode="register" />; }
+import { AuthExperience } from "@/features/auth/auth-experience";
+export default function RegisterPage() { return <AuthExperience mode="register" />; }
