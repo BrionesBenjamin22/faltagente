@@ -37,9 +37,28 @@ export interface MatchManagement {
   version: number;
   createdAt: string;
   updatedAt: string;
+  sport: MatchSport & { active: boolean };
+  sportFormat: (MatchSportFormat & { active: boolean }) | null;
+  location: { id: string; name: string; type: string; active: boolean };
+  startsAt: string;
+  placeName: string;
+  address: string;
+  pricePerPerson: string;
+  description: string | null;
+  status: MatchDetail["status"];
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  hasConfirmedParticipants: boolean;
+  canEdit: boolean;
+  canCancel: boolean;
+  canAdjustCapacity: boolean;
+  occupiedPlaces: number;
+  activePlayerCount: number;
 }
+export type UpdateMatchInput = Partial<CreateMatchInput> & { expectedVersion: number };
+export interface CancelMatchInput { expectedVersion: number; reason?: string }
 export interface MatchHistoryPage {
-  items: { id: string; actor: { id: string; name: string }; occurredAt: string; event: "PUBLISHED"; changes: Record<string, { before: unknown; after: unknown }> }[];
+  items: { id: string; actor: { id: string; name: string }; occurredAt: string; event: "PUBLISHED" | "UPDATED" | "CANCELLED"; changes: Record<string, { before: unknown; after: unknown }> }[];
   total: number;
   page: number;
   pageSize: number;

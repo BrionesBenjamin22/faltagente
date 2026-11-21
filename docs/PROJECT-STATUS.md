@@ -19,11 +19,13 @@ Revisión del 19 de noviembre de 2026, contrastada con módulos, rutas, modelos 
 - Localidad temporal independiente del perfil y carga progresiva de nueve resultados.
 - Detalle público en `/partidos/[id]`, datos mínimos del organizador y tratamiento de partidos inexistentes, cerrados o cancelados.
 - Publicación autenticada en `/partidos/nuevo`: validación de fecha futura, catálogos, precio y cupos; crea el partido y su participación ORGANIZER en una transacción. Aplica la restricción de una participación activa por fecha local. El usuario confirmó manualmente que pudo publicar.
-- Listado privado `/mis-partidos` de partidos organizados, con filtros próximos, pasados y cancelados y páginas de nueve. Que pueda mostrar un estado cancelado no significa que exista una acción de cancelación.
-- Capacidad, versión, auditoría e historial de publicación privados del organizador, paginado de tres eventos. Todavía no hay edición ni cancelación.
+- Listado privado `/mis-partidos` de partidos organizados, con filtros próximos, pasados y cancelados y páginas de nueve.
+- Capacidad, versión, auditoría e historial privados del organizador, paginado de tres eventos.
+- MVP-05 incorpora edición y cancelación de partidos futuros propios con control de versión, diferencias reales e historial. La cancelación con jugadores activos o cupos ocupados queda bloqueada hasta integrar reservas. Validación completada el 20 de noviembre: 195 unitarios, 56 integraciones PostgreSQL y diez recorridos de navegador verificados; builds locales/Docker y revisión de seguridad aprobados. Evidencia en [la tarea MVP-05](tasks/finished/MVP-05-match-edit-cancel.md).
 
 ### Interfaz y base técnica
 
+- Normas comunitarias públicas en `/normas`, con enlace en el pie y contacto de soporte configurable por correo. Sin buzón configurado, el canal se muestra como próximo a estar disponible. La futura bandeja administrativa y sus notificaciones no están implementadas. Ver [documentación](../apps/web/docs/community.md).
 - Landing multideporte, carrusel, estados de carga/error/vacío, página 404, temas claro/oscuro/sistema y feedback efímero de éxito/error.
 - Monorepo pnpm, Next.js por features y NestJS por dominio, con PostgreSQL/PostGIS y Prisma. Refactorización estructural R0–R7 completada; contratos, URLs y reglas preservados.
 - Contratos frontend separados del transporte, flujos de partidos agrupados y DTO backend distribuidos por dominio. La composición opcional A1/A2 de auth/providers no se incluyó.
@@ -34,7 +36,7 @@ Revisión del 19 de noviembre de 2026, contrastada con módulos, rutas, modelos 
 ## Pendiente del producto
 
 1. **Refactorizar la UI.** Alcance visual y pantallas a definir en [UI-04](tasks/pending/UI-04-refactor-ui.md). No se implementó un rediseño como parte del cambio estructural.
-2. **Editar y cancelar partidos.** Permisos del organizador, diferencias reales, historial, reglas sobre campos críticos cuando haya reservas, límites de capacidad y cancelación antes del inicio con motivo.
+2. **Integrar cancelación con reservas.** MVP-05 permite cancelar sin jugadores ni cupos ocupados; la desactivación de reservas y sus notificaciones pertenece al futuro módulo de reservas.
 3. **Reservar lugares.** Uno o varios cupos, confirmación atómica, prevención de sobre-reserva, prohibición de reservar el propio partido y creación de Participation PLAYER con la regla diaria. Cancelar reservas y liberar cupos de forma atómica. El modelo de participación por sí solo no implementa reservas.
 4. **Acompañantes y contacto privado.** Nombres opcionales de acompañantes; definir/cargar el contacto y revelarlo sólo tras una reserva confirmada, con autorización backend.
 5. **Lista de espera y ofertas.** Alta/baja, cantidad de lugares, selección por mejor aprovechamiento y antigüedad, oferta de 15 minutos, aceptación/rechazo/expiración e invalidaciones atómicas de otras ofertas/listas del mismo día al confirmar participación.

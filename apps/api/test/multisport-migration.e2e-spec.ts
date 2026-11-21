@@ -6,7 +6,8 @@ import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 
 describe('legacy football migration on isolated PostgreSQL schema', () => {
-  it('maps FIVE/SIX/SEVEN without changing Match data or participation constraints', { timeout: 90_000 }, async () => {
+  // Seven Prisma migration processes and two seed runs need startup time on Windows.
+  it('maps FIVE/SIX/SEVEN without changing Match data or participation constraints', { timeout: 180_000 }, async () => {
     const url = isolatedDatabaseUrl(process.env.DATABASE_URL);
     const schema = `mvp01_${randomUUID().replaceAll('-', '')}`;
     url.searchParams.set('schema', schema);
@@ -55,6 +56,10 @@ describe('legacy football migration on isolated PostgreSQL schema', () => {
       expect(await db.$queryRaw`SELECT to_jsonb(m) - 'totalPlaces' - 'version' AS snapshot FROM "Match" m ORDER BY "id"`).toEqual(capacityBefore);
       const capacities = await db.$queryRaw<{ availablePlaces: number; totalPlaces: number; version: number }[]>`SELECT "availablePlaces", "totalPlaces", "version" FROM "Match"`;
       expect(capacities.every(match => match.totalPlaces === match.availablePlaces && match.version === 1)).toBe(true);
+      const cancellationBefore = await db.$queryRaw`SELECT to_jsonb(m) AS snapshot FROM "Match" m ORDER BY "id"`;
+      applyMigration('202611190001_match_cancellation');
+      expect(await db.$queryRaw`SELECT to_jsonb(m) - 'cancelledAt' - 'cancellationReason' AS snapshot FROM "Match" m ORDER BY "id"`).toEqual(cancellationBefore);
+      expect(await db.$queryRaw`SELECT "id" FROM "Match" WHERE "cancelledAt" IS NOT NULL OR "cancellationReason" IS NOT NULL`).toEqual([]);
       const mapped = await db.match.findMany({ orderBy: { seedKey: 'asc' }, include: { sport: true, sportFormat: true } });
       expect(mapped.map(match => ({ id: match.id, sport: match.sport.slug, format: match.sportFormat?.name }))).toEqual([
         { id: ids[0], sport: 'futbol', format: 'Fútbol 5' },

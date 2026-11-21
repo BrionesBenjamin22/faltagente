@@ -58,7 +58,7 @@ export async function discoveryFixtures() {
   } };
 }
 
-export const test = base.extend<object, { mailbox: Mail[] }>({
+export const test = base.extend<{ mailbox: Mail[] }>({
   mailbox: [async ({}, use) => {
     isolatedDatabase();
     // Docker smoke tests use the actual container API; email-token tests still
@@ -77,13 +77,17 @@ export const test = base.extend<object, { mailbox: Mail[] }>({
     const { EmailService } = requireApi('./dist/auth/email.service.js');
     const { configureApplication } = requireApi('./dist/configure-app.js');
     const mailbox: Mail[] = [];
+    // A real application per test isolates in-memory rate-limit counters and
+    // mailbox state without changing the production guards or their limits.
     const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(EmailService)
       .useValue({ send: async (to: string, kind: Mail['kind'], token: string) => { mailbox.push({ to, kind, token }); } }).compile();
     const app = module.createNestApplication({ logger: false });
-    configureApplication(app);
-    await app.listen(apiPort, '127.0.0.1');
-    try { await use(mailbox); } finally { await app.close(); }
-  }, { scope: 'worker', auto: true }],
+    try {
+      configureApplication(app);
+      await app.listen(apiPort, '127.0.0.1');
+      await use(mailbox);
+    } finally { await app.close(); }
+  }, { auto: true }],
 });
 
 export { expect };
