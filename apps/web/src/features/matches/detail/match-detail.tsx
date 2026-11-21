@@ -7,14 +7,16 @@ import { useMatchDetail } from "./use-match-detail";
 import { matchDateFormat, matchPriceFormat } from "../format";
 import { MatchDetailLoading } from "./match-detail-loading";
 import { MatchManagement } from "./match-management";
+import { MatchFeedback } from "./match-feedback";
 import type { MatchDetail } from "../types";
 import styles from "./match-detail.module.css";
 
-export function MatchDetailScreen({ id, initialData }: { id: string; initialData?: MatchDetail }) {
+export function MatchDetailScreen({ id, initialData, success }: { id: string; initialData?: MatchDetail; success?: string }) {
   const query = useMatchDetail(id, initialData);
   if (query.isError && query.error instanceof ApiError && (query.error.status === 404 || query.error.status === 400)) notFound();
 
   return <div className={styles.page}>
+    <MatchFeedback success={success} />
     <Link className={styles.back} href="/partidos"><span aria-hidden="true">←</span> Volver a partidos</Link>
     {query.isPending ? <MatchDetailLoading /> : <>
       {query.isError ? <div className="notice">

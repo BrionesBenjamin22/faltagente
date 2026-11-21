@@ -115,3 +115,5 @@ La topología base usa `NODE_ENV=production`, exige frontend HTTPS y email confi
 # Publicación de partidos
 
 Contrato, validaciones, persistencia, permisos y coordinación futura con reservas: [MATCH-PUBLICATION.md](MATCH-PUBLICATION.md).
+
+Gestion de partidos: [contratos de edicion y cancelacion](MATCH-MANAGEMENT.md).

@@ -1,5 +1,24 @@
 # Validación de las vertical slices de Falta Gente
 
+## MVP-05: edición y cancelación
+
+`apps/api/test/match-mutations.e2e-spec.ts` verifica contra PostgreSQL real los
+permisos, CSRF/Origin, diferencias normalizadas, nulos, catálogos históricos,
+capacidad y estados, fecha local, privacidad del motivo y cancelación idempotente.
+Incluye carreras de dos ediciones y edición contra cancelación. Las pruebas de
+migración comprueban que los campos nuevos permanecen null en registros previos.
+
+`tests/match-edit-cancel.spec.ts` recorre acceso directo, formulario sin cambios,
+payload parcial, conflicto de versión con recarga explícita, errores de red,
+sesión revocada, confirmación y desistimiento de cancelación, foco y feedback.
+Comprueba persistencia y participaciones reales en la base aislada, además de
+pantallas móviles y de escritorio. Sus fixtures propios se eliminan al terminar.
+Los artefactos visuales se guardan en `.runtime/`, ignorado por Git.
+
+Las regresiones que esperan partidos de demostración futuros necesitan el seed
+de desarrollo actualizado exclusivamente en `falta_gente_test`. Renovar esos
+fixtures de pruebas no autoriza regenerar los datos de desarrollo habituales.
+
 Las pruebas utilizan exclusivamente servicios locales y una base PostgreSQL aislada. No ejecutarlas contra producción. La suite de integración rechaza URLs que no apunten a `localhost` o `127.0.0.1` y a la base `falta_gente_test`. Eliminar únicamente fixtures creados por la suite preserva los seeds.
 
 ## Integración continua
@@ -70,6 +89,12 @@ pnpm test:e2e
 ```
 
 Playwright utiliza Chromium instalado, viewport móvil y servicios reales. El harness `tests/support/harness.ts` sustituye únicamente `EmailService.send`, conservando los enlaces en memoria del proceso de pruebas. No agrega endpoints, inbox HTTP, autenticación ficticia ni mecanismos al código de producción. Esto permite recorrer en navegador verificación y recuperación con enlaces válidos, inválidos, expirados y reutilizados, además de comprobar revocación de sesiones.
+
+El harness inicia y cierra una API real por caso, aislando buzón y contadores de
+rate limiting entre pruebas. Los límites y las guardas permanecen activos dentro
+de cada caso. `tests/browser-harness.spec.ts` comprueba que el undécimo login recibe
+429 y que el caso siguiente comienza sin heredar ese bloqueo. El modo externo
+conserva el ciclo de vida de la API existente y omite estas dos comprobaciones.
 
 Cubre registro/login, Tolosa inicial, restauración por recarga, City Bell temporal sin modificar perfil y mantenido durante navegación SPA, logout/login restaurando Tolosa, protección de rutas, visita pública y selección persistida para cuentas sin localidad. El combobox se recorre con búsqueda y teclado. También verifica carga, recuperación de errores de transporte y una localidad real vacía (Abasto). Sólo este último caso provoca deliberadamente un fallo de red; los datos y respuestas exitosas siguen proviniendo del backend y PostgreSQL reales.
 
