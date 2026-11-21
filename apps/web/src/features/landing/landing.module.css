@@ -1,38 +1,17 @@
-.sportsVisual {
-  width:100%;
-  max-width:410px;
-  margin-inline:auto;
-  background:#245377;
-  color:#edf6fe;
-  border-radius:28px;
-  padding:clamp(20px,4vw,30px);
-  box-shadow:0 18px 48px #15355215;
-}
-
-.sportsGrid {
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-  list-style:none;
-  margin:0;
-  padding:0;
-}
-
-.sport {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  aspect-ratio:1.15;
-  padding:14px 8px;
-  border:1px solid #b9d9f099;
-  border-radius:12px;
-}
-
-.sport svg { width:48px; height:48px; }
-.caption { margin:16px 0 0; font-size:.85rem; text-align:center; }
-
+.sportsVisual { width:100%; max-width:460px; margin-inline:auto; padding:24px; color:#f0f6ed; background:#215b3e; border-radius:18px; border:1px solid #16472f; box-shadow:10px 12px 0 var(--line); }
+.court { position:relative; height:270px; border:2px solid #e1f0dd80; border-radius:3px; margin:6px 0 24px; overflow:hidden; background:repeating-linear-gradient(90deg,transparent 0,transparent 25%,#ffffff06 25%,#ffffff06 50%); }
+.court::before { content:""; position:absolute; inset:0 50% 0 auto; border-left:2px solid #e1f0dd80; }
+.courtCircle { position:absolute; width:92px; height:92px; border:2px solid #e1f0dd80; border-radius:50%; left:50%; top:50%; transform:translate(-50%,-50%); }
+.goalLeft,.goalRight { position:absolute; top:25%; height:50%; width:17%; border:2px solid #e1f0dd80; }
+.goalLeft { left:-2px; }.goalRight { right:-2px; }
+.player { position:absolute; width:19px; height:19px; border:3px solid #fff; border-radius:50%; background:#a7cd93; box-shadow:0 3px 7px #102e2550; }
+.player[data-position="one"] { left:21%; top:22%; }.player[data-position="two"] { left:23%; top:70%; }.player[data-position="three"] { left:39%; top:46%; }.player[data-position="four"] { left:72%; top:20%; }.player[data-position="five"] { left:73%; top:70%; }
+.freePlace { position:absolute; left:55%; top:42%; padding:6px 11px; border:1px dashed #f4d66b; border-radius:5px; background:#f4d66b; color:#173c2a; font-size:.85rem; font-weight:800; transform:rotate(-7deg); }
+.sportsGrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; list-style:none; margin:0; padding:0; }
+.sport { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; min-width:0; padding:13px 3px; border-top:1px solid #e1f0dd60; font-size:.8rem; font-weight:600; }
+.sport svg { width:32px; height:32px; }
+.caption { margin:15px 0 0; padding-top:14px; border-top:1px solid #e1f0dd60; font-size:.95rem; text-align:center; font-weight:600; }
+@media(max-width:420px) { .sportsVisual { padding:18px; box-shadow:6px 7px 0 var(--line); }.court { height:230px; }.freePlace { font-size:.75rem; padding:5px 8px; } }
 .carousel {
   width:100%;
   max-width:100%;
@@ -71,3 +50,5 @@
 @media(prefers-reduced-motion:reduce) {
   .carousel .slide { transition:none; }
 }
+
+@media(max-width:420px) { .carousel .slide { aspect-ratio:auto; min-height:370px; } }
