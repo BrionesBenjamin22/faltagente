@@ -16,12 +16,23 @@ El cambio de marca no migra sesiones ni datos. Estos identificadores heredados s
 | JWT `issuer=hyt-api`, `audience=hyt-web` | Validar tokens ya emitidos. |
 | Prefijo determinista del seed `hyt:` | Conservar UUIDs y evitar duplicar datos al repetir el seed. |
 | Preferencia `hyt-theme-v1` y evento `hyt-theme-change` | Mantener la preferencia guardada y sincronización del tema. |
-| Usuario/base de ejemplo `hyt`, bases aisladas `hyt_slice` y `hyt_slice_test` | Mantener configuración y protecciones de las suites existentes. |
-| Volumen Compose `hyt-postgres` | Volver a montar los datos existentes; renombrarlo puede crear un volumen vacío. |
+| Rol PostgreSQL existente `hyt` | Conservar permisos y propiedad de los datos; el nombre de la base ya no usa esta denominación. |
 
 Los nombres concretos registrados en evidencia histórica de Docker se conservan como hechos de esas ejecuciones. Los comandos operativos vigentes usan la nueva convención; la evidencia histórica no es una plantilla de configuración.
 
+## Identidad Docker de desarrollo
+
+El archivo base declara `name: falta-gente`. Los contenedores usan ese proyecto sin requerir `-p`; el volumen lógico `postgres` se crea como `falta-gente_postgres`. Las imágenes siguen siendo `falta-gente-web:local` y `falta-gente-api:local`.
+
+El usuario autorizó explícitamente dar de baja el volumen de desarrollo anterior con referencias a `furvo` y regenerar los datos mediante migraciones y seeds. Esta transición reemplaza la excepción anterior de conservación de `hyt-postgres`; no es una migración de datos ni autoriza borrar otros volúmenes o entornos. El rol PostgreSQL `hyt`, los identificadores de seed y los controles de autenticación permanecen como están. La transición posterior de nombres de bases se describe debajo. Después de la regeneración, los comandos cotidianos conservan el volumen nuevo salvo un borrado expresamente autorizado.
+
 Cambiar cualquiera de estos identificadores requiere un plan específico de migración y pruebas de compatibilidad. No renombrar carpetas locales, ramas, remotos, bases ni recursos desplegados como parte de un cambio editorial. No editar archivos de entorno privados para actualizar la marca.
+
+## Nombres de bases locales
+
+El contrato integrado conserva `falta-gente` para desarrollo. La base y el usuario de integración/CI se llaman `falta_gente_test`, siguiendo la decisión incorporada en `dev`: guiones bajos para los identificadores PostgreSQL y una única base admitida en loopback. El helper compartido valida también el protocolo PostgreSQL y rechaza bases habituales, hosts remotos y nombres anteriores, incluido `falta-gente-test`. Consultar [CI](../CI.md).
+
+La transición local se realiza con respaldo y renombre PostgreSQL de `hyt` a `falta-gente`, conservando datos y rol propietario, seguido de actualización de las URLs locales y recreación de los contenedores afectados. No requiere migración Prisma ni borrar volúmenes. La base de pruebas es independiente y recibe migraciones y seeds explícitos. La validación local anterior utilizó `falta-gente-test`; ese nombre queda como evidencia histórica y no se renombra automáticamente al integrar CI. Esta autorización no incluye recursos remotos ni producción.
 
 ## Validación del cambio de marca
 

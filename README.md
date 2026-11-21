@@ -2,7 +2,9 @@
 
 Nombre y convenciones vigentes: [identidad de Falta Gente](docs/agent/NAMING.md). Los identificadores técnicos heredados que mantienen sesiones o datos se conservan por compatibilidad.
 
-Para ejecutar la aplicación localmente, seguir el [instructivo de desarrollo](#levantar-el-proyecto-en-desarrollo).
+La [guía de integración continua](docs/CI.md) describe los controles de GitHub Actions y el flujo `feature/* → dev → main`. Azure es el destino acordado para la próxima etapa de despliegue.
+
+Para ejecutar la aplicación localmente, usar los [comandos Compose habituales](#operación-local-con-docker-compose). El agente deja migraciones y seeds preparados al finalizar cada etapa.
 
 ## Siempre falta gente para jugar
 
@@ -156,6 +158,8 @@ Primero hay que resolver bien algo mucho más simple:
 
 ## Estado actual del desarrollo
 
+Consultar el [estado consolidado del sistema](docs/PROJECT-STATUS.md) para distinguir lo implementado, las funcionalidades pendientes y la preparación para lanzamiento. Las iteraciones siguientes describen la evolución histórica.
+
 La aplicación implementa registro y login local, sesión segura, verificación de email, recuperación de contraseña y descubrimiento de partidos por localidad. La selección temporal del Home es independiente de la localidad principal del perfil. Google y las reservas quedan para etapas posteriores.
 
 La segunda iteración agrega edición del perfil con historial privado, cambio de contraseña con cierre de todas las sesiones, localidades buscables, navegación de cuenta y temas claro, oscuro y sistema.
@@ -164,14 +168,52 @@ MVP-01 generaliza el dominio de partidos a deporte y formato opcional. El catál
 
 MVP-02 extiende ese listado con filtros combinables de deporte, formato opcional y fecha local de Buenos Aires. Los selectores consumen el catálogo real, conservan la localidad temporal y la carga progresiva de nueve resultados. Los filtros se reflejan en la URL y admiten navegación atrás/adelante. Detalle, publicación y reservas continúan fuera de esta entrega.
 
-Google OAuth también continúa pendiente. Los flujos de publicación y reserva descritos en la visión del producto representan el objetivo del MVP.
+MVP-03 agrega el detalle público navegable en `/partidos/[id]` y `GET /api/v1/matches/:id`, con datos mínimos del organizador, formato y descripción opcionales y estados abierto/cerrado/cancelado. Las cards ofrecen Ver partido; publicación y reservas siguen pendientes. Consultar [el contrato del detalle](apps/api/MATCH-DETAIL.md) y [las vistas de partidos](apps/web/docs/matches.md).
+
+MVP-04 agrega publicación autenticada en `/partidos/nuevo`, creación atómica de la participación del organizador e historial privado de publicación. Los lugares ofrecidos corresponden a jugadores y no incluyen al organizador. `/mis-partidos` permite recuperar las publicaciones propias. Edición y cancelación se entregan en etapas posteriores e independientes.
+
+Google OAuth y reservas también continúan pendientes.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
 - [Backend: perfil e historial privado](apps/api/PROFILE.md).
 - [Frontend: vistas, sesión y filtros](apps/web/FRONTEND.md).
 - [Pruebas de la vertical slice](tests/README.md).
 
-## Levantar el proyecto en desarrollo
+### Inscripción a partidos
+
+El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md). Cancelación y lista de espera siguen pendientes.
+## Operación local con Docker Compose
+
+Con Docker Desktop iniciado y `.env` configurado, ejecutar desde la raíz:
+
+```powershell
+# Levantar
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait
+
+# Reconstruir y levantar después de cambios de código
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+
+# Estado y logs
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f --tail 100
+
+# Reiniciar sólo API
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart api
+
+# Detener
+docker compose -f docker-compose.yml -f docker-compose.dev.yml stop
+
+# Eliminar contenedores/redes, conservando datos
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+```
+
+La aplicación queda en `http://localhost:3000` y la API en `http://localhost:3001/api/v1`, salvo puertos personalizados en `.env`. Compose declara el proyecto `falta-gente` y usa `falta-gente_postgres`; no hacen falta aliases ni `-p`. No usar `down -v` para la operación habitual: elimina los datos. `restart` no reconstruye imágenes.
+
+El agente ejecuta las migraciones y seeds necesarios al cerrar cada etapa y verifica que los datos y flujos queden disponibles. No se ejecutan automáticamente al levantar o reiniciar servicios. El volumen anterior de desarrollo con referencias a `furvo` se regenera por autorización explícita; no se cambian los identificadores internos de autenticación ni el rol PostgreSQL `hyt`; la base local usa `falta-gente`. Ver [la guía Docker](docs/DOCKER.md) para preparación técnica y operación.
+
+## Desarrollo con procesos en el host
+
+Esta alternativa es para trabajar con recarga automática en API y frontend. La operación cotidiana del stack completo se encuentra arriba. La instalación y preparación inicial que siguen corresponden al agente al configurar o cerrar una etapa, sin trasladar migraciones y seeds al usuario.
 
 ### Requisitos
 
@@ -207,11 +249,11 @@ CORS_ORIGINS=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
 
 POSTGRES_USER=hyt
-POSTGRES_DB=hyt
+POSTGRES_DB=falta-gente
 POSTGRES_PORT=5432
 POSTGRES_PASSWORD=<contraseña-local>
-DOCKER_DATABASE_URL=postgresql://hyt:<password-codificada>@db:5432/hyt?schema=public
-DATABASE_URL=postgresql://hyt:<contraseña-local>@localhost:5432/hyt?schema=public
+DOCKER_DATABASE_URL=postgresql://hyt:<password-codificada>@db:5432/falta-gente?schema=public
+DATABASE_URL=postgresql://hyt:<contraseña-local>@localhost:5432/falta-gente?schema=public
 
 JWT_SECRET=<secreto-aleatorio>
 CSRF_SECRET=<otro-secreto-aleatorio>
@@ -220,7 +262,7 @@ RESEND_API_KEY=
 EMAIL_FROM=
 ```
 
-> **Nota:** los identificadores internos `hyt` se mantienen mientras sigan siendo los utilizados por la configuración actual del proyecto. El cambio de nombre comercial a Falta Gente no requiere renombrar inmediatamente usuarios, bases o volúmenes internos.
+> **Nota:** el rol PostgreSQL `hyt` se conserva y la base se llama `falta-gente`. El proyecto Docker vigente se llama `falta-gente` y utiliza el volumen `falta-gente_postgres`.
 
 Los valores entre `<...>` son marcadores: reemplazarlos. `DATABASE_URL` debe coincidir con el usuario, contraseña, puerto y base configurados para Docker. Si la contraseña contiene caracteres especiales, codificarla para su uso dentro de una URL.
 
@@ -247,7 +289,7 @@ Para recibir emails reales de verificación y recuperación, completar `RESEND_A
 
 Los archivos `.env` y `.env.local` están ignorados por Git. No versionar sus valores.
 
-### 3. Preparar la base de datos
+### 3. Preparar la base de datos (agente)
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait db
@@ -255,7 +297,7 @@ pnpm --filter api db:generate
 pnpm --filter api db:migrate
 ```
 
-Docker levanta PostgreSQL con PostGIS y conserva los datos en el volumen `hyt-postgres`. `db:migrate` aplica las migraciones existentes, incluido el historial del perfil.
+Docker levanta PostgreSQL con PostGIS y conserva los datos en el volumen `falta-gente_postgres`. `db:migrate` aplica las migraciones existentes, incluido el historial del perfil. El agente realiza este paso y los seeds al preparar el entorno y al cerrar cada etapa según corresponda.
 
 Cargar los catálogos de deportes, formatos y localidades de La Plata:
 
@@ -317,14 +359,14 @@ Detener API y frontend con `Ctrl+C` en sus terminales. Para detener la base cons
 docker compose -f docker-compose.yml -f docker-compose.dev.yml stop db
 ```
 
-En siguientes ejecuciones basta con iniciar la base y ambos servidores. Después de actualizar el código, instalar dependencias si cambió el lockfile y ejecutar `db:generate` y `db:migrate` si cambió Prisma. Los partidos de demostración tienen fechas futuras al ejecutar el seed; si ya pasaron, volver a ejecutar el seed de desarrollo.
+En siguientes ejecuciones basta con iniciar la base y ambos servidores. El agente instala dependencias si cambió el lockfile, regenera Prisma cuando corresponde y aplica migraciones/seeds al cerrar la etapa. Los partidos de demostración tienen fechas futuras al ejecutar el seed; el agente los actualiza si resultan necesarios para validar la funcionalidad entregada.
 
 ### Problemas frecuentes
 
 - **Puerto 5432 ocupado:** cambiar `POSTGRES_PORT` y el puerto de `DATABASE_URL`, sincronizar `.env` con `apps/api/.env` y volver a iniciar la base.
 - **Error de variables faltantes:** revisar `apps/api/.env`, los secretos y `DATABASE_URL`; reiniciar la API después de editarlos.
-- **Error de conexión o autenticación de PostgreSQL:** comprobar `docker compose ps` y `docker compose logs db`. Cambiar `POSTGRES_PASSWORD` en `.env` no modifica la contraseña de una base que ya existe en el volumen.
-- **Registro sin localidades o Home vacío:** ejecutar los seeds y verificar que las migraciones están aplicadas. El catálogo y los partidos de demostración se cargan por separado.
+- **Error de conexión o autenticación de PostgreSQL:** comprobar `docker compose -f docker-compose.yml -f docker-compose.dev.yml ps` y `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs db`. Cambiar `POSTGRES_PASSWORD` en `.env` no modifica la contraseña de una base que ya existe en el volumen.
+- **Registro sin localidades o Home vacío:** el agente debe revisar la preparación de migraciones y seeds antes de dar la etapa por terminada. El catálogo y los partidos ficticios son datos de preparación explícita.
 - **Sesión o CORS fallan:** usar `http://localhost:3000`, comprobar `NEXT_PUBLIC_API_URL` y mantener `FRONTEND_URL` dentro de `CORS_ORIGINS`. Reiniciar el frontend si cambian sus variables.
 - **No llegan emails:** configurar Resend y un remitente autorizado; sin proveedor configurado no se envían enlaces en desarrollo.
 
@@ -341,4 +383,4 @@ pnpm build
 
 ## Stack completo con Docker
 
-Consultar [la guía Docker](docs/DOCKER.md) para construir web/API, levantar los tres servicios, aplicar migraciones manuales y operar el stack. Compose base no expone PostgreSQL; el desarrollo con procesos en host requiere el override documentado.
+Consultar [la guía Docker](docs/DOCKER.md) para construir web/API, levantar los tres servicios y operar el stack. El agente se ocupa de la preparación de migraciones y seeds. Compose base no expone PostgreSQL; el desarrollo con procesos en host requiere el override documentado.

@@ -25,11 +25,8 @@ import {
   TokenDto,
   ChangePasswordDto,
 } from './auth.dto.js';
-import {
-  SessionResponse,
-  CsrfResponse,
-  MessageResponse,
-} from '../common/http/response.dto.js';
+import { SessionResponse, CsrfResponse } from './auth-response.dto.js';
+import { MessageResponse } from '../common/http/response.dto.js';
 @ApiTags('Auth')
 @Throttle({ default: { limit: 10, ttl: 60000 } })
 @Controller('auth')

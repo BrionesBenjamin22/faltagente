@@ -1,0 +1,6 @@
+.navigation { display:none; }
+
+/* Match Tailwind's sm breakpoint; unlayered styles override the base nav rule. */
+@media (min-width:640px) {
+  .navigation { display:flex; }
+}

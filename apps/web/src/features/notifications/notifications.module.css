@@ -1,0 +1,15 @@
+.stack { position:fixed; z-index:90; top:calc(env(safe-area-inset-top,0px) + 88px); left:16px; right:16px; display:grid; gap:12px; pointer-events:none; }
+.toast { position:relative; display:flex; align-items:center; gap:8px; padding:12px 8px 16px 16px; border:1px solid var(--line); border-radius:10px; background:var(--solid); color:var(--ink); box-shadow:0 8px 28px #030e1d20; pointer-events:auto; overflow:hidden; --accent:var(--club); }
+.toast[data-variant="success"] { --accent:var(--success); }
+.toast[data-variant="error"] { --accent:var(--danger); }
+.toast[data-variant="warning"] { --accent:#946000; }
+:global([data-theme="dark"]) .toast[data-variant="warning"] { --accent:#f0c366; }
+.message { display:flex; align-items:flex-start; gap:12px; flex:1; min-width:0; font-size:.95rem; overflow-wrap:anywhere; }
+.message>svg { flex-shrink:0; color:var(--accent); margin-top:2px; }
+.close { display:grid; place-items:center; flex-shrink:0; width:44px; height:44px; padding:0; border:0; border-radius:6px; color:var(--muted); background:transparent; cursor:pointer; }
+.close:hover { background:var(--notice); }
+.close:focus-visible { outline:3px solid var(--focus); outline-offset:-3px; }
+.track { position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--notice); }
+.progress { height:100%; background:var(--accent); transform-origin:left; }
+.srOnly { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@media(min-width:700px) { .stack { left:auto; right:24px; width:380px; } }

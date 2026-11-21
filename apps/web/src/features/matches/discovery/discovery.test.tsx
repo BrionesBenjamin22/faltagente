@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Providers } from "@/features/auth/session";
 import { Home } from "./home";
-import { localDate, parseDiscovery, validLocalDate } from "./discovery-state";
+import { parseDiscovery } from "./discovery-state";
+import { localDate, validLocalDate } from "../local-date";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 const location = { id: "10000000-0000-4000-8000-000000000001", name: "Tolosa", type: "LOCALIDAD" };

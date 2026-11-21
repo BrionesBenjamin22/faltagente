@@ -1,2 +1,2 @@
-import { Home } from "@/features/matches/home";
+import { Home } from "@/features/matches/discovery/home";
 export default function MatchesPage() { return <Home discovery />; }

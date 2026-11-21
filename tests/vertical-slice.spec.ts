@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { test, expect, api, prismaFixture } from './support/harness';
-import { chooseLocation, logout, expectHomeLocation } from './support/ui';
+import { chooseLocation, logout, expectHomeLocation, openAccountMenu } from './support/ui';
 
 const password = 'Browser testing password 123!';
 
@@ -36,7 +36,7 @@ test('registration, locality discovery, temporary exploration and login restorat
   expect(cityBell.items.every((match: { location: { name: string } }) => match.location.name === 'City Bell')).toBe(true);
   for (const match of cityBell.items) await expect(page.getByText(match.venueName, { exact: true })).toBeVisible();
   expect((await (await context.request.get(`${api}/auth/session`)).json()).user.primaryLocation.name).toBe('Tolosa');
-  await page.getByRole('button', { name: 'Mi cuenta', exact: true }).click();
+  await openAccountMenu(page);
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Localidad principal', exact: true })).toContainText('Tolosa');
   await page.getByRole('link', { name: 'Volver', exact: true }).click();
@@ -56,7 +56,10 @@ test('unauthenticated route protection and public discovery', async ({ page }) =
   await page.goto('/partidos');
   await chooseLocation(page, 'Localidad seleccionada', 'Los Hornos');
   await expect(page.getByRole('heading', { name: 'Partidos en Los Hornos' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Ingresar', exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Cuenta', exact: true })).toBeHidden();
+  await page.getByRole('link', { name: 'Falta Gente Beta', exact: true }).click();
+  await page.getByRole('link', { name: 'Ingresar', exact: true }).click();
+  await expect(page).toHaveURL(/\/auth\/login$/);
 });
 
 test('existing account without locality selects it and continues to Home', async ({ page, context }) => {

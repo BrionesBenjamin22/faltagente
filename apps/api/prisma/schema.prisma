@@ -53,6 +53,8 @@ model User {
   organizedMatches Match[]
   participations Participation[]
   profileChanges UserProfileChange[]
+  matchChanges MatchChange[]
+  reservations Reservation[]
 }
 model UserProfileChange {
   id String @id @default(uuid()) @db.Uuid
@@ -129,14 +131,32 @@ model Match {
   address String
   pricePerPerson Decimal @db.Decimal(10,2)
   availablePlaces Int
+  totalPlaces Int
+  version Int @default(1)
   description String?
   status MatchStatus @default(OPEN)
+  cancelledAt DateTime? @db.Timestamptz(3)
+  cancellationReason String? @db.VarChar(500)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   participations Participation[]
+  changes MatchChange[]
+  @@index([organizerId, startsAt, id])
+  reservations Reservation[]
   @@index([locationId, startsAt, id])
   @@index([sportId])
   @@index([sportFormatId, sportId])
+}
+model MatchChange {
+  id String @id @default(uuid()) @db.Uuid
+  matchId String @db.Uuid
+  match Match @relation(fields:[matchId], references:[id], onDelete:Cascade)
+  actorId String @db.Uuid
+  actor User @relation(fields:[actorId], references:[id])
+  occurredAt DateTime @default(now()) @db.Timestamptz(3)
+  event String
+  changes Json
+  @@index([matchId, occurredAt, id])
 }
 model Participation {
   id String @id @default(uuid()) @db.Uuid
@@ -148,4 +168,16 @@ model Participation {
   localDate DateTime @db.Date
   active Boolean @default(true)
   @@unique([userId, matchId])
+}
+
+model Reservation {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields:[userId], references:[id])
+  matchId String @db.Uuid
+  match Match @relation(fields:[matchId], references:[id])
+  places Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([userId, matchId])
+  @@index([matchId])
 }

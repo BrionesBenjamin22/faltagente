@@ -1,8 +1,5 @@
 import { mutate, request } from "@/lib/http";
-import type { Location } from "@/features/locations/service";
-export interface User { id: string; name: string; email: string; emailVerified: boolean; hasLocalPassword: boolean; createdAt: string; updatedAt: string; primaryLocation: Location | null }
-export interface Session { authenticated: boolean; accessExpiresAt: string | null; refreshAvailable: boolean; user: User | null }
-export interface RegisterInput { name: string; email: string; password: string; primaryLocationId: string }
+import type { User, Session, RegisterInput } from "./types";
 export const authService = {
   session: () => request<Session>("/auth/session"),
   login: (input: { email: string; password: string }) => mutate<Session>("/auth/login", input),

@@ -547,6 +547,16 @@ No implementar sin aprobación explícita:
 
 ---
 
+## Normas comunitarias y feedback
+
+Las normas comunitarias son públicas en `/normas`, accesibles desde el pie de página. Promueven respeto, información honesta, compromiso de asistencia y aviso oportuno ante cancelaciones, sin introducir penalizaciones ni reputación. Los términos y condiciones quedan para una etapa separada.
+
+El bloque «Quejas y sugerencias» ofrece contacto por correo para feedback general de la aplicación. Mientras no haya un buzón real configurado, informa que el canal estará disponible próximamente. El envío ocurre fuera de la aplicación: no se registra ni genera notificaciones internas.
+
+Una futura bandeja y sus notificaciones serán exclusivas de administradores; requieren un mecanismo de recepción backend y autorización antes de implementarse. No se agregan denuncias formales ni panel administrativo en esta etapa.
+
+---
+
 ## 25. Principio de diseño
 
 Cuando existan varias soluciones válidas, elegir la más simple que mantenga las reglas anteriores.

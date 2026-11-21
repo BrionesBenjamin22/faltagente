@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -5,11 +6,9 @@ import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 
 describe('legacy football migration on isolated PostgreSQL schema', () => {
-  it('maps FIVE/SIX/SEVEN without changing Match data or participation constraints', { timeout: 90_000 }, async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') {
-      throw new Error('Migration test requires isolated local hyt_slice_test.');
-    }
+  // Seven Prisma migration processes and two seed runs need startup time on Windows.
+  it('maps FIVE/SIX/SEVEN without changing Match data or participation constraints', { timeout: 180_000 }, async () => {
+    const url = isolatedDatabaseUrl(process.env.DATABASE_URL);
     const schema = `mvp01_${randomUUID().replaceAll('-', '')}`;
     url.searchParams.set('schema', schema);
     const db = new PrismaClient({ datasources: { db: { url: url.toString() } } });
@@ -46,6 +45,21 @@ describe('legacy football migration on isolated PostgreSQL schema', () => {
       const after = await db.$queryRaw<{ snapshot: object }[]>`SELECT to_jsonb(m) - 'sportId' - 'sportFormatId' AS snapshot FROM "Match" m ORDER BY "id"`;
       expect(after).toEqual(before);
       expect(await db.$queryRaw`SELECT to_jsonb(p) AS snapshot FROM "Participation" p ORDER BY "id"`).toEqual(participationBefore);
+      // New capacity migration must stop when reservation occupancy cannot be
+      // reconstructed, then preserve all existing fields in the supported case.
+      const playerId = randomUUID();
+      await db.$executeRaw`INSERT INTO "Participation" ("id", "userId", "matchId", "role", "localDate") VALUES (${playerId}::uuid, ${userId}::uuid, ${ids[1]}::uuid, 'PLAYER', '2026-11-03')`;
+      expect(() => applyMigration('202611110001_match_publication')).toThrow();
+      await db.$executeRaw`DELETE FROM "Participation" WHERE "id" = ${playerId}::uuid`;
+      const capacityBefore = await db.$queryRaw`SELECT to_jsonb(m) AS snapshot FROM "Match" m ORDER BY "id"`;
+      applyMigration('202611110001_match_publication');
+      expect(await db.$queryRaw`SELECT to_jsonb(m) - 'totalPlaces' - 'version' AS snapshot FROM "Match" m ORDER BY "id"`).toEqual(capacityBefore);
+      const capacities = await db.$queryRaw<{ availablePlaces: number; totalPlaces: number; version: number }[]>`SELECT "availablePlaces", "totalPlaces", "version" FROM "Match"`;
+      expect(capacities.every(match => match.totalPlaces === match.availablePlaces && match.version === 1)).toBe(true);
+      const cancellationBefore = await db.$queryRaw`SELECT to_jsonb(m) AS snapshot FROM "Match" m ORDER BY "id"`;
+      applyMigration('202611190001_match_cancellation');
+      expect(await db.$queryRaw`SELECT to_jsonb(m) - 'cancelledAt' - 'cancellationReason' AS snapshot FROM "Match" m ORDER BY "id"`).toEqual(cancellationBefore);
+      expect(await db.$queryRaw`SELECT "id" FROM "Match" WHERE "cancelledAt" IS NOT NULL OR "cancellationReason" IS NOT NULL`).toEqual([]);
       const mapped = await db.match.findMany({ orderBy: { seedKey: 'asc' }, include: { sport: true, sportFormat: true } });
       expect(mapped.map(match => ({ id: match.id, sport: match.sport.slug, format: match.sportFormat?.name }))).toEqual([
         { id: ids[0], sport: 'futbol', format: 'Fútbol 5' },

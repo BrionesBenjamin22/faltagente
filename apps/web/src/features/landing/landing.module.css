@@ -1,0 +1,73 @@
+.sportsVisual {
+  width:100%;
+  max-width:410px;
+  margin-inline:auto;
+  background:#245377;
+  color:#edf6fe;
+  border-radius:28px;
+  padding:clamp(20px,4vw,30px);
+  box-shadow:0 18px 48px #15355215;
+}
+
+.sportsGrid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  list-style:none;
+  margin:0;
+  padding:0;
+}
+
+.sport {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  aspect-ratio:1.15;
+  padding:14px 8px;
+  border:1px solid #b9d9f099;
+  border-radius:12px;
+}
+
+.sport svg { width:48px; height:48px; }
+.caption { margin:16px 0 0; font-size:.85rem; text-align:center; }
+
+.carousel {
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+.carousel .viewport {
+  width:100%;
+  max-width:min(100%,960px);
+  min-width:0;
+  grid-template-columns:minmax(0,1fr);
+}
+.viewport:focus-visible { outline-offset:-4px; }
+.carousel :global(.benefit-indicator):focus-visible { outline-offset:-4px; }
+.carousel .slide {
+  max-width:100%;
+  position:relative;
+  pointer-events:auto;
+  transition:transform 250ms ease-out,opacity 250ms;
+}
+.carousel .slide[data-position="left"],
+.carousel .slide[data-position="right"] { pointer-events:auto; }
+.sideSelection {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  padding:0;
+  border:0;
+  border-radius:inherit;
+  background:transparent;
+  cursor:pointer;
+}
+.sideSelection:focus-visible { outline-offset:-5px; }
+
+@media(prefers-reduced-motion:reduce) {
+  .carousel .slide { transition:none; }
+}

@@ -47,3 +47,9 @@ El navegador sigue consumiendo la API directamente. `NEXT_PUBLIC_API_URL` debe s
 No se modifica el cliente HTTP: conserva cookies mediante `credentials: "include"` y obtiene un token CSRF por mutación. Las URLs públicas de frontend y API requieren CORS explícito en backend. El filesystem permanece escribible para permitir caches de Next.js; no se habilita `read_only` sin validar sus necesidades de escritura.
 
 Consultar [Docker](../../docs/DOCKER.md) para migraciones controladas, configuración, logs, persistencia y parada del stack.
+
+## Inscripción a partidos
+
+El detalle `/partidos/:id` conserva su contenido público y agrega inscripción autenticada de uno o varios lugares hasta la disponibilidad informada. Los visitantes acceden a Login. Organizadores, partidos completos, cerrados, cancelados o iniciados no ofrecen confirmación.
+
+`POST /api/v1/matches/:id/reservations` recibe `{ places: number }` y devuelve `{ id, matchId, places, createdAt }`. Usa el cliente compartido con cookies y CSRF. `GET /api/v1/matches/:id/reservations/me` devuelve esa reserva propia o `null`, permitiendo recuperar la confirmación al recargar. La caché privada se separa por usuario y partido; éxito y conflictos refrescan la disponibilidad pública. Backend valida capacidad, propiedad y participación diaria de forma atómica.

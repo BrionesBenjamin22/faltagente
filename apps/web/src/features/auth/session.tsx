@@ -1,11 +1,14 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authService, type Session } from "./service";
+import { authService } from "./service";
+import type { Session } from "./types";
 import { errorMessage } from "@/lib/http";
+import { NotificationProvider, useNotify } from "@/features/notifications/notifications";
 const SessionContext = createContext<ReturnType<typeof useSessionState> | null>(null);
 export const sessionKey = ["session"] as const;
 function useSessionState() {
+  const notify = useNotify();
   const client = useQueryClient();
   const query = useQuery({ queryKey: sessionKey, queryFn: authService.session, retry: false, staleTime: 0 });
   const [now, setNow] = useState(0);
@@ -33,7 +36,7 @@ function useSessionState() {
   }
   async function logout() {
     setPending(true); setFeedback("");
-    try { await authService.logout(); setHomeLocation(null); client.clear(); await refetch(); setFeedback("Sesión cerrada correctamente."); }
+    try { await authService.logout(); setHomeLocation(null); client.clear(); await refetch(); notify.success("Sesión cerrada correctamente.", { id: "session-logout" }); }
     catch (error) { setFeedback(errorMessage(error)); }
     finally { setPending(false); }
   }
@@ -50,7 +53,7 @@ function SessionProvider({ children }: { children: ReactNode }) {
 }
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } }));
-  return <QueryClientProvider client={client}><SessionProvider>{children}</SessionProvider></QueryClientProvider>;
+  return <QueryClientProvider client={client}><NotificationProvider><SessionProvider>{children}</SessionProvider></NotificationProvider></QueryClientProvider>;
 }
 export function useSession() {
   const value = useContext(SessionContext);

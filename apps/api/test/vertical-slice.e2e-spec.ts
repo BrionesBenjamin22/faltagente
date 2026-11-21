@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
@@ -61,10 +62,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
   }
 
   beforeAll(async () => {
-    const url = new URL(database!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || !/^\/hyt_slice(?:_test)?$/.test(url.pathname)) {
-      throw new Error('Integration tests require an isolated loopback hyt_slice(_test) database.');
-    }
+    isolatedDatabaseUrl(database);
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(EmailService).useValue({ send: async (to: string, kind: string, token: string) => { emails.push({ to, kind, token }); } }).compile();
     app = module.createNestApplication();
@@ -124,7 +122,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
     }
     expect((await browser.send('get', '/auth/session')).body.user.id).toBe(id);
   });
-  
+
   it('permite registrar usuarios con una ciudad activa', async () => {
     const browser = new Browser();
     await browser.prepare();
@@ -175,7 +173,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
       [tolosa, 'OPEN', 100000, 'Tolosa future'], [cityBell, 'CLOSED', 200000, 'City Bell full'],
       [tolosa, 'CANCELLED', 200000, 'Cancelled'], [tolosa, 'OPEN', -100000, 'Past'],
     ] as const) {
-      await db.match.create({ data: { organizerId: id, locationId, status, startsAt: new Date(Date.now() + delay), venueName, address: 'Test address', sportId: footballSportId, sportFormatId: fiveFormatId, pricePerPerson: 100, availablePlaces: status === 'CLOSED' ? 0 : 2 } });
+      await db.match.create({ data: { organizerId: id, locationId, status, startsAt: new Date(Date.now() + delay), venueName, address: 'Test address', sportId: footballSportId, sportFormatId: fiveFormatId, pricePerPerson: 100, totalPlaces: 2, availablePlaces: status === 'CLOSED' ? 0 : 2 } });
     }
     const publicBrowser = new Browser();
     const initial = await publicBrowser.send('get', `/matches?locationId=${tolosa}`);
@@ -262,7 +260,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
     locationIds.push(location.id);
     const start = Date.now() + 86400000;
     for (let index = 9; index >= 0; index--) {
-      await db.match.create({ data: { organizerId: id, locationId: location.id, startsAt: new Date(start + index * 60000), venueName: `Page match ${index}`, address: 'Test address', sportId: footballSportId, sportFormatId: sevenFormatId, pricePerPerson: 100, availablePlaces: 1 } });
+      await db.match.create({ data: { organizerId: id, locationId: location.id, startsAt: new Date(start + index * 60000), venueName: `Page match ${index}`, address: 'Test address', sportId: footballSportId, sportFormatId: sevenFormatId, pricePerPerson: 100, totalPlaces: 1, availablePlaces: 1 } });
     }
     const first = await browser.send('get', `/matches?locationId=${location.id}&page=1`);
     const second = await browser.send('get', `/matches?locationId=${location.id}&page=2`);
@@ -316,7 +314,7 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
   it('enforces nonnegative match values and one active participation per local day in PostgreSQL', async () => {
     const user = await db.user.create({ data: { name: 'Constraint Tester', email: `constraints-${randomUUID()}@example.test` } });
     userIds.push(user.id);
-    const data = { organizerId: user.id, locationId: tolosa, startsAt: new Date(Date.now() + 86400000), venueName: 'Constraints match', address: 'Test address', sportId: footballSportId, sportFormatId: fiveFormatId, pricePerPerson: 0, availablePlaces: 0 };
+    const data = { organizerId: user.id, locationId: tolosa, startsAt: new Date(Date.now() + 86400000), venueName: 'Constraints match', address: 'Test address', sportId: footballSportId, sportFormatId: fiveFormatId, pricePerPerson: 0, totalPlaces: 0, availablePlaces: 0 };
     await expect(db.match.create({ data: { ...data, pricePerPerson: -1 } })).rejects.toThrow();
     await expect(db.match.create({ data: { ...data, availablePlaces: -1 } })).rejects.toThrow();
     const first = await db.match.create({ data });

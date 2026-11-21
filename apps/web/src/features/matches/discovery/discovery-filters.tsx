@@ -3,8 +3,8 @@ import { useState, type ReactNode } from "react";
 import { useSports } from "@/features/sports/hooks";
 import { LocationCombobox } from "@/features/locations/location-combobox";
 import { errorMessage } from "@/lib/http";
-import { localDate, validLocalDate } from "./discovery-state";
-import type { MatchFilters } from "./service";
+import { localDate, validLocalDate } from "../local-date";
+import type { MatchFilters } from "../types";
 import styles from "./discovery-filters.module.css";
 
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {

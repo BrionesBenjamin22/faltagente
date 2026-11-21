@@ -20,6 +20,8 @@ La primera vertical slice agrega autenticación local, cookies seguras, CSRF, se
 
 MVP-01 generaliza la identidad deportiva y agrega `GET /api/v1/sports`. Ver [MULTISPORT.md](MULTISPORT.md) para modelos, migración, seeds y contratos. MVP-02 extiende el listado con filtros combinables por deporte, formato opcional y fecha local, conservando la localidad obligatoria y nueve resultados por página. Ver [DISCOVERY.md](DISCOVERY.md) para reglas, validaciones y contrato.
 
+MVP-03 agrega `GET /api/v1/matches/:id`, un detalle público con organizador mínimo y representación de los tres estados del partido. Ver [MATCH-DETAIL.md](MATCH-DETAIL.md) para contrato, visibilidad y pruebas.
+
 ## Configuración
 
 Copiar los placeholders de `../../.env.example` a un archivo `.env` local. No versionar valores reales. Además de las variables HTTP siguientes, la slice requiere `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET` y `FRONTEND_URL`; los secretos deben ser distintos y tener al menos 32 caracteres. Resend requiere `RESEND_API_KEY` y `EMAIL_FROM` para la entrega real de emails; ambas son obligatorias en producción.
@@ -68,11 +70,16 @@ El endpoint no consulta servicios externos y no expone configuración ni secreto
 
 ## Estructura
 
+- `src/matches/`: `matches.module.ts` compone los providers y controllers; `matches.controller.ts` y `matches.service.ts` implementan descubrimiento y detalle públicos. `match-publication.controller.ts` y `my-matches.controller.ts` delegan publicación, gestión privada, historial y listado propio a `match-management.service.ts`. Los contratos y validaciones HTTP están en `dto/`.
+- `src/locations/` y `src/sports/`: cada catálogo tiene module, controller, service y contratos de respuesta propios. Se conservan filtros de actividad, proyecciones y orden del catálogo.
+- `src/auth/auth-response.dto.ts`: respuestas de sesión y CSRF; `src/users/user-response.dto.ts` y `profile-response.dto.ts`: contratos de usuario e historial privado. Los DTO de localidades y deportes pertenecen a sus dominios y pueden ser referenciados por otros contratos.
 - `src/config/`: contrato y validación del entorno.
-- `src/common/http/`: request ID, logging y filtro de errores.
+- `src/common/http/`: request ID, logging, filtro de errores y `MessageResponse`, el único DTO de respuesta transversal.
 - `src/health/`: endpoint y DTO de health.
 - `src/configure-app.ts`: configuración HTTP compartida por runtime y tests E2E.
 - `test/`: pruebas HTTP de los contratos base.
+
+La organización conserva los endpoints, schemas OpenAPI, validaciones, consultas y transacciones existentes. Los permisos siguen resolviéndose desde la sesión y la propiedad del recurso en backend. La composición de rutas de usuarios permanece en `AuthModule`; esta refactorización no cambia autenticación, cookies, CSRF ni modelos Prisma.
 
 ## Comandos
 
@@ -105,3 +112,8 @@ El segundo comando carga los catálogos de localidades, deportes y formatos y es
 Todas las variables de la API son runtime; el build no necesita `DATABASE_URL`, secretos ni claves de email. `DATABASE_URL` dentro del contenedor apunta al hostname Docker `db`, nunca a `localhost`; la variable `DOCKER_DATABASE_URL` de Compose mantiene ese valor independiente de la conexión usada por herramientas del host. `JWT_SECRET` y `CSRF_SECRET` deben ser aleatorios, distintos y de al menos 32 caracteres. `FRONTEND_URL` y `CORS_ORIGINS` apuntan al origen público que utiliza el navegador, no al hostname interno `web`.
 
 La topología base usa `NODE_ENV=production`, exige frontend HTTPS y email configurado. Para probar por HTTP en `localhost`, el override local usa `NODE_ENV=development` con los mismos artefactos compilados. Las cookies siguen siendo Secure, HttpOnly y SameSite=Lax; CSRF, Origin y CORS permanecen activos. El prefijo de cookies sigue el contrato existente según el entorno. La base no expone PostgreSQL al host; las herramientas locales que lo necesiten deben utilizar el override local con binding loopback. Ver [operación Docker](../../docs/DOCKER.md) para el flujo completo, build, arranque, cierre y validaciones.
+# Publicación de partidos
+
+Contrato, validaciones, persistencia, permisos y coordinación futura con reservas: [MATCH-PUBLICATION.md](MATCH-PUBLICATION.md).
+
+Gestion de partidos: [contratos de edicion y cancelacion](MATCH-MANAGEMENT.md).

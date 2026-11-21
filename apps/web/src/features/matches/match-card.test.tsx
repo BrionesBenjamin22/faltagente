@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { MatchCard } from "./match-card";
-import type { Match, MatchSport, MatchSportFormat } from "./service";
+import type { Match, MatchSport, MatchSportFormat } from "./types";
 
 const baseMatch = {
   id: "match-1",
@@ -37,4 +37,5 @@ it.each<{ sport: MatchSport; sportFormat: MatchSportFormat | null; label: string
   expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: baseMatch.venueName })).toBeInTheDocument();
   expect(screen.getByText("2 lugares disponibles")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: `Ver partido en ${baseMatch.venueName}` })).toHaveAttribute("href", `/partidos/${baseMatch.id}`);
 });

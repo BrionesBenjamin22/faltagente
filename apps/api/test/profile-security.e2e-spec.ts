@@ -1,5 +1,7 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
+import { getStorageToken, ThrottlerStorageService } from '@nestjs/throttler';
 import type { INestApplication } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import * as argon2 from 'argon2';
@@ -9,7 +11,6 @@ import { configureApplication } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.module.js';
 import { AuthService } from '../src/auth/auth.service.js';
 import { EmailService } from '../src/auth/email.service.js';
-import { ThrottlerGuard } from '@nestjs/throttler';
 
 describe('profile and password security against real PostgreSQL', { timeout: 30_000 }, () => {
   let app: INestApplication;
@@ -46,20 +47,15 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     return user;
   }
   beforeAll(async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || !/^\/hyt_slice(?:_test)?$/.test(url.pathname)) throw new Error('Tests require isolated local database.');
-    const module = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(EmailService)
-      .useValue({
-        send: async (to: string, kind: string, token: string) => {
-          mails.push({ to, kind, token });
-        },
-      })
-      .compile();
-    app = module.createNestApplication(); configureApplication(app); await app.init(); db = app.get(PrismaService); vi.spyOn(ThrottlerGuard.prototype, 'canActivate').mockResolvedValue(true);
+    isolatedDatabaseUrl(process.env.DATABASE_URL);
+    const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(EmailService)
+      .useValue({ send: async (to: string, kind: string, token: string) => { mails.push({ to, kind, token }); } }).compile();
+    app = module.createNestApplication(); configureApplication(app); await app.init(); db = app.get(PrismaService);
     for (const name of ['Profile Tolosa', 'Profile City Bell']) locationIds.push((await db.location.create({ data: { name, type: 'LOCALIDAD' } })).id);
+  });
+  beforeEach(() => {
+    // Keep the real guard; independent cases must not consume each other's quota.
+    app.get<ThrottlerStorageService>(getStorageToken()).onApplicationShutdown();
   });
   afterAll(async () => {
     vi.restoreAllMocks();
@@ -72,6 +68,15 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     await app?.close();
   });
 
+  it('keeps the real login rate limit within each isolated case', async () => {
+    const browser = new Browser();
+    await browser.prepare();
+    const email = `rate-limit-${randomUUID()}@example.test`;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      expect((await browser.send('post', '/auth/login', { email, password })).status).toBe(401);
+    }
+    expect((await browser.send('post', '/auth/login', { email, password })).status).toBe(429);
+  });
     it('permite actualizar el perfil con una ciudad activa', async () => {
     const ciudad = await db.location.create({
       data: {

@@ -1,0 +1,25 @@
+.page { max-width:760px; margin-inline:auto; min-width:0; }
+.back { display:inline-flex; align-items:center; min-height:44px; gap:8px; margin-bottom:20px; }
+.article { padding:clamp(20px,5vw,36px); border:1px solid var(--line); background:var(--surface); border-radius:12px; overflow-wrap:anywhere; }
+.sports { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+.title { font-size:clamp(1.75rem,5vw,2.25rem); margin:0; }
+.format { border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:.95rem; }
+.date { display:block; font-size:clamp(1.1rem,4vw,1.35rem); font-weight:600; margin-bottom:12px; }
+.availability { margin-bottom:0; font-weight:600; }
+.status { margin-bottom:12px; color:var(--danger); font-weight:700; }
+.section { border-top:1px solid var(--line); padding-top:24px; margin-top:24px; }
+.section h2 { font-size:1.1rem; margin-bottom:10px; }
+.section p { margin-bottom:4px; }
+.venue { font-weight:600; }
+.facts { display:grid; gap:24px; }
+.price { font-size:1.75rem; font-weight:700; line-height:1.2; }
+.description { white-space:pre-wrap; }
+@media(min-width:600px) { .facts { grid-template-columns:1fr 1fr; } }
+
+.reservation { margin:0; min-width:0; }
+.reservationControls { display:flex; align-items:flex-end; justify-content:flex-start; flex-wrap:wrap; gap:12px 20px; }
+.reservationButton { min-height:46px; }
+.reservationQuantity { display:grid; gap:6px; width:150px; max-width:100%; }
+.reservationQuantity label { font-size:.875rem; font-weight:600; }
+.reservationHint { margin:10px 0 0; font-size:.875rem; }
+.reservationFooter { border-top:1px solid var(--line); margin-top:24px; padding-top:24px; }

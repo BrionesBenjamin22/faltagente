@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from '../../apps/api/test/isolated-database';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -11,8 +12,7 @@ const requireApi = createRequire(resolve('apps/api/package.json'));
 
 export function isolatedDatabase() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for the isolated browser test harness.');
-  const database = new URL(process.env.DATABASE_URL);
-  if (!['localhost', '127.0.0.1'].includes(database.hostname) || !/^\/hyt_slice(?:_test)?$/.test(database.pathname)) throw new Error('Unsafe fixture database');
+  isolatedDatabaseUrl(process.env.DATABASE_URL);
   return process.env.DATABASE_URL;
 }
 
@@ -37,7 +37,7 @@ export async function discoveryFixtures() {
   const voley = await db.sport.findUniqueOrThrow({ where: { slug: 'voley' } });
   const day = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   const prefix = `Discovery ${suffix.slice(0, 8)}`;
-  const common = { organizerId: organizer.id, locationId: location.id, startsAt: new Date(`${day}T18:00:00-03:00`), address: 'Dirección de prueba', pricePerPerson: 4200, availablePlaces: 3 };
+  const common = { organizerId: organizer.id, locationId: location.id, startsAt: new Date(`${day}T18:00:00-03:00`), address: 'Dirección de prueba', pricePerPerson: 4200, availablePlaces: 3, totalPlaces: 3 };
   try {
     await db.match.createMany({ data: [
       ...Array.from({ length: 10 }, (_, index) => ({ ...common, sportId: football.id, sportFormatId: football.formats.find((format: { slug: string }) => format.slug === 'futbol-5').id, venueName: `${prefix} Fútbol 5 ${index + 1}` })),
@@ -58,7 +58,7 @@ export async function discoveryFixtures() {
   } };
 }
 
-export const test = base.extend<object, { mailbox: Mail[] }>({
+export const test = base.extend<{ mailbox: Mail[] }>({
   mailbox: [async ({}, use) => {
     isolatedDatabase();
     // Docker smoke tests use the actual container API; email-token tests still
@@ -77,13 +77,17 @@ export const test = base.extend<object, { mailbox: Mail[] }>({
     const { EmailService } = requireApi('./dist/auth/email.service.js');
     const { configureApplication } = requireApi('./dist/configure-app.js');
     const mailbox: Mail[] = [];
+    // A real application per test isolates in-memory rate-limit counters and
+    // mailbox state without changing the production guards or their limits.
     const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(EmailService)
       .useValue({ send: async (to: string, kind: Mail['kind'], token: string) => { mailbox.push({ to, kind, token }); } }).compile();
     const app = module.createNestApplication({ logger: false });
-    configureApplication(app);
-    await app.listen(apiPort, '127.0.0.1');
-    try { await use(mailbox); } finally { await app.close(); }
-  }, { scope: 'worker', auto: true }],
+    try {
+      configureApplication(app);
+      await app.listen(apiPort, '127.0.0.1');
+      await use(mailbox);
+    } finally { await app.close(); }
+  }, { auto: true }],
 });
 
 export { expect };

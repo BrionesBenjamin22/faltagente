@@ -1,3 +1,4 @@
+import { isolatedDatabaseUrl } from './isolated-database.js';
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
@@ -27,10 +28,7 @@ describe('public multisport discovery filters', () => {
     request(app.getHttpServer()).get('/api/v1/matches').query({ locationId, ...filters });
 
   beforeAll(async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.pathname !== '/hyt_slice_test') {
-      throw new Error('Discovery tests require isolated local hyt_slice_test.');
-    }
+    isolatedDatabaseUrl(process.env.DATABASE_URL);
     const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = module.createNestApplication();
     configureApplication(app);
@@ -45,7 +43,7 @@ describe('public multisport discovery filters', () => {
     formatId = (await db.sportFormat.create({ data: { sportId, name: 'Discovery five', slug: 'five' } })).id;
     secondFormatId = (await db.sportFormat.create({ data: { sportId, name: 'Discovery six', slug: 'six' } })).id;
     otherFormatId = (await db.sportFormat.create({ data: { sportId: otherSportId, name: 'Discovery doubles', slug: 'doubles', active: false } })).id;
-    const base = { organizerId, locationId, sportId, sportFormatId: formatId, venueName: 'Discovery fixture', address: 'Fixture address', pricePerPerson: 0, availablePlaces: 2 };
+    const base = { organizerId, locationId, sportId, sportFormatId: formatId, venueName: 'Discovery fixture', address: 'Fixture address', pricePerPerson: 0, totalPlaces: 2, availablePlaces: 2 };
     // Include midnight exactly, its last millisecond, and enough results to paginate.
     const times = ['2099-11-03T03:00:00.000Z', ...Array.from({ length: 9 }, (_, index) => `2099-11-03T${String(index + 4).padStart(2, '0')}:00:00.000Z`), '2099-11-04T02:59:59.999Z'];
     for (const startsAt of times) {
