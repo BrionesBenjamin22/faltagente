@@ -1,0 +1,46 @@
+/* Cancha multideporte original para iniciar sesión y registrarse. */
+.experience {
+  position:relative;isolation:isolate;overflow:hidden;
+  width:100vw;margin-left:calc(50% - 50vw);
+  margin-top:-48px;margin-bottom:-48px;
+  min-height:calc(100svh - 90px);
+  display:grid;place-items:center;
+  background:#0a2519;color:#f5faee;
+}
+.experience::before {
+ content:"";position:absolute;inset:0;z-index:-2;
+ background-image:linear-gradient(90deg,#061d16e8 0%,#071f179e 48%,#061b14c2 100%),url('/multisport-arena.webp');
+ background-position:center;background-size:cover;
+}
+.experience::after {
+ content:"";position:absolute;inset:0;z-index:-1;
+ background:radial-gradient(circle at 55% 30%,#b4f58a18,transparent 45%);
+}
+.layout {width:min(1120px,100% - 44px);margin:0 auto;padding:clamp(32px,6vw,75px) 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,450px);gap:clamp(28px,6vw,80px);align-items:center;}
+.story {max-width:520px;}
+.brand {display:flex;align-items:center;gap:12px;font-weight:800;font-size:clamp(1.2rem,2.5vw,1.65rem);letter-spacing:-.045em;margin-bottom:38px;}
+.brandIcon {display:inline-grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#c7eba4;color:#173b2a;}
+.kicker {text-transform:uppercase;letter-spacing:.16em;font-size:.78rem;font-weight:800;color:#c7eba4;margin:0 0 15px;}
+.story h2 {font-family:Impact,'Arial Narrow','Segoe UI',sans-serif;font-size:clamp(3.2rem,6vw,5.8rem);font-weight:500;line-height:1;letter-spacing:0;margin:0 0 18px;color:#f4f8ee;max-width:11ch;}
+.story p:last-child {color:#d1e3d2;font-size:1.04rem;line-height:1.65;max-width:38ch;margin-bottom:0;}
+.formContainer {width:100%;min-width:0;}
+.experience :global(.auth-panel) {width:100%;max-width:none;margin:0;border-radius:22px;border:1px solid #d6e9d536;box-shadow:0 24px 65px #00140e73;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--ink);}
+.experience :global(.auth-form-header h1) {font-size:clamp(1.7rem,2.5vw,2.25rem);}
+.experience :global(.auth-form-panel) {padding:clamp(23px,3vw,35px);}
+@media(max-width:790px) {
+ .layout {grid-template-columns:1fr;max-width:520px;gap:26px;}
+ .story {max-width:none;}
+ .brand {margin:0 0 18px;}
+ .story h2 {font-size:clamp(2.4rem,9vw,3.5rem);max-width:none;}
+ .story p:last-child {font-size:.96rem;}
+}
+@media(max-width:480px) {
+ .experience {min-height:calc(100svh - 80px);}
+ .layout {width:calc(100% - 28px);padding:26px 0 36px;gap:18px;}
+ .brand {font-size:1.2rem;margin-bottom:16px;}
+ .brandIcon {width:39px;height:39px;}
+ .story h2 {font-size:2.45rem;line-height:1.04;margin-bottom:10px;}
+ .story p:last-child {font-size:.87rem;line-height:1.5;}
+ .experience :global(.auth-panel) {border-radius:16px;}
+ .experience :global(.auth-form-panel) {padding:22px 19px;}
+}

@@ -1,21 +1,34 @@
 import Link from "next/link";
-import { MapPin, LogIn, Search } from "lucide-react";
+import { ArrowRight, MapPin, Search, Users } from "lucide-react";
 import { BenefitsCarousel } from "./benefits-carousel";
 import { SportsVisual } from "./sports-visual";
+import styles from "./landing.module.css";
+
 export function Landing() {
   return <>
-    <section className="landing">
-      <div className="hero-copy">
-        <p className="hero-location"><MapPin size={18} aria-hidden="true" />Partidos en Argentina</p>
-        <h1>Te falta uno.<br />A alguien le falta partido.</h1>
-        <p className="hero-description">Falta Gente conecta partidos con lugares libres y personas que quieren jugar. Encontrá el deporte que quieras cerca tuyo, sin conocer al organizador ni depender de un grupo.</p>
-        <div className="actions">
-          <Link className="button" href="/partidos"><Search size={18} aria-hidden="true" />Buscar un partido</Link>
-          <Link className="button secondary" href="/auth/login"><LogIn size={18} aria-hidden="true" />Ingresar</Link>
+    <section className={styles.hero} data-landing-hero aria-labelledby="landing-title">
+      <div className={styles.heroContent}>
+        <div className={styles.heroCopy}>
+          <p className={styles.eyebrow}><MapPin size={17} aria-hidden="true" />Partidos en Argentina</p>
+          <h1 id="landing-title">Te falta uno.<br />A alguien le falta partido.</h1>
+          <p className={styles.description}>Encontrá partidos cerca tuyo, completá equipos
+            y sumate a jugar.
+          </p>
+          <div className={styles.heroActions}>
+            <Link className="button" href="/partidos"><Search size={18} aria-hidden="true" />Buscar un partido <ArrowRight size={17} aria-hidden="true" /></Link>
+            <Link className="button secondary" href="/auth/login">Ingresar</Link>
+          </div>
+          <p className={styles.footnote}>Explorá los partidos sin crear una cuenta.</p>
         </div>
-        <p className="muted hero-footnote">Explorá los partidos sin crear una cuenta.</p>
+        <div className={styles.heroSports}>
+          <SportsVisual />
+        </div>
       </div>
-      <SportsVisual />
+      <div className={styles.heroBottom} aria-label="Cómo funciona">
+        <span><strong>01</strong> Elegí tu deporte</span>
+        <span><strong>02</strong> Encontrá un encuentro</span>
+        <span><strong>03</strong> Sumate a jugar</span>
+      </div>
     </section>
     <BenefitsCarousel />
   </>;

@@ -146,3 +146,63 @@ input[aria-invalid="true"],select[aria-invalid="true"],.combobox-trigger[aria-in
 @media (prefers-reduced-motion:reduce) { .not-found-glitch { display:none; } }
 @keyframes skeleton-pulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
 @media(prefers-reduced-motion:reduce) { .skeleton { animation:none; } }
+/* Aviso de verificación compacto */
+.discovery-email-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  margin-bottom: 24px;
+}
+
+.discovery-email-notice p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.discovery-email-notice .button {
+  flex-shrink: 0;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .discovery-email-notice {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+  }
+
+  .discovery-email-notice .button {
+    min-height: 38px;
+    font-size: 0.85rem;
+  }
+}
+main.container:has([data-landing-hero]) {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+/* Header deportivo adaptado a ambos temas */
+
+:root .site-header,
+:root[data-theme="light"] .site-header {
+  background: rgba(246, 249, 243, 0.96);
+  color: #17402b;
+  border-bottom: 1px solid rgba(25, 97, 53, 0.14);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+:root[data-theme="dark"] .site-header {
+  background: rgba(9, 32, 22, 0.94);
+  color: #e4f3df;
+  border-bottom: 1px solid rgba(199, 235, 164, 0.14);
+}
+
