@@ -30,7 +30,12 @@ export function AuthForm({ mode, success }: { mode: "login" | "register"; succes
     } catch (cause) { setError(errorMessage(cause)); }
   }
   return <section className={`auth-panel auth-form-panel auth-form-${mode}`}>
-    <header className="auth-form-header"><h1>{registerMode ? "Creá tu cuenta" : "Volvé a la cancha"}</h1><p className="muted">{registerMode ? "Elegí tu localidad para encontrar partidos cerca." : "Ingresá para encontrar partidos en tu localidad."}</p></header>
+    <header className="auth-form-header"><h1>{registerMode ? "Sumate al juego." : "¡Volvé al juego!"}</h1>
+      <p className="muted">
+        {registerMode
+          ? "Creá tu cuenta y encontrá partidos cerca tuyo."
+          : "Ingresá a tu cuenta y encontrá tu próximo partido."}
+      </p></header>
     {success === "password-changed" ? <p className="notice" role="status">Contraseña actualizada correctamente. Se cerraron todas tus sesiones. Ingresá nuevamente.</p> : null}<form className="auth-form-body" onSubmit={handleSubmit(submit)} noValidate>
       {registerMode ? <div className="field"><label htmlFor="name">Nombre</label><input id="name" autoComplete="name" placeholder="Tu nombre" {...register("name")} aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-error" : undefined} />{errors.name ? <p id="name-error" className="error">{errors.name.message}</p> : null}</div> : null}
       <div className="field"><label htmlFor="email">Email</label><input id="email" type="email" autoComplete="email" placeholder="nombre@ejemplo.com" {...register("email")} aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} />{errors.email ? <p id="email-error" className="error">{errors.email.message}</p> : null}</div>

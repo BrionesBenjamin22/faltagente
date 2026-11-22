@@ -206,3 +206,10 @@ main.container:has([data-landing-hero]) {
   border-bottom: 1px solid rgba(199, 235, 164, 0.14);
 }
 
+main.container:has([data-auth-experience]) {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
