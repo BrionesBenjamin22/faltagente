@@ -10,6 +10,8 @@ import { loginSchema, registerSchema } from "./validation";
 import { useLocations } from "@/features/locations/hooks";
 import { errorMessage } from "@/lib/http";
 import { LocationCombobox } from "@/features/locations/location-combobox";
+import { Eye, EyeOff } from "lucide-react";
+import styles from "./auth-hero.module.css";
 
 export function AuthForm({ mode, success }: { mode: "login" | "register"; success?: string }) {
   const registerMode = mode === "register";
@@ -17,6 +19,7 @@ export function AuthForm({ mode, success }: { mode: "login" | "register"; succes
   const session = useSession();
   const locations = useLocations();
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { register, control, handleSubmit, setError: fieldError, formState: { errors, isSubmitting } } = useForm<RegisterInput>({ defaultValues: { primaryLocationId: "" } });
   useEffect(() => { if (session.session?.authenticated) router.replace(session.session.user?.primaryLocation ? "/" : "/auth/location"); }, [session.session, router]);
   async function submit(values: RegisterInput) {
@@ -39,7 +42,60 @@ export function AuthForm({ mode, success }: { mode: "login" | "register"; succes
     {success === "password-changed" ? <p className="notice" role="status">Contraseña actualizada correctamente. Se cerraron todas tus sesiones. Ingresá nuevamente.</p> : null}<form className="auth-form-body" onSubmit={handleSubmit(submit)} noValidate>
       {registerMode ? <div className="field"><label htmlFor="name">Nombre</label><input id="name" autoComplete="name" placeholder="Tu nombre" {...register("name")} aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-error" : undefined} />{errors.name ? <p id="name-error" className="error">{errors.name.message}</p> : null}</div> : null}
       <div className="field"><label htmlFor="email">Email</label><input id="email" type="email" autoComplete="email" placeholder="nombre@ejemplo.com" {...register("email")} aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} />{errors.email ? <p id="email-error" className="error">{errors.email.message}</p> : null}</div>
-      <div className="field"><label htmlFor="password">Contraseña</label><input id="password" type="password" autoComplete={registerMode ? "new-password" : "current-password"} {...register("password")} aria-invalid={!!errors.password} aria-describedby={[registerMode ? "password-help" : "", errors.password ? "password-error" : ""].filter(Boolean).join(" ") || undefined} />{registerMode ? <span id="password-help" className="muted">Entre 8 y 128 caracteres.</span> : null}{errors.password ? <p id="password-error" className="error">{errors.password.message}</p> : null}</div>
+      <div className="field">
+        <label htmlFor="password">Contraseña</label>
+
+        <div className={styles.passwordWrapper}>
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete={
+              registerMode ? "new-password" : "current-password"
+            }
+            {...register("password")}
+            aria-invalid={!!errors.password}
+            aria-describedby={
+              [
+                registerMode ? "password-help" : "",
+                errors.password ? "password-error" : "",
+              ]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
+          />
+
+          <button
+            type="button"
+            className={styles.passwordToggle}
+            onClick={() => setShowPassword((value) => !value)}
+            aria-label={
+              showPassword
+                ? "Ocultar contraseña"
+                : "Mostrar contraseña"
+            }
+            aria-pressed={showPassword}
+          >
+            {showPassword ? (
+              <EyeOff size={20} aria-hidden="true" />
+            ) : (
+              <Eye size={20} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        {registerMode ? (
+          <span id="password-help" className="muted">
+            Entre 8 y 128 caracteres.
+          </span>
+        ) : null}
+
+        {errors.password ? (
+          <p id="password-error" className="error">
+            {errors.password.message}
+          </p>
+        ) : null}
+      </div>
+
       {registerMode ? <div className="field"><Controller name="primaryLocationId" control={control} render={({ field }) => <LocationCombobox id="primaryLocationId" label="Localidad principal" value={field.value} onChange={field.onChange} invalid={!!errors.primaryLocationId} describedBy={errors.primaryLocationId ? "location-error" : undefined} disabled={isSubmitting} />} />{errors.primaryLocationId ? <p id="location-error" className="error">{errors.primaryLocationId.message}</p> : null}</div> : null}
       {error ? <p role="alert" className="error auth-form-error">{error}</p> : null}
       <button className="button wide" disabled={isSubmitting || (registerMode && !locations.data?.length)}>{isSubmitting ? "Un momento…" : registerMode ? "Crear cuenta" : "Ingresar"}</button>
