@@ -69,7 +69,6 @@
   border-radius: 0;
   background: #09251a;
   color: #f5faee;
-   --hero-bg: url("/fondo2.png");
 }
 .hero::before {
   content: "";
@@ -78,7 +77,7 @@
   z-index: -2;
 
   background-image:
-    linear-gradient(
+    linear-gradient(  
       90deg,
       rgba(6, 22, 14, 0.68) 0%,
       rgba(6, 22, 14, 0.44) 45%,
