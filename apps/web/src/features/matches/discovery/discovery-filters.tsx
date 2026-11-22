@@ -23,7 +23,7 @@ export function DiscoveryFilters({ filters, locationId, authenticated, onFilters
   const customOpen = customDate !== null && customDate === (filters.date ?? "");
   const choosingDate = customOpen || !!(filters.date && filters.date !== today && filters.date !== tomorrow);
   return <section className={styles.controls} aria-label="Filtrar partidos">
-    <div className={styles.group}>
+    <div className={`${styles.group} ${styles.sports}`}>
       <span id="sport-label" className={styles.label}>¿Qué querés jugar?</span>
       <div className={styles.chips} role="group" aria-labelledby="sport-label">
         <Chip selected={!filters.sportId} onClick={() => onFilters({ ...filters, sportId: undefined, sportFormatId: undefined })}>Todos los deportes</Chip>
@@ -37,14 +37,15 @@ export function DiscoveryFilters({ filters, locationId, authenticated, onFilters
       <LocationCombobox id="home-location" label="Localidad seleccionada" value={locationId} onChange={onLocation} />
       {authenticated ? <p className={styles.help}>Explorá otra zona sin cambiar tu localidad principal.</p> : null}
     </div>
-    {sport?.formats.length ? <div className={styles.group}>
+    {sport?.formats.length ? <div className={`${styles.group} ${styles.formats}`}>
       <span id="format-label" className={styles.label}>Formato</span>
       <div className={styles.chips} role="group" aria-labelledby="format-label">
         <Chip selected={!filters.sportFormatId} onClick={() => onFilters({ ...filters, sportFormatId: undefined })}>Todos los formatos</Chip>
         {sport.formats.map(format => <Chip key={format.id} selected={filters.sportFormatId === format.id} onClick={() => onFilters({ ...filters, sportFormatId: format.id })}>{format.name}</Chip>)}
       </div>
     </div> : null}
-    <div className={styles.group}>
+    <div className={`${styles.group} ${styles.dates}`}>
+      <span className={styles.label}>¿Cuándo querés jugar?</span>
       <div className={styles.chips} role="group" aria-label="Fecha">
         <Chip selected={!filters.date && !customOpen} onClick={() => { setCustomDate(null); onFilters({ ...filters, date: undefined }); }}>Todas las fechas</Chip>
         <Chip selected={filters.date === today && !customOpen} onClick={() => { setCustomDate(null); onFilters({ ...filters, date: today }); }}>Hoy</Chip>

@@ -1,0 +1,8 @@
+.card { --sport-color:#26704b; position:relative; display:flex; flex-direction:column; overflow:hidden; border-top:4px solid var(--sport-color); box-shadow:none; }
+.card[data-sport="padel"] { --sport-color:#377c88; }.card[data-sport="basquet"] { --sport-color:#b96c32; }.card[data-sport="voley"] { --sport-color:#887540; }
+.card h2 { font-size:1.4rem; letter-spacing:-.025em; margin-bottom:10px; }
+.card .date { color:var(--club); font-size:.85rem; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid var(--line); }
+.address { display:flex; align-items:baseline; gap:7px; font-size:.9rem; }.address svg { flex-shrink:0; align-self:center; }
+.price { margin-top:auto; padding-top:8px; font-weight:750; font-size:1.25rem; }.price span { font-size:.85rem; font-weight:400; color:var(--muted); }
+.places { display:flex; align-items:center; gap:8px; font-size:.9rem; }
+.card .link { width:100%; margin-top:8px; border-color:var(--control-border); }

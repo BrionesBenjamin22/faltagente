@@ -182,3 +182,21 @@ test('a real mobile swipe updates the selected slide without rotating automatica
   await expect(carousel.getByRole('button', { name: `Ir a ${titles[0]}`, exact: true })).toHaveAttribute('aria-current', 'true');
   await client.detach();
 });
+
+test('sports landing fits a narrow phone without clipping the active benefit', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 812 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Buscar un partido', exact: true })).toBeVisible();
+  const benefit = page.locator('.benefit-slide[data-position="active"]');
+  await expect(benefit).toBeVisible();
+  const layout = await benefit.evaluate(element => ({
+    cardBottom: element.getBoundingClientRect().bottom,
+    textBottom: element.querySelector('p')!.getBoundingClientRect().bottom,
+    pageWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(layout.textBottom).toBeLessThanOrEqual(layout.cardBottom);
+  expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  await expect(page.getByRole('list', { name: 'Deportes disponibles' }).getByRole('listitem')).toHaveCount(4);
+});
