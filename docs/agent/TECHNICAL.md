@@ -659,7 +659,7 @@ Una tarea puede marcarse terminada cuando:
 - tests pasan;
 - build pasa cuando corresponde;
 - no contiene cambios fuera del alcance;
-- documentación fue actualizada si cambió un contrato;
+- documentación y contratos descriptivos se actualizaron, cuando corresponda, únicamente tras la aprobación formal del usuario después de la validación manual y su solicitud de preparar o ejecutar los commits; durante la revisión quedan pendientes según `AGENTS.md`;
 - el diff fue revisado;
 - el commit se realizó siguiendo el flujo definido.
 
