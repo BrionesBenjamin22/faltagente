@@ -1,0 +1,25 @@
+.notice {
+  margin-bottom:24px;
+  padding:18px 20px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface);
+  color:var(--ink);
+}
+.row { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.copy { min-width:0; }
+.title { margin:0 0 4px; font-size:1rem; line-height:1.4; }
+.description { margin:0; font-size:.9rem; line-height:1.5; color:var(--muted); }
+.actions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:8px; flex-shrink:0; }
+.actions > button { min-height:44px; font-size:.875rem; padding:9px 14px; }
+.feedback { margin:16px 0 0; padding-top:12px; border-top:1px solid var(--line); font-size:.9rem; overflow-wrap:anywhere; }
+:global(main.container):has(:global([data-landing-hero])) > .notice {
+  width:min(calc(100% - 40px),1080px);
+  margin:24px auto;
+}
+@media (max-width:767px) {
+  .notice { padding:16px; }
+  .row { flex-direction:column; align-items:stretch; gap:14px; }
+  .actions { justify-content:flex-start; }
+  .actions > button { flex:1 1 auto; }
+}
