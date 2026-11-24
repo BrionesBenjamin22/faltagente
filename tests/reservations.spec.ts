@@ -3,7 +3,8 @@ import { test, expect, api, prismaFixture, hashFixturePassword } from './support
 
 const password = 'Reservation browser password 123!';
 
-test('available places can be reserved and the confirmation survives reload', async ({ page, context }) => {
+test('reserves, cancels with recovery, reopens places and preserves paginated private history', async ({ page, context }) => {
+  test.setTimeout(120_000);
   const db = prismaFixture();
   const suffix = randomUUID();
   const email = `reservation-player-${suffix}@example.test`;
@@ -48,6 +49,71 @@ test('available places can be reserved and the confirmation survives reload', as
     expect(await db.reservation.count({ where: { userId: player.id, matchId } })).toBe(1);
     expect(await db.participation.findUnique({ where: { userId_matchId: { userId: player.id, matchId } } })).toMatchObject({ role: 'PLAYER', active: true });
     expect(await db.match.findUniqueOrThrow({ where: { id: matchId } })).toMatchObject({ availablePlaces: 1, totalPlaces: 3 });
+
+    const cancelButton = page.getByRole('button', { name: 'Cancelar reserva', exact: true });
+    const cancellation = page.getByRole('region', { name: 'Cancelar reserva', exact: true });
+    await cancelButton.click();
+    await expect(cancellation).toContainText('2 lugares');
+    await cancellation.getByLabel('Motivo de cancelación (opcional)', { exact: true }).fill('No cancelar todavía');
+    await cancellation.getByRole('button', { name: 'Volver', exact: true }).click();
+    await expect(cancellation).toHaveCount(0);
+    expect(await db.reservation.count({ where: { userId: player.id, matchId, status: 'CONFIRMED' } })).toBe(1);
+    expect((await db.match.findUniqueOrThrow({ where: { id: matchId } })).availablePlaces).toBe(1);
+
+    await cancelButton.click();
+    const reason = cancellation.getByLabel('Motivo de cancelación (opcional)', { exact: true });
+    await reason.fill('  No puedo asistir  ');
+    let failCancellation = true;
+    await page.route(`${api}/matches/${matchId}/reservations/*/cancel`, async route => {
+      if (route.request().method() === 'POST' && failCancellation) {
+        failCancellation = false;
+        await route.abort('failed');
+      } else await route.continue();
+    });
+    await cancellation.getByRole('button', { name: 'Confirmar cancelación', exact: true }).click();
+    await expect(cancellation.getByRole('alert')).toContainText(/intent[áe] nuevamente/i);
+    await expect(reason).toHaveValue('  No puedo asistir  ');
+    expect((await db.match.findUniqueOrThrow({ where: { id: matchId } })).availablePlaces).toBe(1);
+    await cancellation.getByRole('button', { name: 'Confirmar cancelación', exact: true }).click();
+    await expect(page.getByText('Reserva cancelada correctamente', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/partidos/${matchId}$`));
+    await expect(page.getByText('3 lugares disponibles', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Inscribirme', exact: true })).toBeVisible();
+    const history = page.getByRole('region', { name: 'Historial de reservas', exact: true });
+    await expect(history.getByText('No puedo asistir', { exact: true })).toBeVisible();
+    const firstReservation = await db.reservation.findFirstOrThrow({ where: { userId: player.id, matchId } });
+    expect(firstReservation).toMatchObject({ status: 'CANCELLED', cancellationReason: 'No puedo asistir', places: 2 });
+    expect(firstReservation.cancelledAt).toBeInstanceOf(Date);
+    expect(await db.participation.findUnique({ where: { userId_matchId: { userId: player.id, matchId } } })).toMatchObject({ active: false });
+    expect(await (await context.request.get(`${api}/matches/${matchId}/reservations/me`)).json()).toBeNull();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Inscribirme', exact: true })).toBeVisible();
+    await expect(history.getByText('No puedo asistir', { exact: true })).toBeVisible();
+
+    // Three new bookings keep the original cancellation and require a second history page.
+    // Filling all places also exercises CLOSED -> OPEN when each reservation is cancelled.
+    for (let index = 1; index <= 3; index++) {
+      await page.getByLabel('Cantidad de lugares', { exact: true }).fill('3');
+      await page.getByRole('button', { name: 'Inscribirme', exact: true }).click();
+      await expect(page.getByText('Inscripción confirmada', { exact: true })).toBeVisible();
+      expect(await db.match.findUniqueOrThrow({ where: { id: matchId } })).toMatchObject({ availablePlaces: 0, status: 'CLOSED' });
+      await cancelButton.click();
+      await reason.fill(`Cambio de planes ${index}`);
+      await cancellation.getByRole('button', { name: 'Confirmar cancelación', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Inscribirme', exact: true })).toBeVisible();
+      await expect(history.getByText(`Cambio de planes ${index}`, { exact: true })).toBeVisible();
+      expect(await db.match.findUniqueOrThrow({ where: { id: matchId } })).toMatchObject({ availablePlaces: 3, status: 'OPEN' });
+    }
+    expect(await db.reservation.count({ where: { userId: player.id, matchId, status: 'CANCELLED' } })).toBe(4);
+    expect(await db.participation.count({ where: { userId: player.id, matchId } })).toBe(1);
+    await expect(history.getByText('No puedo asistir', { exact: true })).toHaveCount(0);
+    const pagination = page.getByRole('navigation', { name: 'Paginación del historial de reservas', exact: true });
+    await pagination.getByRole('button', { name: 'Siguiente', exact: true }).click();
+    await expect(history.getByText('No puedo asistir', { exact: true })).toBeVisible();
+    await expect(history.getByText('Cambio de planes 3', { exact: true })).toHaveCount(0);
+    await expect(pagination.getByRole('button', { name: 'Siguiente', exact: true })).toBeDisabled();
+    await pagination.getByRole('button', { name: 'Anterior', exact: true }).click();
+    await expect(history.getByText('Cambio de planes 3', { exact: true })).toBeVisible();
   } finally {
     if (matchId) {
       await db.reservation.deleteMany({ where: { matchId } });

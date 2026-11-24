@@ -67,3 +67,13 @@ Pruebas: `editing/edit-match.test.tsx`, `detail/match-management.test.tsx` y `te
 La clave privada `["reservations", "me", userId, matchId]` separa usuarios. Una recarga consulta nuevamente la reserva, incluso si el partido está completo. El organizador y los partidos sin cupos, cerrados, cancelados o iniciados no admiten nuevas inscripciones. Los conflictos del backend refrescan disponibilidad y reserva propia. Las reglas definitivas se validan siempre en API.
 
 `reservation-panel.test.tsx` cubre confirmación, cantidades inválidas, reintento, estados no disponibles, privacidad de caché y CSRF. `tests/reservations.spec.ts` verifica el recorrido real con login, cupo actualizado, recarga y participación PLAYER en PostgreSQL aislado.
+
+## Cancelación de reservas propias
+
+El titular ve Cancelar reserva junto a su inscripción confirmada mientras el partido sea futuro y no esté cancelado. `CancelReservation` abre una confirmación dentro del detalle, informa cuántos lugares se liberarán e incluye motivo opcional privado de hasta 500 caracteres. Zod valida el texto recortado; el formulario bloquea duplicados, conserva el motivo ante errores y permite Volver sin mutar. El foco pasa a la confirmación, al botón al desistir y al resultado después del éxito. La sesión vencida se sincroniza mediante el mecanismo existente.
+
+`reservationsService` define los tipos Reservation, ReservationHistoryItem y ReservationHistory, y los métodos de creación, consulta propia, cancelación por ID concreto e historial. Usa el transporte existente con cookies, CSRF y consultas privadas sin caché. `use-reservations.ts` coordina las mutaciones y refresca reserva propia, detalle, disponibilidad, gestión del organizador y listados. Tras cancelar permanece en detalle con Reserva cancelada correctamente y vuelve a ofrecer inscripción cuando corresponde.
+
+`ReservationHistory` muestra sólo el historial privado del usuario, tres reservas por página, con estado, cantidad, fechas en Buenos Aires y motivo. Sus claves incluyen usuario, partido y página; las mutaciones reinician la página visible. No cambia el historial del organizador. Los mensajes remotos se renderizan como texto escapado. No se modifican componentes globales, auth ni layout.
+
+Los tests del panel y Playwright cubren desistimiento, errores recuperables y conservación del motivo, liberación completa, reapertura, recarga, reinscripción reutilizando participación e historial paginado. La API mantiene la autoridad sobre permisos, inicio del partido y reglas de cupos y participación.
