@@ -6,6 +6,8 @@ import { PrismaService } from '../prisma/prisma.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { AuthService } from '../auth/auth.service.js';
 import { MatchIdDto } from './dto/match-id.dto.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 export class CreateReservationDto {
   @ApiProperty({ minimum: 1, maximum: 2147483647, example: 1 })
@@ -22,20 +24,23 @@ const conflict = (code: string, message: string) => new ConflictException({ code
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
   async mine(userId: string, matchId: string) {
     if (!await this.db.match.findUnique({ where: { id: matchId }, select: { id: true } })) throw new NotFoundException();
     return this.db.reservation.findUnique({ where: { userId_matchId: { userId, matchId } }, select: projection });
   }
   async create(userId: string, matchId: string, places: number) {
-    return this.db.$transaction(async tx => {
+    const outcome = await this.db.$transaction(async tx => {
       // Consistent locking order serializes both daily participation and match capacity.
       await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
       await tx.$queryRaw`SELECT "id" FROM "Match" WHERE "id" = ${matchId}::uuid FOR UPDATE`;
       const existing = await tx.reservation.findUnique({ where: { userId_matchId: { userId, matchId } }, select: projection });
       if (existing) {
         if (existing.places !== places) throw conflict('RESERVATION_ALREADY_EXISTS', 'Ya tenés una reserva en este partido.');
-        return existing;
+        return { reservation: existing, notify: false, completed: false, organizerId: null as string | null };
       }
       const match = await tx.match.findUnique({ where: { id: matchId } });
       if (!match) throw new NotFoundException();
@@ -55,8 +60,63 @@ export class ReservationsService {
       if (!changed.count) throw conflict('MATCH_UNAVAILABLE', 'El partido ya no está disponible.');
       if (match.availablePlaces === places) await tx.match.update({ where: { id: matchId }, data: { status: 'CLOSED' } });
       await tx.participation.create({ data: { userId, matchId, role: 'PLAYER', localDate } });
-      return tx.reservation.create({ data: { userId, matchId, places }, select: projection });
+      const reservation = await tx.reservation.create({ data: { userId, matchId, places }, select: projection });
+      return {
+        reservation,
+        notify: true,
+        completed: match.availablePlaces === places,
+        organizerId: match.organizerId,
+      };
     }, { maxWait: 10_000 });
+    if (outcome.notify) {
+      const [player, match] = await Promise.all([
+        this.db.user.findUnique({ where: { id: userId }, select: { name: true } }),
+        this.db.match.findUnique({
+          where: { id: matchId },
+          select: {
+            venueName: true,
+            totalPlaces: true,
+            availablePlaces: true,
+            sport: { select: { name: true } },
+          },
+        }),
+      ]);
+      if (outcome.organizerId) {
+        await this.notifications.safeCreate({
+          userId: outcome.organizerId,
+          type: 'MATCH_JOINED',
+          title: 'Alguien se sumó a tu partido',
+          body: `${player?.name ?? 'Un jugador'} reservó ${places} ${places === 1 ? 'lugar' : 'lugares'}.`,
+          detail: match ? `${match.availablePlaces} de ${match.totalPlaces} lugares disponibles.` : undefined,
+          relatedMatchId: matchId,
+          actorUserId: userId,
+          dedupeKey: `MATCH_JOINED:${matchId}:${outcome.reservation.id}`,
+          metadata: { places, remainingPlaces: match?.availablePlaces ?? null },
+        });
+      }
+      await this.notifications.safeCreate({
+        userId,
+        type: 'RESERVATION_CONFIRMED',
+        title: 'Te sumaste al partido',
+        body: match ? `Reservaste ${places} ${places === 1 ? 'lugar' : 'lugares'} en ${match.venueName}.` : 'Tu reserva quedó confirmada.',
+        detail: match ? `${match.sport.name}. ${match.availablePlaces} lugares disponibles.` : undefined,
+        relatedMatchId: matchId,
+        dedupeKey: `RESERVATION_CONFIRMED:${matchId}:${outcome.reservation.id}`,
+        metadata: { places, remainingPlaces: match?.availablePlaces ?? null },
+      });
+      if (outcome.completed && outcome.organizerId) {
+        await this.notifications.safeCreate({
+          userId: outcome.organizerId,
+          type: 'MATCH_COMPLETED',
+          title: 'Tu partido se completó',
+          body: match ? `Se completaron los cupos de ${match.sport.name} en ${match.venueName}.` : 'Se completaron los cupos de tu partido.',
+          relatedMatchId: matchId,
+          dedupeKey: `MATCH_COMPLETED:${matchId}`,
+          metadata: { totalPlaces: match?.totalPlaces ?? null },
+        });
+      }
+    }
+    return outcome.reservation;
   }
 }
 @ApiExtraModels(ReservationResponse)
@@ -77,5 +137,5 @@ export class ReservationsController {
     return this.service.create(await this.auth.requireUser(req), params.id, dto.places);
   }
 }
-@Module({ imports: [AuthModule], controllers: [ReservationsController], providers: [ReservationsService] })
+@Module({ imports: [AuthModule, NotificationsModule], controllers: [ReservationsController], providers: [ReservationsService] })
 export class ReservationsModule {}

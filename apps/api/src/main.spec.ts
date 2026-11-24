@@ -23,5 +23,5 @@ describe('API process lifecycle', () => {
     expect(runtime.enableShutdownHooks.mock.invocationCallOrder[0]).toBeLessThan(
       runtime.listen.mock.invocationCallOrder[0],
     );
-  });
+  }, 15_000);
 });

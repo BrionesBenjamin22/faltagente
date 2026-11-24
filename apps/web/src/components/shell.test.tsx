@@ -8,6 +8,10 @@ const state = vi.hoisted(() => ({
   expires: 0, now: 0, pending: false, feedback: "", refresh: vi.fn(), logout: vi.fn(),
 }));
 vi.mock("@/features/auth/session", () => ({ useSession: () => state }));
+vi.mock("@/features/notifications/notification-bell", () => ({
+  NotificationBell: ({ authenticated }: { authenticated: boolean }) =>
+    authenticated ? <a href="/notificaciones" aria-label="Abrir centro de notificaciones">Notificaciones</a> : null,
+}));
 beforeEach(() => { state.session.authenticated = false; state.session.user = null; });
 
 it("keeps anonymous navigation limited to login and register across page content changes", () => {
