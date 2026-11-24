@@ -21,6 +21,11 @@ enum ParticipationRole {
   ORGANIZER
   PLAYER
 }
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+}
 enum EmailTokenKind {
   VERIFY
   RESET
@@ -178,6 +183,10 @@ model Reservation {
   match Match @relation(fields:[matchId], references:[id])
   places Int
   createdAt DateTime @default(now()) @db.Timestamptz(3)
-  @@unique([userId, matchId])
+  status ReservationStatus @default(CONFIRMED)
+  cancelledAt DateTime? @db.Timestamptz(3)
+  cancellationReason String? @db.VarChar(500)
+  // Confirmed uniqueness is enforced by a partial index in the migration.
+  @@index([userId, matchId, createdAt, id])
   @@index([matchId])
 }
