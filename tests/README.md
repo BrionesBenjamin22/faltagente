@@ -1,5 +1,11 @@
 # Validación de las vertical slices de Falta Gente
 
+## Cancelación de reservas propias
+
+La etapa del 24 de noviembre de 2026 está aprobada para commits. Ver [alcance, evidencia y preparación local](../docs/tasks/RESERVATIONS-02.md). `apps/api/test/reservations.e2e-spec.ts` agrega cancelación completa e idempotente, historial privado, reinscripción, restricción diaria, permisos y seguridad, rollback y concurrencia. `multisport-migration.e2e-spec.ts` comprueba la migración conservativa y el índice único parcial dentro de un schema descartable.
+
+`tests/reservations.spec.ts` recorre desistimiento, error recuperable conservando motivo, liberación de cupos, reapertura, recarga, reinscripción e historial paginado. Aprobaron 271 unitarios, 75 integraciones y cuatro recorridos de navegador, además de lint, tipos y builds. Las dos suites afectadas por timeouts locales se repitieron correctamente sin cambiar límites. Las pruebas de persistencia usan exclusivamente `falta_gente_test`; la revisión de seguridad no encontró bloqueos.
+
 ## MVP-05: edición y cancelación
 
 `apps/api/test/match-mutations.e2e-spec.ts` verifica contra PostgreSQL real los

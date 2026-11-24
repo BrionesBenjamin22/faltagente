@@ -181,7 +181,9 @@ Google OAuth y reservas también continúan pendientes.
 
 ### Inscripción a partidos
 
-El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md). Cancelación y lista de espera siguen pendientes.
+El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md).
+
+El titular puede cancelar toda su reserva antes del inicio, con motivo opcional privado. Se liberan sus lugares y participación de forma atómica, se conserva el historial paginado y puede volver a reservar sujeto a disponibilidad. Ver [cancelación de reservas](docs/tasks/RESERVATIONS-02.md). Siguen pendientes cancelación parcial, lista de espera, notificaciones y cancelación de partidos con reservas activas.
 ## Operación local con Docker Compose
 
 Con Docker Desktop iniciado y `.env` configurado, ejecutar desde la raíz:
