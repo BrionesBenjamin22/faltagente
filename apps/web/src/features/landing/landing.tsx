@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, MapPin, Search, Users } from "lucide-react";
+import { ArrowRight, MapPin, Search } from "lucide-react";
 import { BenefitsCarousel } from "./benefits-carousel";
 import { SportsVisual } from "./sports-visual";
 import styles from "./landing.module.css";
@@ -23,11 +23,6 @@ export function Landing() {
         <div className={styles.heroSports}>
           <SportsVisual />
         </div>
-      </div>
-      <div className={styles.heroBottom} aria-label="Cómo funciona">
-        <span><strong>01</strong> Elegí tu deporte</span>
-        <span><strong>02</strong> Encontrá un encuentro</span>
-        <span><strong>03</strong> Sumate a jugar</span>
       </div>
     </section>
     <BenefitsCarousel />

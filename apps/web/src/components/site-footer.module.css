@@ -1,0 +1,15 @@
+.footer .brand,.howLink,.comma { display:none; }
+.links { display:block; }
+.links a { text-decoration:underline; }
+:global(body:has([data-landing-hero])) .footer { padding:0; background:color-mix(in srgb,var(--background) 94%,var(--ink)); border-top:1px solid var(--line); }
+:global(body:has([data-landing-hero])) .inner { width:min(100% - 48px,1160px); margin-inline:auto; padding-block:25px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:24px; }
+:global(body:has([data-landing-hero])) .brand { display:inline-flex; color:var(--ink); }
+:global(body:has([data-landing-hero])) .howLink,:global(body:has([data-landing-hero])) .comma { display:inline; }
+.mark { flex-shrink:0; padding:5px; width:34px; height:34px; color:var(--solid); background:var(--club); border-radius:8px; }
+:global(body:has([data-landing-hero])) .copy { font-size:.82rem; margin:0; text-align:center; }
+:global(body:has([data-landing-hero])) .links { display:flex; flex-wrap:nowrap; gap:24px; font-size:.82rem; }
+:global(body:has([data-landing-hero])) .links a { text-decoration:none; }
+:global(body:has([data-landing-hero])) .links a:hover { text-decoration:underline; }
+@media(max-width:1024px) { :global(body:has([data-landing-hero])) .inner { gap:16px; } :global(body:has([data-landing-hero])) .links { gap:16px; } }
+@media(max-width:760px) { :global(body:has([data-landing-hero])) .inner { display:flex; flex-direction:column; gap:13px; } :global(body:has([data-landing-hero])) .copy { order:3; } }
+@media(max-width:480px) { :global(body:has([data-landing-hero])) .inner { width:calc(100% - 36px); } }
