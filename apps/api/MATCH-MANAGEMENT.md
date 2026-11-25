@@ -1,5 +1,9 @@
 # Edicion y cancelacion de partidos (MVP-05)
 
+## Integración vigente con lista de espera
+
+La [lista de espera](WAITLIST.md) amplía estas reglas: todas las mutaciones toman primero el advisory lock del dominio de reservas y después los bloqueos de filas. Gestión agrega `heldPlaces`, `activeWaitlistCount` y `hasActiveWaitlist`. La ocupación confirmada es `totalPlaces - availablePlaces - heldPlaces`; la capacidad mínima incluye confirmados y retenidos. Las restricciones de campos críticos también se aplican con solicitudes activas. Cancelar invalida todas las solicitudes y ofertas en la misma transacción y conserva sus eventos. Estas precisiones sustituyen las fórmulas y el orden de bloqueos anteriores descritos debajo.
+
 ## Endpoints privados
 
 Todos requieren sesion. Las mutaciones mantienen CSRF y validacion de Origin globales. La identidad proviene de la sesion y se verifica propiedad en backend. Los errores conservan `{code,message,requestId}`.

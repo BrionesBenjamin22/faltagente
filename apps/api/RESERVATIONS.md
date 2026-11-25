@@ -1,12 +1,16 @@
 # Inscripción a partidos
 
+## Integración vigente con lista de espera
+
+La [lista de espera](WAITLIST.md) incorpora retenciones: `availablePlaces` excluye tanto reservas confirmadas como ofertas pendientes. Todos los escritores toman primero el advisory lock de dominio y luego los bloqueos de filas indicados debajo. La confirmación comparte `matches/booking-core.ts` con la aceptación de ofertas e invalida las otras esperas/ofertas del usuario para la fecha local. Cancelar o liberar reservas reasigna lugares a solicitudes compatibles dentro de la misma transacción; por eso los cupos liberados pueden quedar inmediatamente retenidos y el partido continuar completo. Estas precisiones amplían las reglas originales de disponibilidad y reapertura descritas debajo.
+
 `POST /api/v1/matches/:id/reservations` requiere sesión y CSRF. Body: `{ "places": 1 }`, entero positivo hasta la disponibilidad. Responde 201 con `{id, matchId, places, createdAt}`. Repetir para el mismo usuario/partido y cantidad devuelve la reserva original; otra cantidad devuelve 409 `RESERVATION_ALREADY_EXISTS`.
 
 `GET /api/v1/matches/:id/reservations/me` requiere sesión y devuelve únicamente la reserva propia confirmada o JSON `null`, conservando los campos existentes. Todas las respuestas privadas usan `Cache-Control: no-store`; nunca exponen reservas ajenas ni datos de contacto.
 
 Los lugares publicados representan vacantes, excluyen al organizador y se descuentan de `availablePlaces` al reservar; `totalPlaces` conserva la capacidad publicada. Al ocupar el último lugar el partido pasa a `CLOSED`. La reserva y la participación `PLAYER` se confirman en una única transacción. Se bloquean las filas del usuario y del partido, en ese orden, antes de validar disponibilidad y fecha local de Buenos Aires. La publicación comparte el bloqueo del usuario y la restricción única parcial de Participation refuerza la regla diaria, también frente a publicación y reserva simultáneas.
 
-Errores 409: `OWN_MATCH`, `MATCH_UNAVAILABLE`, `MATCH_FULL`, `DAILY_PARTICIPATION_CONFLICT`, `RESERVATION_ALREADY_EXISTS`, `RESERVATION_NOT_CANCELLABLE`, `RESERVATION_INCONSISTENT`. Datos inválidos: 400; sin sesión: 401; CSRF/Origin inválido: 403; partido o reserva propia inexistente: 404. No se incorporan nombres de acompañantes, lista de espera ni emails de confirmación.
+Errores 409: `OWN_MATCH`, `MATCH_UNAVAILABLE`, `MATCH_FULL`, `DAILY_PARTICIPATION_CONFLICT`, `RESERVATION_ALREADY_EXISTS`, `RESERVATION_NOT_CANCELLABLE`, `RESERVATION_INCONSISTENT`. Datos inválidos: 400; sin sesión: 401; CSRF/Origin inválido: 403; partido o reserva propia inexistente: 404. No se incorporan nombres de acompañantes ni emails de confirmación. La [lista de espera](WAITLIST.md) se integra mediante un módulo dedicado.
 
 ## Cancelación e historial privado
 

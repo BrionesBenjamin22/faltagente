@@ -341,6 +341,8 @@ si puede producir sobre-reserva.
 
 ## 15. Idempotencia
 
+La lista de espera implementada utiliza un advisory lock transaccional de dominio compartido con publicación, edición y reservas antes de bloquear filas. Protege cupos retenidos, participación diaria y orden de commits de eventos internos. El proceso de vencimiento usa reloj de PostgreSQL y transacciones acotadas por partido. Ver [contrato de lista de espera](../../apps/api/WAITLIST.md) para estados, endpoints, límites y cursor del futuro consumidor de notificaciones. No se incorporan colas externas ni WebSockets.
+
 Las operaciones sensibles susceptibles de repetición accidental deben ser idempotentes cuando corresponda.
 
 Prioridad inicial:
