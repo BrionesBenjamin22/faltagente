@@ -41,6 +41,8 @@ describe('profile patch boundaries', () => {
       emailVerifiedAt: null,
       passwordHash: 'private',
       primaryLocation: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     const tx = {
       $queryRaw: vi
@@ -62,5 +64,7 @@ describe('profile patch boundaries', () => {
     expect(tx.userProfileChange.create).not.toHaveBeenCalled();
     expect(result.hasLocalPassword).toBe(true);
     expect(result).not.toHaveProperty('passwordHash');
+    expect(result).not.toHaveProperty('createdAt');
+    expect(result).not.toHaveProperty('updatedAt');
   });
 });

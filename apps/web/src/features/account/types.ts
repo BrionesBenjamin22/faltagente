@@ -1,1 +1,0 @@
-export interface ProfileHistoryPage { items: { id: string; occurredAt: string; changes: { name?: { before: string; after: string }; primaryLocation?: { before: { id: string; name: string } | null; after: { id: string; name: string } } } }[]; total: number; page: number; pageSize: number; hasMore: boolean }

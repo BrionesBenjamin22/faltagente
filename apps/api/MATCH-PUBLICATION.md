@@ -10,8 +10,9 @@ Todas las rutas usan `/api/v1` y requieren sesión vigente. No se exige email ve
 | --- | --- | --- |
 | POST | `/matches` | Publica; devuelve `201 {id}`. |
 | GET | `/users/me/matches?filter=upcoming&page=1` | Sólo partidos organizados por la sesión; filtros `upcoming`, `past`, `cancelled`; páginas de nueve. |
-| GET | `/matches/:id/management` | Capacidad, versión y fechas de auditoría; privado del organizador. |
-| GET | `/matches/:id/history?page=1` | Historial privado con actor, fecha, evento y diferencias; páginas de tres. |
+| GET | `/matches/:id/management` | Capacidad, versión y permisos; privado del organizador, sin fechas técnicas de auditoría. |
+
+La ruta `/matches/:id/history` fue retirada y devuelve 404 a todos los usuarios. Los registros históricos y sus escrituras transaccionales se conservan internamente para una futura administración.
 
 El payload de publicación es `{sportId, sportFormatId?, locationId, startsAt, placeName, address, pricePerPerson, totalPlaces, description?}`. UUIDs de catálogo activos; el formato opcional debe pertenecer al deporte. La localidad admite LOCALIDAD, BARRIO o ZONA. `startsAt` es ISO8601 con zona explícita y debe ser futuro. Se calcula el día local en PostgreSQL con `America/Argentina/Buenos_Aires`.
 
@@ -21,7 +22,7 @@ El payload de publicación es `{sportId, sportFormatId?, locationId, startsAt, p
 
 `MatchPublicationController -> MatchPublicationService -> Prisma`. Dentro de una transacción se bloquea la fila del usuario, se validan catálogos y participación activa diaria y se crean Match, Participation(ORGANIZER) y MatchChange(PUBLISHED). El índice parcial de participación activa por usuario/día es una segunda protección. Conflictos devuelven `409 PARTICIPATION_DATE_CONFLICT`; fallos no dejan registros parciales.
 
-`totalPlaces` representa lugares ofrecidos a jugadores. El organizador no consume cupos. Al crear, `availablePlaces = totalPlaces`, `status = OPEN` y `version = 1`. El historial conserva diferencias `{before, after}`, actor y fecha. No se expone en detalle ni listado públicos. Gestión e historial ajenos devuelven `403 MATCH_MANAGEMENT_FORBIDDEN`; inexistentes, 404. Errores mantienen `{code,message,requestId}` sin datos internos.
+`totalPlaces` representa lugares ofrecidos a jugadores. El organizador no consume cupos. Al crear, `availablePlaces = totalPlaces`, `status = OPEN` y `version = 1`. El historial conserva diferencias `{before, after}`, actor y fecha sin exponer lectura en la aplicación. Gestión ajena devuelve `403 MATCH_MANAGEMENT_FORBIDDEN`; inexistentes, 404. Errores mantienen `{code,message,requestId}` sin datos internos.
 
 La migración aditiva `202611110001_match_publication` verifica que no haya PLAYER activos antes de inicializar `totalPlaces = availablePlaces`. No infiere capacidad a partir de participaciones. Conserva campos e identidades existentes; no genera eventos retrospectivos de publicación. Agrega constraints de capacidad y versión e índices para listado propio e historial.
 

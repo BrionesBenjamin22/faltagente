@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { Shell } from "./shell";
 import headerStyles from "./site-header.module.css";
@@ -9,10 +9,40 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock("@/features/auth/session", () => ({ useSession: () => state }));
 vi.mock("@/features/notifications/notification-bell", () => ({
-  NotificationBell: ({ authenticated }: { authenticated: boolean }) =>
-    authenticated ? <a href="/notificaciones" aria-label="Abrir centro de notificaciones">Notificaciones</a> : null,
+  NotificationBell: () => null,
 }));
-beforeEach(() => { state.session.authenticated = false; state.session.user = null; });
+vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+beforeEach(() => {
+  state.session.authenticated = false; state.session.user = null; state.session.refreshAvailable = false;
+  state.expires = 0; state.now = 0; state.pending = false; state.feedback = "";
+  state.refresh.mockReset(); state.logout.mockReset();
+});
+
+it("groups session recovery, pending actions and feedback in one labelled notice", () => {
+  state.session.refreshAvailable = true;
+  state.feedback = "Lo sentimos! No pudimos recuperar tu sesión. Intentá nuevamente.";
+  const view = render(<Shell>Contenido</Shell>);
+  const notice = screen.getByRole("region", { name: "Recuperá tu sesión" });
+  expect(within(notice).getByRole("heading", { level: 2 })).toHaveTextContent("Recuperá tu sesión");
+  expect(within(notice).getByRole("status")).toHaveTextContent(state.feedback);
+  expect(screen.getAllByText(state.feedback)).toHaveLength(1);
+  fireEvent.click(within(notice).getByRole("button", { name: "Recuperar sesión" }));
+  expect(state.refresh).toHaveBeenCalledTimes(1);
+  fireEvent.click(within(notice).getByRole("button", { name: "Cerrar sesión" }));
+  expect(state.logout).toHaveBeenCalledTimes(1);
+  state.pending = true;
+  view.rerender(<Shell>Contenido</Shell>);
+  for (const button of within(notice).getAllByRole("button")) expect(button).toBeDisabled();
+});
+
+it("offers the existing renewal action when the session is about to expire", () => {
+  state.session.authenticated = true;
+  state.now = 1000; state.expires = 61000;
+  render(<Shell>Contenido</Shell>);
+  const notice = screen.getByRole("region", { name: "Tu sesión está por finalizar" });
+  fireEvent.click(within(notice).getByRole("button", { name: "Mantener sesión" }));
+  expect(state.refresh).toHaveBeenCalledTimes(1);
+});
 
 it("keeps anonymous navigation limited to login and register across page content changes", () => {
   const view = render(<Shell>Landing</Shell>);

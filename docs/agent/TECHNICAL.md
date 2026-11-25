@@ -341,6 +341,8 @@ si puede producir sobre-reserva.
 
 ## 15. Idempotencia
 
+La lista de espera implementada utiliza un advisory lock transaccional de dominio compartido con publicación, edición y reservas antes de bloquear filas. Protege cupos retenidos, participación diaria y orden de commits de eventos internos. El proceso de vencimiento usa reloj de PostgreSQL y transacciones acotadas por partido. Ver [contrato de lista de espera](../../apps/api/WAITLIST.md) para estados, endpoints, límites y cursor del futuro consumidor de notificaciones. No se incorporan colas externas ni WebSockets.
+
 Las operaciones sensibles susceptibles de repetición accidental deben ser idempotentes cuando corresponda.
 
 Prioridad inicial:
@@ -659,7 +661,7 @@ Una tarea puede marcarse terminada cuando:
 - tests pasan;
 - build pasa cuando corresponde;
 - no contiene cambios fuera del alcance;
-- documentación fue actualizada si cambió un contrato;
+- documentación y contratos descriptivos se actualizaron, cuando corresponda, únicamente tras la aprobación formal del usuario después de la validación manual y su solicitud de preparar o ejecutar los commits; durante la revisión quedan pendientes según `AGENTS.md`;
 - el diff fue revisado;
 - el commit se realizó siguiendo el flujo definido.
 

@@ -366,7 +366,7 @@ Cambio, recuperación y creación de sesión deben coordinarse transaccionalment
 
 ## Edición del perfil propio
 
-`/users/me` deriva la identidad de la sesión y permite actualizar únicamente nombre y localidad principal de catálogo. Email, identificadores internos, estado de verificación y campos de credenciales no son editables en esta etapa. El historial de campos es privado al titular y nunca incluye contraseñas, hashes ni tokens. Toda mutación conserva la protección CSRF y la validación de Origin.
+`/users/me` deriva la identidad de la sesión y permite actualizar únicamente nombre y localidad principal de catálogo. Email, identificadores internos, estado de verificación y campos de credenciales no son editables en esta etapa. El historial de campos permanece en persistencia interna, sin acceso de lectura desde la aplicación para ningún usuario. La ruta `/users/me/history` fue retirada y devuelve 404. Nunca incluye contraseñas, hashes ni tokens. Toda mutación conserva la protección CSRF y la validación de Origin.
 
 ---
 

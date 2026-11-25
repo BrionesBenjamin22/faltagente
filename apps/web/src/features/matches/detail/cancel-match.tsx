@@ -42,9 +42,10 @@ export function CancelMatchPanel({ initial, ownerId, onClose, onCancelled }: { i
   }
   return <section className="panel glass mt-6" aria-labelledby="cancel-match-heading">
     <h2 id="cancel-match-heading" ref={heading} tabIndex={-1}>Cancelar partido</h2>
-    <p>El partido dejará de aparecer entre los partidos disponibles. Se conservará en Mis partidos y en el historial. Esta acción no se puede deshacer.</p>
+    <p>El partido dejará de aparecer entre los partidos disponibles. Se conservará en Mis partidos. Esta acción no se puede deshacer.</p>
+    <p>Se cancelarán {baseline.activePlayerCount} {baseline.activePlayerCount === 1 ? "reserva confirmada" : "reservas confirmadas"} que ocupan {baseline.occupiedPlaces} {baseline.occupiedPlaces === 1 ? "lugar" : "lugares"}.</p>
     <form onSubmit={submit} aria-busy={busy}>
-      <div className="field"><label htmlFor="cancel-reason">Motivo (opcional)</label><textarea id="cancel-reason" className={styles.textarea} placeholder="Contá por qué se cancela el partido" maxLength={500} value={reason} disabled={busy} onChange={event => setReason(event.target.value)} aria-describedby="cancel-reason-help" /><p id="cancel-reason-help" className="muted">Hasta 500 caracteres. Por ahora el motivo sólo lo podés consultar vos.</p></div>
+      <div className="field"><label htmlFor="cancel-reason">Motivo (opcional)</label><textarea id="cancel-reason" className={styles.textarea} placeholder="Contá por qué se cancela el partido" maxLength={500} value={reason} disabled={busy} onChange={event => setReason(event.target.value)} aria-describedby="cancel-reason-help" /><p id="cancel-reason-help" className="muted">Hasta 500 caracteres. Podrán consultarlo quienes tengan una reserva confirmada al cancelar el partido.</p></div>
       {feedback ? <p className="error" role="alert">{feedback}</p> : null}
       {conflict ? <div className="notice"><p>El partido cambió. Conservamos tu motivo. Recargá la versión actual para revisarla antes de confirmar.</p><button className="button secondary" type="button" disabled={busy} onClick={async () => {
         setReloading(true);

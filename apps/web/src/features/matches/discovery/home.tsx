@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SessionLoading } from "@/features/auth/session-loading";
 import { MatchesLoading } from "../matches-loading";
 import { MatchCard } from "../match-card";
+import { AccountNotice } from "@/components/account-notice";
 import styles from "./discovery-filters.module.css";
 
 export function Home({ success, discovery = false }: { success?: string; discovery?: boolean }) {
@@ -96,7 +97,12 @@ function HomeList({ success }: { success?: string }) {
         ) : null}
       </div>
     </header>
-    {session.session?.authenticated && session.session.user && !session.session.user.emailVerified ? <section className="notice discovery-email-notice"><p>Verificá tu email con el enlace que enviamos a tu correo.</p><button className="button secondary" disabled={sending} onClick={async () => { setSending(true); try { await authService.resendVerification(); setFeedback("Si corresponde, recibirá un nuevo enlace de verificación."); } catch (error) { setFeedback(errorMessage(error)); } finally { setSending(false); } }}>Reenviar enlace</button>{feedback ? <p role="status" className="mt-4">{feedback}</p> : null}</section> : null}
+    {session.session?.authenticated && session.session.user && !session.session.user.emailVerified ? <AccountNotice
+      title="Verificá tu email"
+      description="Abrí el enlace que enviamos a tu correo para verificar tu cuenta."
+      actions={<button className="button secondary" disabled={sending} onClick={async () => { setSending(true); try { await authService.resendVerification(); setFeedback("Si corresponde, recibirá un nuevo enlace de verificación."); } catch (error) { setFeedback(errorMessage(error)); } finally { setSending(false); } }}>{sending ? "Enviando…" : "Reenviar enlace"}</button>}
+      feedback={feedback}
+    /> : null}
     <DiscoveryFilters filters={filters} locationId={selected} authenticated={!!session.session?.authenticated} onFilters={changeFilters} onLocation={changeLocation} showClear={matches.data?.pages[0].total !== 0} />
     {selected && !session.session?.authenticated ?  <div className={styles.resultsHeader}><div><p className={styles.resultsEyebrow}>DISPONIBLES PARA JUGAR</p><h2 className={styles.listingTitle}>Partidos en {locality ?? "tu localidad"}</h2></div>{matches.data?.pages[0] ? <span className={styles.resultCount}>{matches.data.pages[0].total} {matches.data.pages[0].total === 1 ? "partido" : "partidos"}</span> : null}</div> : null}
     {!selected ? <EmptyState title="Elegí dónde querés jugar" description="Seleccioná una localidad para ver los partidos." action={<button type="button" className="button secondary" onClick={openLocationSelector}>Elegir localidad</button>} /> : matches.isPending ? <MatchesLoading /> : matches.isError && !matches.data ? <><p className="error" role="alert">{errorMessage(matches.error)}</p><button className="button secondary" onClick={() => void matches.refetch()}>Reintentar partidos</button></> : <>

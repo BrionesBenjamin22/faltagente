@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
@@ -23,11 +14,7 @@ import {
   CreateMatchDto,
   CreatedMatchResponse,
 } from './dto/match-publication.dto.js';
-import {
-  MatchHistoryQueryDto,
-  MatchHistoryResponse,
-  MatchManagementResponse,
-} from './dto/match-management.dto.js';
+import { MatchManagementResponse } from './dto/match-management.dto.js';
 import { MatchIdDto } from './dto/match-id.dto.js';
 import { MatchManagementService } from './match-management.service.js';
 import { CancelMatchDto, UpdateMatchDto } from './dto/match-update.dto.js';
@@ -76,7 +63,8 @@ export class MatchPublicationController {
   @Post(':id/cancel')
   @ApiCreatedResponse({ type: CreatedMatchResponse })
   @ApiConflictResponse({
-    description: 'Versión en conflicto o integración con reservas requerida.',
+    description:
+      'Versión en conflicto, partido iniciado o reservas inconsistentes.',
   })
   @ApiForbiddenResponse({
     description: 'Partido ajeno, Origin o CSRF inválidos.',
@@ -94,28 +82,11 @@ export class MatchPublicationController {
   }
   @ApiOkResponse({
     type: MatchManagementResponse,
-    description: 'Auditoría y capacidad privadas del organizador.',
+    description: 'Capacidad y permisos del organizador.',
   })
   @ApiForbiddenResponse({ description: 'Partido ajeno.' })
   @Get(':id/management')
   async management(@Param() params: MatchIdDto, @Req() req: Request) {
     return this.service.management(await this.auth.requireUser(req), params.id);
-  }
-  @ApiOkResponse({
-    type: MatchHistoryResponse,
-    description: 'Historial privado, tres eventos por página.',
-  })
-  @ApiForbiddenResponse({ description: 'Partido ajeno.' })
-  @Get(':id/history')
-  async history(
-    @Param() params: MatchIdDto,
-    @Query() query: MatchHistoryQueryDto,
-    @Req() req: Request,
-  ) {
-    return this.service.history(
-      await this.auth.requireUser(req),
-      params.id,
-      query.page,
-    );
   }
 }

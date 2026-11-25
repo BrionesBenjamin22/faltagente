@@ -42,7 +42,10 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     const user = await db.user.create({ data: { name: 'Profile Tester', email: `profile-${randomUUID()}@example.test`, passwordHash: await argon2.hash(password), primaryLocationId: locationIds[0] } });
     userIds.push(user.id);
     await browser.prepare();
-    expect((await browser.send('post', '/auth/login', { email: user.email, password })).status).toBe(200);
+    const login = await browser.send('post', '/auth/login', { email: user.email, password });
+    expect(login.status).toBe(200);
+    expect(login.body.user).not.toHaveProperty('createdAt');
+    expect(login.body.user).not.toHaveProperty('updatedAt');
     await browser.prepare();
     return user;
   }
@@ -112,7 +115,7 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     expect(actualizado.primaryLocationId).toBe(ciudad.id);
   });
 
-  it('updates only requested profile differences and paginates private field history by three', async () => {
+  it('updates only profile differences, preserves internal history and excludes audit data', async () => {
     const browser = new Browser(); const user = await fixture(browser);
     expect((await browser.send('get', '/users/me')).body).toMatchObject({ id: user.id, name: user.name, primaryLocation: { id: locationIds[0] } });
     const first = await browser.send('patch', '/users/me', { name: 'Updated Tester' });
@@ -120,27 +123,34 @@ describe('profile and password security against real PostgreSQL', { timeout: 30_
     expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe(user.email);
     await browser.send('patch', '/users/me', {});
     await browser.send('patch', '/users/me', { name: 'Updated Tester' });
-    expect((await browser.send('get', '/users/me/history')).body.total).toBe(1);
+    expect(await db.userProfileChange.count({ where: { userId: user.id } })).toBe(1);
     await browser.send('patch', '/users/me', { primaryLocationId: locationIds[1] });
     await browser.send('patch', '/users/me', { name: 'Third Tester' });
     await browser.send('patch', '/users/me', { name: 'Fourth Tester' });
-    const history = await browser.send('get', '/users/me/history?page=1');
-    expect(history.body).toMatchObject({ total: 4, pageSize: 3, hasMore: true }); expect(history.body.items).toHaveLength(3);
-    expect((await browser.send('get', '/users/me/history?page=2')).body.items).toHaveLength(1);
-    expect(JSON.stringify(history.body)).not.toMatch(/password|Hash|refresh|token/);
+    const history = await db.userProfileChange.findMany({ where: { userId: user.id } });
+    expect(history).toHaveLength(4);
+    expect(JSON.stringify(history)).not.toMatch(/password|Hash|refresh|token/);
+    const profile = (await browser.send('get', '/users/me')).body;
+    const session = (await browser.send('get', '/auth/session')).body;
+    for (const response of [first.body, profile, session.user]) {
+      expect(response).not.toHaveProperty('createdAt');
+      expect(response).not.toHaveProperty('updatedAt');
+      expect(response).not.toHaveProperty('passwordHash');
+    }
+    expect((await browser.send('get', '/users/me/history')).status).toBe(404);
     const other = new Browser(); const otherUser = await fixture(other);
     expect((await other.send('get', '/users/me')).body.id).toBe(otherUser.id);
-    expect((await other.send('get', '/users/me/history')).body).toMatchObject({ total: 0, items: [] });
+    expect((await other.send('get', '/users/me/history')).status).toBe(404);
     expect((await other.send('patch', '/users/me', { userId: user.id, name: 'Cross-account edit' })).status).toBe(400);
     const guest = new Browser(); await guest.prepare();
     expect((await guest.send('get', '/users/me')).status).toBe(401);
-    expect((await guest.send('get', '/users/me/history')).status).toBe(401);
+    expect((await guest.send('get', '/users/me/history')).status).toBe(404);
     expect((await guest.send('patch', '/users/me', { name: 'Intruder' })).status).toBe(401);
     for (const body of [{ userId: randomUUID(), name: 'Intruder' }, { email: 'replace@example.test' }, { primaryLocationId: null }, { name: ' ' }, { name: null }, { primaryLocationId: randomUUID() }]) {
       expect((await browser.send('patch', '/users/me', body)).status).toBe(400);
     }
     expect((await browser.send('patch', '/users/me', { name: 'CSRF invalid' }, false)).status).toBe(403);
-    expect((await browser.send('get', '/users/me/history?page=0')).status).toBe(400);
+    expect((await browser.send('get', '/users/me/history?page=0')).status).toBe(404);
     expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).name).toBe('Fourth Tester');
   });
 

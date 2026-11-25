@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { test, expect, api, prismaFixture, hashFixturePassword } from './support/harness';
+import { expectNoAuditSections, trackChangeHistoryRequests } from './support/audit';
 
 const password = 'Match browser test 123!';
 const futureDay = (offset = 14) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
@@ -41,7 +42,8 @@ async function fillMatch(page: Page, placeName: string) {
   await page.getByLabel('Descripción (opcional)', { exact: true }).fill('Traer agua y llegar diez minutos antes.');
 }
 
-test('publishes as an unverified organizer, returns home and keeps private publication history on direct detail', async ({ page, context }) => {
+test('publishes as an unverified organizer and retains publication records without exposing audit to organizer or visitor', async ({ page, context }) => {
+  const historyRequests = trackChangeHistoryRequests(page);
   const fixture = await organizerFixture();
   const placeName = `Cancha ${randomUUID().slice(0, 8)}`;
   try {
@@ -82,13 +84,14 @@ test('publishes as an unverified organizer, returns home and keeps private publi
     // A fresh visit must also work without relying on list or router state.
     await page.goto(`/partidos/${id}`);
     await expect(page.getByText(placeName, { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Auditoría', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Historial de cambios', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Editar', exact: true })).toBeVisible();
+    await expectNoAuditSections(page);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await context.clearCookies();
     await page.reload();
     await expect(page.getByText(placeName, { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Historial de cambios', exact: true })).toHaveCount(0);
+    await expectNoAuditSections(page);
+    expect(historyRequests).toEqual([]);
   } finally { await fixture.cleanup(); }
 });
 

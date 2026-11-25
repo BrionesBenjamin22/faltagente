@@ -13,7 +13,7 @@ export function MatchFormFields({ form, busy, initial }: { form: UseFormReturn<C
   const { register: registerField, clearErrors, control, setValue, formState: { errors } } = form;
   const sports = useSports();
   const locations = useLocations();
-  const restricted = !!initial?.hasConfirmedParticipants;
+  const restricted = !!initial?.hasConfirmedParticipants || !!initial?.hasActiveWaitlist;
   const register = (name: keyof CreateMatchValues, options: Parameters<typeof registerField>[1] = {}) => registerField(name, { ...options, onChange: event => { clearErrors(name); if (name === "date" || name === "time") { clearErrors("date"); clearErrors("time"); } void options.onChange?.(event); } });
   const sportId = useWatch({ control, name: "sportId" });
   const sportFormatId = useWatch({ control, name: "sportFormatId" });
@@ -37,7 +37,7 @@ export function MatchFormFields({ form, busy, initial }: { form: UseFormReturn<C
       </fieldset>
       <fieldset className={styles.group} disabled={busy}><legend>Lugares e información</legend><div className={styles.pair}>
         <div className="field"><label htmlFor="create-pricePerPerson">Precio por persona (ARS)</label><input id="create-pricePerPerson" disabled={restricted} inputMode="decimal" placeholder="Por ejemplo, 5000.00" {...register("pricePerPerson")} aria-invalid={!!errors.pricePerPerson} aria-describedby={describedBy("pricePerPerson", "create-price-help")} /><p id="create-price-help" className={`muted ${styles.help}`}>Usá punto para los decimales. Si es gratis, ingresá 0.</p>{fieldError("pricePerPerson")}</div>
-        <div className="field"><label htmlFor="create-totalPlaces">Lugares para jugadores</label><input id="create-totalPlaces" disabled={!!initial && !initial.canAdjustCapacity} type="number" inputMode="numeric" min={1} max={2147483647} step={1} placeholder="Por ejemplo, 4" {...register("totalPlaces")} aria-invalid={!!errors.totalPlaces} aria-describedby={describedBy("totalPlaces", "create-places-help")} /><p id="create-places-help" className={`muted ${styles.help}`}>Son los lugares que ofrecés. Tu lugar como organizador no se descuenta.</p>{fieldError("totalPlaces")}</div>
+        <div className="field"><label htmlFor="create-totalPlaces">Lugares para jugadores</label><input id="create-totalPlaces" disabled={!!initial && !initial.canAdjustCapacity} type="number" inputMode="numeric" min={initial ? Math.max(1, initial.occupiedPlaces + (initial.heldPlaces ?? 0)) : 1} max={2147483647} step={1} placeholder="Por ejemplo, 4" {...register("totalPlaces")} aria-invalid={!!errors.totalPlaces} aria-describedby={describedBy("totalPlaces", "create-places-help")} /><p id="create-places-help" className={`muted ${styles.help}`}>Son los lugares que ofrecés. Tu lugar como organizador no se descuenta.{initial && (initial.heldPlaces ?? 0) > 0 ? ` Hay ${initial.heldPlaces} lugares protegidos por ofertas pendientes.` : ""}</p>{fieldError("totalPlaces")}</div>
       </div><div className="field"><label htmlFor="create-description">Descripción (opcional)</label><textarea id="create-description" className={styles.textarea} placeholder="Nivel de juego o información útil para quienes se sumen" maxLength={2000} {...register("description")} aria-invalid={!!errors.description} aria-describedby={describedBy("description")} />{fieldError("description")}</div></fieldset>
   </>;
 }

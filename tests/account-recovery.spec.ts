@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { test, expect, api, prismaFixture, hashFixturePassword } from './support/harness';
 import { chooseLocation, expectHomeLocation, openAccountMenu } from './support/ui';
+import { expectNoAuditSections, trackChangeHistoryRequests } from './support/audit';
 
 const password = 'Account browser password 123!';
 const newPassword = 'New account browser password 456!';
@@ -48,7 +49,7 @@ test('landing offers registration and public discovery without an authenticated 
   await expect(page.getByLabel('Nombre', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Crear cuenta', exact: true })).toBeVisible();
   await page.goto('/');
-  await expect(page.getByRole('contentinfo')).toContainText('Hecho en Argentina para los que siempre buscan uno más.');
+  await expect(page.getByRole('contentinfo')).toContainText('Hecho en Argentina, para los que siempre buscan uno más.');
   await page.screenshot({ path: '.runtime/iteration2-landing-light.png', fullPage: true, animations: 'disabled' });
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -61,6 +62,7 @@ test('landing offers registration and public discovery without an authenticated 
 });
 
 test('profile sends real differences and password change revokes every session and returns to login', async ({ page, context, browser }) => {
+  const historyRequests = trackChangeHistoryRequests(page);
   const email = await register(page);
   const patches: object[] = [];
   page.on('request', request => { if (request.method() === 'PATCH' && new URL(request.url()).pathname === '/api/v1/users/me') patches.push(request.postDataJSON()); });
@@ -68,6 +70,7 @@ test('profile sends real differences and password change revokes every session a
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Mi perfil', exact: true })).toBeVisible();
   await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute('readonly', '');
+  await expectNoAuditSections(page);
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(page.getByText('No hay cambios para guardar.', { exact: true })).toBeVisible();
   expect(patches).toHaveLength(0);
@@ -84,6 +87,8 @@ test('profile sends real differences and password change revokes every session a
   await expect.poll(() => patches.length).toBe(2);
   expect(Object.keys(patches[1])).toEqual(['primaryLocationId']);
   expect((await (await context.request.get(`${api}/auth/session`)).json()).user.primaryLocation.name).toBe('City Bell');
+  await expectNoAuditSections(page);
+  expect(historyRequests).toEqual([]);
   const otherContext = await browser.newContext();
   try {
     // A separate login creates a distinct server session, rather than a copied cookie jar.
@@ -184,15 +189,16 @@ test('light, dark and system themes persist without authentication storage and r
   expect(parseFloat(motion.transition)).toBeLessThanOrEqual(0.001);
 });
 
-test('revoked account cache cannot expose its profile or history to the next login', async ({ page }) => {
+test('revoked account cache cannot expose its profile to the next login and neither account reads change history', async ({ page }) => {
+  const historyRequests = trackChangeHistoryRequests(page);
   const firstEmail = await register(page);
   await openAccountMenu(page);
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Private account A');
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(page.getByText('Perfil actualizado correctamente.', { exact: true })).toBeVisible();
-  await expect(page.getByText('Private account A', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Nombre: Account Tester → Private account A', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Private account A');
+  await expectNoAuditSections(page);
   const db = prismaFixture();
   const secondEmail = `second-account-${randomUUID()}@example.test`;
   try {
@@ -230,6 +236,7 @@ test('revoked account cache cannot expose its profile or history to the next log
     await expect(page.getByText(firstEmail, { exact: true })).toHaveCount(0);
     await expect(page.getByText('Private account A', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Nombre: Account Tester → Private account A', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Todavía no hay cambios en tu perfil.', { exact: true })).toBeVisible();
+    await expectNoAuditSections(page);
+    expect(historyRequests).toEqual([]);
   } finally { await db.$disconnect(); }
 });

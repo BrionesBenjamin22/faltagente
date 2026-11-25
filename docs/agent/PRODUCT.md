@@ -213,7 +213,7 @@ Las listas de espera son una excepción temporal: un usuario puede estar en vari
 
 El organizador puede modificar los datos principales.
 
-### Con reservas activas
+### Con reservas o solicitudes de espera activas
 
 No puede modificar:
 
@@ -227,7 +227,7 @@ Puede modificar información no crítica.
 
 Los lugares disponibles pueden aumentarse.
 
-También pueden reducirse, pero nunca hasta una capacidad inferior a los lugares ya reservados.
+También pueden reducirse, pero nunca hasta una capacidad inferior a los lugares ya reservados más los retenidos por ofertas pendientes.
 
 Si necesita cambiar información crítica, debe cancelar el partido y publicar uno nuevo.
 
@@ -381,6 +381,8 @@ El organizador puede ver:
 - usuario;
 - cantidad solicitada.
 
+Sólo se admite una solicitud activa por usuario y partido, sin participación confirmada en la misma fecha local. El organizador no puede ingresar en su propio partido. Repetir el ingreso con igual cantidad conserva la solicitud; para cambiar cantidad se debe salir y volver a ingresar, con nueva antigüedad. Salir o terminar una solicitud conserva sus registros históricos.
+
 No puede seleccionar manualmente quién recibe el lugar.
 
 ---
@@ -393,6 +395,8 @@ Prioridad:
 
 1. la solicitud que mejor aproveche los lugares disponibles;
 2. ante empate, la solicitud más antigua.
+
+Si persiste el empate se ordena por identificador. No se divide una solicitud; pueden asignarse varias ofertas independientes hasta aprovechar los cupos disponibles.
 
 No es FIFO estricto.
 
@@ -416,6 +420,8 @@ El candidato seleccionado recibe una oferta temporal de 15 minutos.
 
 La oferta no genera una reserva automáticamente.
 
+Los lugares ofrecidos quedan retenidos y no están disponibles para reservas directas. El plazo termina como máximo al comenzar el partido. Aceptar convierte la retención en una reserva y participación confirmadas de forma atómica. Reintentar devuelve la reserva original, incluso si luego fue cancelada, sin recrearla.
+
 El usuario puede:
 
 - aceptar;
@@ -424,10 +430,14 @@ El usuario puede:
 
 Si rechaza o expira, se evalúa el siguiente candidato compatible.
 
+La solicitud finaliza; volver a ingresar requiere una nueva solicitud y que el partido siga completo. Al comenzar o cancelarse el partido terminan las solicitudes y ofertas pendientes.
+
 Las ofertas se notifican:
 
 - dentro de la aplicación;
 - por email.
+
+La entrega de estas notificaciones pertenece a una etapa separada. La lista de espera implementada expone ofertas en el detalle y en Mis partidos, y persiste eventos internos para el futuro módulo de notificaciones; todavía no envía correos ni crea notificaciones in-app.
 
 ---
 
@@ -439,9 +449,11 @@ Si acepta una:
 
 - se confirma esa participación;
 - se invalidan las demás ofertas del mismo día;
-- se eliminan sus otras listas de espera del mismo día.
+- se invalidan sus otras solicitudes del mismo día, conservando su historia.
 
 Esta operación debe ser atómica.
+
+Reservar directamente, publicar o cambiar la fecha de un partido también invalida las solicitudes y ofertas de esa fecha local cuando se confirma la participación.
 
 ---
 
