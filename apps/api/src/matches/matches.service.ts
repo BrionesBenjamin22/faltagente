@@ -30,6 +30,7 @@ export class MatchesService {
       where: { id },
       select: {
         ...publicMatchFields,
+        totalPlaces: true,
         location: { select: { id: true, name: true } },
         organizer: { select: { id: true, name: true } },
       },

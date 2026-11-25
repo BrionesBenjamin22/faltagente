@@ -64,6 +64,7 @@ model User {
   participations Participation[]
   profileChanges UserProfileChange[]
   matchChanges MatchChange[]
+  waitlistEntries WaitlistEntry[]
   reservations Reservation[]
 }
 model UserProfileChange {
@@ -152,6 +153,7 @@ model Match {
   participations Participation[]
   changes MatchChange[]
   @@index([organizerId, startsAt, id])
+  waitlistEntries WaitlistEntry[]
   reservations Reservation[]
   @@index([locationId, startsAt, id])
   @@index([sportId])
@@ -181,6 +183,7 @@ model Participation {
 }
 
 model Reservation {
+  waitlistOffer WaitlistOffer?
   id String @id @default(uuid()) @db.Uuid
   userId String @db.Uuid
   user User @relation(fields:[userId], references:[id])
@@ -195,4 +198,62 @@ model Reservation {
   cancellationSource ReservationCancellationSource?
   @@index([userId, matchId, createdAt, id])
   @@index([matchId])
+}
+
+
+enum WaitlistEntryStatus {
+  WAITING
+  OFFERED
+  COMPLETED
+  LEFT
+  EXPIRED
+  INVALIDATED
+}
+enum WaitlistOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  INVALIDATED
+}
+model WaitlistEntry {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields:[userId], references:[id])
+  matchId String @db.Uuid
+  match Match @relation(fields:[matchId], references:[id])
+  places Int
+  status WaitlistEntryStatus @default(WAITING)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  offer WaitlistOffer?
+  @@index([matchId, status, places, createdAt, id])
+  @@index([userId, status, createdAt, id])
+}
+model WaitlistOffer {
+  id String @id @default(uuid()) @db.Uuid
+  entryId String @unique @db.Uuid
+  entry WaitlistEntry @relation(fields:[entryId], references:[id])
+  places Int
+  status WaitlistOfferStatus @default(PENDING)
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+  reservationId String? @unique @db.Uuid
+  reservation Reservation? @relation(fields:[reservationId], references:[id], onDelete:Restrict)
+  @@index([status, expiresAt, id])
+}
+model WaitlistEvent {
+  sequence BigInt @id @default(autoincrement())
+  id String @unique @default(uuid()) @db.Uuid
+  schemaVersion Int @default(1)
+  type String
+  occurredAt DateTime @default(now()) @db.Timestamptz(3)
+  recipientId String @db.Uuid
+  matchId String @db.Uuid
+  entryId String @db.Uuid
+  offerId String? @db.Uuid
+  reason String?
+  places Int
+  expiresAt DateTime? @db.Timestamptz(3)
 }

@@ -29,6 +29,9 @@ export class MatchManagementResponse {
   cancelledAt: Date | null;
   @ApiProperty({ type: String, nullable: true }) cancellationReason:
     string | null;
+  @ApiProperty() heldPlaces: number;
+  @ApiProperty() activeWaitlistCount: number;
+  @ApiProperty() hasActiveWaitlist: boolean;
   @ApiProperty() occupiedPlaces: number;
   @ApiProperty() activePlayerCount: number;
   @ApiProperty() hasConfirmedParticipants: boolean;

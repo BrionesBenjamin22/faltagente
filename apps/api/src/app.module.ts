@@ -1,3 +1,4 @@
+import { WaitlistModule } from './waitlist/waitlist.module.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnvironment } from './config/environment.js';
@@ -19,6 +20,7 @@ import { APP_GUARD } from '@nestjs/core';
     MatchesModule,
     ReservationsModule,
     SportsModule,
+    WaitlistModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 100 }]),
     ConfigModule.forRoot({
       cache: true,

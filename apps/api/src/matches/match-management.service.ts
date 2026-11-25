@@ -5,6 +5,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  lockBookingDomain,
+  settleMatch,
+  allocateOffers,
+  heldPlaces,
+  finishEntry,
+  invalidateSameDay,
+} from '../waitlist/waitlist.domain.js';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module.js';
 import type { CreateMatchDto } from './dto/match-publication.dto.js';
@@ -114,6 +122,7 @@ export class MatchManagementService {
   async create(userId: string, dto: CreateMatchDto) {
     try {
       return await this.db.$transaction(async (tx) => {
+        await lockBookingDomain(tx);
         // Shared lock order: users (sorted by id when several), then match.
         // Lock the user before checking their local-day participation.
         await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
@@ -166,8 +175,8 @@ export class MatchManagementService {
               'Seleccione un formato disponible para el deporte elegido.',
           });
         const [{ localDate }] = await tx.$queryRaw<{ localDate: Date }[]>`
-          SELECT (${startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"
-        `;
+        SELECT (${startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"
+      `;
         if (
           await tx.participation.findFirst({
             where: { userId, localDate, active: true },
@@ -212,8 +221,9 @@ export class MatchManagementService {
           },
           select: { id: true },
         });
+        await invalidateSameDay(tx, userId, localDate);
         return match;
-      });
+      }, { maxWait: 10_000, timeout: 30_000 });
     } catch (error) {
       // The partial unique index also protects against future participation writers.
       if (
@@ -294,7 +304,11 @@ export class MatchManagementService {
     id: string,
   ) {
     const match = await this.ownMatch(userId, id, tx);
-    const occupiedPlaces = match.totalPlaces - match.availablePlaces;
+    const held = await heldPlaces(tx, id);
+    const activeWaitlistCount = await tx.waitlistEntry.count({
+      where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
+    });
+    const occupiedPlaces = match.totalPlaces - match.availablePlaces - held;
     const activePlayerCount = match._count.participations;
     const hasConfirmedParticipants =
       activePlayerCount > 0 || occupiedPlaces > 0;
@@ -333,6 +347,9 @@ export class MatchManagementService {
       version: match.version,
       pricePerPerson: match.pricePerPerson.toString(),
       occupiedPlaces,
+      heldPlaces: held,
+      activeWaitlistCount,
+      hasActiveWaitlist: activeWaitlistCount > 0,
       activePlayerCount,
       hasConfirmedParticipants,
       canEdit,
@@ -355,6 +372,8 @@ export class MatchManagementService {
     userId: string,
     id: string,
   ) {
+    await lockBookingDomain(tx);
+    await settleMatch(tx, id);
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
     await tx.$queryRaw`SELECT "id" FROM "Match" WHERE "id" = ${id}::uuid FOR UPDATE`;
     const match = await tx.match.findUnique({
@@ -421,24 +440,32 @@ export class MatchManagementService {
         if (dto.locationId !== undefined) after.locationId = dto.locationId;
         if (dto.startsAt !== undefined)
           after.startsAt = new Date(dto.startsAt).toISOString();
-        if (dto.placeName !== undefined) after.placeName = dto.placeName.trim();
+        if (dto.placeName !== undefined)
+          after.placeName = dto.placeName.trim();
         if (dto.address !== undefined) after.address = dto.address.trim();
         if (dto.pricePerPerson !== undefined)
           after.pricePerPerson = new Prisma.Decimal(
             dto.pricePerPerson,
           ).toString();
-        if (dto.totalPlaces !== undefined) after.totalPlaces = dto.totalPlaces;
+        if (dto.totalPlaces !== undefined)
+          after.totalPlaces = dto.totalPlaces;
         if (dto.description !== undefined)
           after.description = dto.description?.trim() || null;
-        const changed = (Object.keys(before) as (keyof typeof before)[]).filter(
-          (key) => before[key] !== after[key],
-        );
+        const changed = (
+          Object.keys(before) as (keyof typeof before)[]
+        ).filter((key) => before[key] !== after[key]);
         if (!changed.length) return { id };
-        const occupied = match.totalPlaces - match.availablePlaces;
+        const held = await heldPlaces(tx, id);
+        const activeWaitlistCount = await tx.waitlistEntry.count({
+          where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
+        });
+        const occupied = match.totalPlaces - match.availablePlaces - held;
         const players = match._count.participations;
         if (
-          (players > 0 || occupied > 0) &&
-          changed.some((key) => key !== 'description' && key !== 'totalPlaces')
+          (players > 0 || occupied > 0 || activeWaitlistCount > 0) &&
+          changed.some(
+            (key) => key !== 'description' && key !== 'totalPlaces',
+          )
         ) {
           throw new ConflictException({
             code: 'MATCH_FIELDS_RESTRICTED',
@@ -453,7 +480,7 @@ export class MatchManagementService {
               message:
                 'Los jugadores y lugares ocupados no coinciden. Revise las reservas antes de ajustar la capacidad.',
             });
-          if (after.totalPlaces < occupied)
+          if (after.totalPlaces < occupied + held)
             throw new ConflictException({
               code: 'MATCH_CAPACITY_INSUFFICIENT',
               message:
@@ -520,10 +547,16 @@ export class MatchManagementService {
           >`SELECT (${startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"`;
           if (
             await tx.participation.findFirst({
-              where: { userId, localDate, active: true, matchId: { not: id } },
+              where: {
+                userId,
+                localDate,
+                active: true,
+                matchId: { not: id },
+              },
             })
           )
             throw this.dateConflict();
+          await invalidateSameDay(tx, userId, localDate);
           await tx.participation.updateMany({
             where: { matchId: id, userId, role: 'ORGANIZER', active: true },
             data: { localDate },
@@ -564,14 +597,16 @@ export class MatchManagementService {
               before: match.availablePlaces,
               after: Number(data.availablePlaces),
             };
-            data.status = Number(data.availablePlaces) > 0 ? 'OPEN' : 'CLOSED';
+            data.status =
+              Number(data.availablePlaces) > 0 ? 'OPEN' : 'CLOSED';
             if (data.status !== match.status)
               changes.status = { before: match.status, after: data.status };
           } else Object.assign(data, { [key]: after[key] });
         }
         await tx.match.update({ where: { id }, data });
+        await allocateOffers(tx, id);
         return { id };
-      });
+      }, { maxWait: 10_000, timeout: 30_000 });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -603,7 +638,7 @@ export class MatchManagementService {
         { localDate: Date }[]
       >`SELECT (${match.startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"`;
       const players = participations.filter((p) => p.role === 'PLAYER');
-      const playerIds = new Set(players.map(p => p.userId));
+      const playerIds = new Set(players.map((p) => p.userId));
       const organizers = participations.filter((p) => p.role === 'ORGANIZER');
       const occupiedPlaces = reservations.reduce(
         (sum, row) => sum + row.places,
@@ -612,7 +647,8 @@ export class MatchManagementService {
       if (
         match.availablePlaces < 0 ||
         match.availablePlaces > match.totalPlaces ||
-        occupiedPlaces !== match.totalPlaces - match.availablePlaces ||
+        occupiedPlaces + (await heldPlaces(tx, id)) !==
+          match.totalPlaces - match.availablePlaces ||
         (match.status === 'CLOSED') !== (match.availablePlaces === 0) ||
         organizers.length !== 1 ||
         organizers[0].userId !== userId ||
@@ -621,9 +657,7 @@ export class MatchManagementService {
         ) ||
         players.length !== reservations.length ||
         reservations.some(
-          (row) =>
-            row.userId === userId ||
-            !playerIds.has(row.userId),
+          (row) => row.userId === userId || !playerIds.has(row.userId),
         )
       ) {
         throw new ConflictException({
@@ -632,6 +666,12 @@ export class MatchManagementService {
             'No pudimos cancelar el partido porque sus reservas y lugares no coinciden. Recargue e intente nuevamente.',
         });
       }
+      const waitlistEntries = await tx.waitlistEntry.findMany({
+        where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
+        select: { id: true },
+      });
+      for (const entry of waitlistEntries)
+        await finishEntry(tx, entry.id, 'INVALIDATED', 'MATCH_CANCELLED');
       const cancelledAt = new Date();
       const cancellationReason = dto.reason?.trim() || null;
       // The match lock serializes every writer of these relations. Releasing a
@@ -663,8 +703,14 @@ export class MatchManagementService {
               event: 'CANCELLED',
               changes: {
                 status: { before: match.status, after: 'CANCELLED' },
-                cancelledAt: { before: null, after: cancelledAt.toISOString() },
-                cancellationReason: { before: null, after: cancellationReason },
+                cancelledAt: {
+                  before: null,
+                  after: cancelledAt.toISOString(),
+                },
+                cancellationReason: {
+                  before: null,
+                  after: cancellationReason,
+                },
                 availablePlaces: {
                   before: match.availablePlaces,
                   after: match.totalPlaces,
@@ -675,7 +721,6 @@ export class MatchManagementService {
         },
       });
       return { id };
-    }, { maxWait: 10_000 });
+    }, { maxWait: 10_000, timeout: 30_000 });
   }
-
 }
