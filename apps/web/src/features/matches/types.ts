@@ -3,6 +3,11 @@ export interface MatchSport { id: string; name: string; slug: string }
 export interface MatchSportFormat { id: string; name: string; slug: string }
 export interface Match { id: string; location: Location; sport: MatchSport; sportFormat: MatchSportFormat | null; startsAt: string; venueName: string; address: string; pricePerPerson: string; availablePlaces: number; status: "OPEN" | "CLOSED" | "CANCELLED"; description: string | null }
 export type OrganizedMatchFilter = "upcoming" | "past" | "cancelled";
+export type MyMatchRole = "organizer" | "player";
+export interface MyMatch extends Match {
+  reservation?: { id: string; places: number; status: "CONFIRMED" | "CANCELLED"; cancellationSource: "USER" | "MATCH" | null; cancelledAt: string | null };
+}
+export interface MyMatchPage extends Omit<MatchPage, "items"> { items: MyMatch[] }
 export interface MatchPage { items: Match[]; total: number; page: number; pageSize: number; hasMore: boolean }
 export interface MatchFilters { sportId?: string; sportFormatId?: string; date?: string }
 export interface MatchDetail {

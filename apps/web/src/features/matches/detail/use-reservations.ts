@@ -12,13 +12,14 @@ async function refreshReservations(client: QueryClient, userId: string, id: stri
     client.invalidateQueries({ queryKey: ["matches"] }),
     client.invalidateQueries({ queryKey: ["matches-baseline"] }),
     client.invalidateQueries({ queryKey: ["organized-matches"] }),
+    client.invalidateQueries({ queryKey: ["my-matches", userId] }),
     client.invalidateQueries({ queryKey: ["match-management", organizerId, id] }),
     client.invalidateQueries({ queryKey: reservationHistoryKey(userId, id) }),
   ]);
 }
 
 export function useReservationHistory(userId: string, id: string, page: number) {
-  return useQuery({ queryKey: [...reservationHistoryKey(userId, id), page], queryFn: () => reservationsService.history(id, page), retry: false, staleTime: 0 });
+  return useQuery({ queryKey: [...reservationHistoryKey(userId, id), page], queryFn: () => reservationsService.history(id, page), retry: false, staleTime: 0, refetchOnWindowFocus: true });
 }
 
 export function useCreateReservation(userId: string, id: string, organizerId: string) {

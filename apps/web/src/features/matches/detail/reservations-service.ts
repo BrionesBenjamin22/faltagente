@@ -4,8 +4,10 @@ export interface ReservationHistoryItem extends Reservation {
   status: "CONFIRMED" | "CANCELLED";
   cancelledAt: string | null;
   cancellationReason: string | null;
+  cancellationSource: "USER" | "MATCH" | null;
 }
 export interface ReservationHistory {
+  matchCancellation: { cancelledAt: string; reason: string | null } | null;
   items: ReservationHistoryItem[];
   total: number;
   page: number;

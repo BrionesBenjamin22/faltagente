@@ -9,7 +9,7 @@ import { SessionLoading } from "@/features/auth/session-loading";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ApiError, errorMessage } from "@/lib/http";
 import { matchesService } from "../service";
-import type { OrganizedMatchFilter } from "../types";
+import type { MyMatchRole, OrganizedMatchFilter } from "../types";
 import { MatchCard } from "../match-card";
 import { MatchesLoading } from "../matches-loading";
 
@@ -29,11 +29,12 @@ export function MyMatchesScreen() {
 }
 
 function MyMatchesList({ ownerId }: { ownerId: string }) {
+  const [role, setRole] = useState<MyMatchRole>("organizer");
   const [filter, setFilter] = useState<OrganizedMatchFilter>("upcoming");
   const [page, setPage] = useState(1);
   const session = useSession();
   const router = useRouter();
-  const query = useQuery({ queryKey: ["organized-matches", ownerId, filter, page], queryFn: () => matchesService.organized(filter, page), retry: (attempt, error) => !(error instanceof ApiError && error.status < 500) && attempt < 1 });
+  const query = useQuery({ queryKey: ["my-matches", ownerId, role, filter, page], queryFn: () => matchesService.mine(role, filter, page), staleTime: 0, refetchOnWindowFocus: true, retry: (attempt, error) => !(error instanceof ApiError && error.status < 500) && attempt < 1 });
   useEffect(() => {
     if (query.error instanceof ApiError && query.error.status === 401) {
       void session.synchronize();
@@ -41,12 +42,13 @@ function MyMatchesList({ ownerId }: { ownerId: string }) {
     }
   }, [query.error, router, session]);
   return <>
-    <h1>Mis partidos</h1><p className="muted">Los partidos que organizás, en todas las localidades.</p>
+    <h1>Mis partidos</h1><p className="muted">Los partidos que organizás y tus reservas, en todas las localidades.</p>
     <div className="actions mb-6"><Link href="/partidos/nuevo" className="button">Publicar partido</Link><Link href="/partidos" className="button secondary">Volver a partidos</Link></div>
+    <div className="actions mb-6" role="group" aria-label="Participación en mis partidos">{([{ value: "organizer", label: "Organizados" }, { value: "player", label: "Reservados" }] as const).map(item => <button key={item.value} type="button" className={`button${role === item.value ? "" : " secondary"}`} aria-pressed={role === item.value} onClick={() => { setRole(item.value); setPage(1); }}>{item.label}</button>)}</div>
     <div className="actions mb-6" role="group" aria-label="Estado de mis partidos">{filters.map(item => <button key={item.value} type="button" className={`button${filter === item.value ? "" : " secondary"}`} aria-pressed={filter === item.value} onClick={() => { setFilter(item.value); setPage(1); }}>{item.label}</button>)}</div>
-    {query.isPending ? <MatchesLoading /> : query.isError ? <><p className="error" role="alert">{errorMessage(query.error)}</p><button type="button" className="button secondary" onClick={() => void query.refetch()}>Reintentar mis partidos</button></> : query.data.items.length === 0 ? <EmptyState title={filter === "upcoming" ? "Todavía no tenés partidos próximos" : filter === "past" ? "Todavía no tenés partidos pasados" : "No tenés partidos cancelados"} description="Acá se muestran únicamente los partidos que organizás." action={<Link href="/partidos/nuevo" className="button secondary">Publicar partido</Link>} /> : <>
+    {query.isPending ? <MatchesLoading /> : query.isError ? <><p className="error" role="alert">{errorMessage(query.error)}</p><button type="button" className="button secondary" onClick={() => void query.refetch()}>Reintentar mis partidos</button></> : query.data.items.length === 0 ? <EmptyState title={filter === "upcoming" ? "Todavía no tenés partidos próximos" : filter === "past" ? "Todavía no tenés partidos pasados" : "No tenés partidos cancelados"} description={role === "organizer" ? "Acá se muestran los partidos que organizás." : filter === "cancelled" ? "Acá se muestran tus bajas y los partidos cancelados por su organizador." : "Acá se muestran los partidos donde tenés una reserva confirmada."} action={<Link href={role === "organizer" ? "/partidos/nuevo" : "/partidos"} className="button secondary">{role === "organizer" ? "Publicar partido" : "Buscar partidos"}</Link>} /> : <>
       <p className="muted">{query.data.total} {query.data.total === 1 ? "partido" : "partidos"}</p>
-      <div className="match-grid">{query.data.items.map(match => <MatchCard key={match.id} match={match} />)}</div>
+      <div className="match-grid">{query.data.items.map(match => <div key={match.id}><MatchCard match={match} />{role === "player" && match.reservation ? <p className="notice">{match.reservation.status === "CONFIRMED" ? "Reserva confirmada" : match.reservation.cancellationSource === "MATCH" ? "Cancelada por el organizador" : "Cancelaste tu reserva"}. {match.reservation.places} {match.reservation.places === 1 ? "lugar" : "lugares"}.</p> : null}</div>)}</div>
       <div className="actions"><button type="button" className="button secondary" disabled={page === 1} onClick={() => setPage(current => current - 1)}>Anterior</button><span>Página {page}</span><button type="button" className="button secondary" disabled={!query.data.hasMore} onClick={() => setPage(current => current + 1)}>Siguiente</button></div>
     </>}
   </>;

@@ -12,7 +12,7 @@ function open(value = match, client = new QueryClient({ defaultOptions: { querie
   const view = render(<QueryClientProvider client={client}><ReservationPanel match={value} /></QueryClientProvider>);
   return { ...view, client };
 }
-beforeEach(() => { state.userId = "player"; vi.spyOn(reservationsService, "history").mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 3, hasMore: false }); });
+beforeEach(() => { state.userId = "player"; vi.spyOn(reservationsService, "history").mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 3, matchCancellation: null, hasMore: false }); });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 it("offers guests login without requesting private reservations", () => {
   state.userId = null;
@@ -99,7 +99,7 @@ it("retries a failed private reservation lookup before enabling booking", async 
 });
 
 const reservation = { id: "r", matchId: "match", places: 2, createdAt: "2098-01-01" };
-const cancelledReservation = { ...reservation, status: "CANCELLED" as const, cancelledAt: "2098-01-02", cancellationReason: "No puedo asistir" };
+const cancelledReservation = { ...reservation, status: "CANCELLED" as const, cancellationSource: "USER" as const, cancelledAt: "2098-01-02", cancellationReason: "No puedo asistir" };
 it("lets the player desist and restores focus without cancelling", async () => {
   vi.spyOn(reservationsService, "mine").mockResolvedValue(reservation);
   const cancel = vi.spyOn(reservationsService, "cancel");
@@ -153,7 +153,7 @@ it("rejects an overlong cancellation reason without calling the API", async () =
 });
 it("retries a failed history lookup without blocking registration", async () => {
   vi.spyOn(reservationsService, "mine").mockResolvedValue(null);
-  vi.mocked(reservationsService.history).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ items: [cancelledReservation], total: 1, page: 1, pageSize: 3, hasMore: false });
+  vi.mocked(reservationsService.history).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ items: [cancelledReservation], total: 1, page: 1, pageSize: 3, matchCancellation: null, hasMore: false });
   open();
   expect(await screen.findByRole("button", { name: "Inscribirme" })).toBeInTheDocument();
   fireEvent.click(await screen.findByRole("button", { name: "Reintentar historial de reservas" }));
@@ -167,7 +167,7 @@ it.each([{ status: "CANCELLED" as const }, { startsAt: "2000-01-01" }])("hides c
 });
 it("shows private history with pagination and safe text reasons", async () => {
   vi.spyOn(reservationsService, "mine").mockResolvedValue(null);
-  const history = vi.mocked(reservationsService.history).mockResolvedValueOnce({ items: [cancelledReservation], total: 4, page: 1, pageSize: 3, hasMore: true }).mockResolvedValueOnce({ items: [{ ...cancelledReservation, id: "old", cancellationReason: "<script>private</script>" }], total: 4, page: 2, pageSize: 3, hasMore: false });
+  const history = vi.mocked(reservationsService.history).mockResolvedValueOnce({ items: [cancelledReservation], total: 4, page: 1, pageSize: 3, matchCancellation: null, hasMore: true }).mockResolvedValueOnce({ items: [{ ...cancelledReservation, id: "old", cancellationReason: "<script>private</script>" }], total: 4, page: 2, pageSize: 3, matchCancellation: null, hasMore: false });
   open();
   expect(await screen.findByText("No puedo asistir")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Anterior" })).toBeDisabled();
@@ -181,4 +181,33 @@ it("uses a fresh CSRF token and concrete reservation identifier when cancelling"
   vi.stubGlobal("fetch", fetch);
   await reservationsService.cancel("match", "old/reservation", "No puedo asistir");
   expect(fetch).toHaveBeenNthCalledWith(2, expect.stringContaining("/matches/match/reservations/old%2Freservation/cancel"), expect.objectContaining({ method: "POST", credentials: "include", cache: "no-store", headers: expect.objectContaining({ "X-CSRF-Token": "csrf-test" }), body: JSON.stringify({ reason: "No puedo asistir" }) }));
+});
+
+it("shows organizer cancellation context across history pages only when provided by the private API", async () => {
+  vi.spyOn(reservationsService, "mine").mockResolvedValue(null);
+  const matchCancellation = { cancelledAt: "2098-01-02", reason: "<script>Lluvia</script>" };
+  vi.mocked(reservationsService.history).mockResolvedValueOnce({ items: [{ ...cancelledReservation, cancellationSource: "MATCH", cancellationReason: null }], total: 4, page: 1, pageSize: 3, hasMore: true, matchCancellation }).mockResolvedValueOnce({ items: [cancelledReservation], total: 4, page: 2, pageSize: 3, hasMore: false, matchCancellation });
+  open({ ...match, status: "CANCELLED" });
+  expect(await screen.findByRole("heading", { name: "Partido cancelado por el organizador" })).toBeInTheDocument();
+  expect(screen.getByText("Cancelada por el organizador")).toBeInTheDocument();
+  expect(screen.getByText("<script>Lluvia</script>")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Inscribirme" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+  expect(await screen.findByText("Cancelaste tu reserva")).toBeInTheDocument();
+  expect(screen.getByText("<script>Lluvia</script>")).toBeInTheDocument();
+});
+
+it("does not infer access to organizer reasons from a voluntarily cancelled reservation", async () => {
+  vi.spyOn(reservationsService, "mine").mockResolvedValue(null);
+  vi.mocked(reservationsService.history).mockResolvedValue({ items: [cancelledReservation], total: 1, page: 1, pageSize: 3, hasMore: false, matchCancellation: null });
+  open({ ...match, status: "CANCELLED" });
+  expect(await screen.findByText("Cancelaste tu reserva")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Partido cancelado por el organizador" })).not.toBeInTheDocument();
+});
+
+it("keeps cancellation context visible when a history page has no items", async () => {
+  vi.spyOn(reservationsService, "mine").mockResolvedValue(null);
+  vi.mocked(reservationsService.history).mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 3, hasMore: false, matchCancellation: { cancelledAt: "2098-01-02", reason: "Cancha cerrada" } });
+  open({ ...match, status: "CANCELLED" });
+  expect(await screen.findByText("Cancha cerrada")).toBeInTheDocument();
 });

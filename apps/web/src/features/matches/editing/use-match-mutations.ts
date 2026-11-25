@@ -9,6 +9,9 @@ export async function invalidateMatch(client: QueryClient, ownerId: string, id: 
     client.invalidateQueries({ queryKey: ["matches"] }),
     client.invalidateQueries({ queryKey: ["matches-baseline"] }),
     client.invalidateQueries({ queryKey: ["organized-matches", ownerId] }),
+    client.invalidateQueries({ queryKey: ["my-matches"] }),
+    client.invalidateQueries({ predicate: query => query.queryKey[0] === "reservation-history" && query.queryKey[2] === id }),
+    client.invalidateQueries({ predicate: query => query.queryKey[0] === "reservations" && query.queryKey[3] === id }),
     client.invalidateQueries({ queryKey: ["match-management", ownerId, id] }),
     client.resetQueries({ queryKey: ["match-history", ownerId, id] }),
   ]);

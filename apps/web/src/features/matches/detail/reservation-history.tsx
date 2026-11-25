@@ -13,12 +13,13 @@ export function ReservationHistory({ userId, matchId }: { userId: string; matchI
   return <section className={styles.section} aria-labelledby="reservation-history-heading">
     <h2 id="reservation-history-heading">Historial de reservas</h2>
     <p className="muted">Sólo vos podés consultar tus reservas y sus motivos de cancelación.</p>
+    {!history.isPending && !history.isError && history.data.matchCancellation ? <div className="notice"><h3>Partido cancelado por el organizador</h3><p>Cancelado: <time dateTime={history.data.matchCancellation.cancelledAt}>{date.format(new Date(history.data.matchCancellation.cancelledAt))}</time></p>{history.data.matchCancellation.reason ? <p className={styles.reservationReason}>Motivo del organizador: <span>{history.data.matchCancellation.reason}</span></p> : <p>El organizador no indicó un motivo.</p>}</div> : null}
     {history.isPending ? <p role="status">Cargando historial de reservas…</p> : history.isError ? <>
       <p className="error" role="alert">{errorMessage(history.error)}</p>
       <button type="button" className="button secondary" disabled={history.isFetching} onClick={() => void history.refetch()}>Reintentar historial de reservas</button>
     </> : history.data.items.length === 0 ? <p>Todavía no tenés reservas en este partido.</p> : <>
       <ul className="history-list">{history.data.items.map(item => <li key={item.id}>
-        <p><strong>{item.status === "CONFIRMED" ? "Confirmada" : "Cancelada"}</strong> · {item.places} {item.places === 1 ? "lugar" : "lugares"}</p>
+        <p><strong>{item.status === "CONFIRMED" ? "Confirmada" : item.cancellationSource === "MATCH" ? "Cancelada por el organizador" : "Cancelaste tu reserva"}</strong> · {item.places} {item.places === 1 ? "lugar" : "lugares"}</p>
         <p>Reservada: <time dateTime={item.createdAt}>{date.format(new Date(item.createdAt))}</time></p>
         {item.cancelledAt ? <p>Cancelada: <time dateTime={item.cancelledAt}>{date.format(new Date(item.cancelledAt))}</time></p> : null}
         {item.cancellationReason ? <p className={styles.reservationReason}>Motivo: <span>{item.cancellationReason}</span></p> : null}

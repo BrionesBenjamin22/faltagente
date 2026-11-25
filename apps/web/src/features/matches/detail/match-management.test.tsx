@@ -8,7 +8,7 @@ import type { MatchManagement as Management } from "../types";
 const state = vi.hoisted(() => ({ replace: vi.fn(), synchronize: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: state.replace }) }));
 vi.mock("@/features/auth/session", () => ({ useSession: () => ({ session: { authenticated: true, user: { id: "owner" } }, synchronize: state.synchronize }) }));
-const fixture = { id: "match", version: 2, createdAt: "2026-11-01T12:00:00Z", updatedAt: "2026-11-02T12:00:00Z", totalPlaces: 4, availablePlaces: 4, canEdit: true, canCancel: true, cancelledAt: null, cancellationReason: null } as Management;
+const fixture = { id: "match", version: 2, createdAt: "2026-11-01T12:00:00Z", updatedAt: "2026-11-02T12:00:00Z", totalPlaces: 4, availablePlaces: 4, activePlayerCount: 0, occupiedPlaces: 0, canEdit: true, canCancel: true, cancelledAt: null, cancellationReason: null } as Management;
 let current: Management;
 let cancels: Record<string, unknown>[];
 let failure: "network" | "conflict" | "expired" | undefined;
@@ -93,4 +93,16 @@ it("synchronizes an expired cancellation session and returns to login", async ()
   fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
   await waitFor(() => expect(state.replace).toHaveBeenCalledWith("/auth/login"));
   expect(state.synchronize).toHaveBeenCalledOnce();
+});
+
+it("shows the affected reservation and place counts including after explicit conflict reload", async () => {
+  current = { ...current, hasConfirmedParticipants: true, activePlayerCount: 2, occupiedPlaces: 3, availablePlaces: 1 };
+  failure = "conflict"; open(); await panel();
+  expect(screen.getByText("Se cancelarán 2 reservas confirmadas que ocupan 3 lugares.")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+  const reload = await screen.findByRole("button", { name: "Recargar versión actual" });
+  current = { ...current, version: 3, activePlayerCount: 1, occupiedPlaces: 1 };
+  fireEvent.click(reload);
+  expect(await screen.findByText("Se cancelarán 1 reserva confirmada que ocupan 1 lugar.")).toBeInTheDocument();
+  expect(screen.getByText(/Podrán consultarlo quienes tengan una reserva confirmada/)).toBeInTheDocument();
 });
