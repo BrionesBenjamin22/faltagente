@@ -76,7 +76,7 @@ export class MatchPublicationController {
   @Post(':id/cancel')
   @ApiCreatedResponse({ type: CreatedMatchResponse })
   @ApiConflictResponse({
-    description: 'Versión en conflicto o integración con reservas requerida.',
+    description: 'Versión en conflicto, partido iniciado o reservas inconsistentes.',
   })
   @ApiForbiddenResponse({
     description: 'Partido ajeno, Origin o CSRF inválidos.',

@@ -669,6 +669,14 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
       where: { id },
       data: { organizerId: organizer.id },
     });
+    await db.participation.create({
+      data: {
+        userId: organizer.id,
+        matchId: id,
+        role: 'ORGANIZER',
+        localDate: new Date('2099-11-03'),
+      },
+    });
     const reservation = (await p.browser.send('post', path(id), { places: 1 }))
       .body;
     const expectedVersion = (
@@ -705,4 +713,411 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
       ).status,
     ).toBe(201);
   });
+  async function organized(places = 3) {
+    const organizer = await player();
+    const id = await match(places);
+    await db.match.update({
+      where: { id },
+      data: { organizerId: organizer.id },
+    });
+    await db.participation.create({
+      data: {
+        userId: organizer.id,
+        matchId: id,
+        role: 'ORGANIZER',
+        localDate: new Date('2099-11-03'),
+      },
+    });
+    return { organizer, id };
+  }
+  async function cancelMatch(
+    organizer: Awaited<ReturnType<typeof player>>,
+    id: string,
+    reason = 'Lluvia privada',
+  ) {
+    const { version } = await db.match.findUniqueOrThrow({ where: { id } });
+    return organizer.browser.send('post', `/matches/${id}/cancel`, {
+      expectedVersion: version,
+      reason,
+    });
+  }
+  it('cancels occupied matches atomically, preserves USER history and reveals match context only to affected holders', async () => {
+    const { organizer, id } = await organized(4);
+    const a = await player();
+    const b = await player();
+    const former = await player();
+    const old = (await former.browser.send('post', path(id), { places: 1 }))
+      .body;
+    expect(
+      (
+        await former.browser.send('post', `${path(id)}/${old.id}/cancel`, {
+          reason: 'Privado',
+        })
+      ).status,
+    ).toBe(200);
+    const first = (await a.browser.send('post', path(id), { places: 2 })).body;
+    const second = (await b.browser.send('post', path(id), { places: 2 })).body;
+    const before = await db.match.findUniqueOrThrow({ where: { id } });
+    expect(
+      (await organizer.browser.send('get', `/matches/${id}/management`)).body
+        .canCancel,
+    ).toBe(true);
+    expect((await cancelMatch(organizer, id)).status).toBe(201);
+    const cancelled = await db.match.findUniqueOrThrow({ where: { id } });
+    expect(cancelled).toMatchObject({
+      availablePlaces: 4,
+      totalPlaces: 4,
+      status: 'CANCELLED',
+      version: before.version + 1,
+    });
+    expect(
+      await db.participation.count({ where: { matchId: id, active: true } }),
+    ).toBe(0);
+    for (const reservation of [first, second])
+      expect(
+        await db.reservation.findUniqueOrThrow({
+          where: { id: reservation.id },
+        }),
+      ).toMatchObject({
+        status: 'CANCELLED',
+        cancellationSource: 'MATCH',
+        cancellationReason: null,
+        cancelledAt: cancelled.cancelledAt,
+      });
+    expect(
+      await db.reservation.findUniqueOrThrow({ where: { id: old.id } }),
+    ).toMatchObject({
+      cancellationSource: 'USER',
+      cancellationReason: 'Privado',
+    });
+    const history = (await a.browser.send('get', `${path(id)}/history?page=99`))
+      .body;
+    expect(history.items).toEqual([]);
+    expect(history.matchCancellation).toEqual({
+      cancelledAt: cancelled.cancelledAt?.toISOString(),
+      reason: 'Lluvia privada',
+    });
+    for (const holder of [former, organizer])
+      expect(
+        (await holder.browser.send('get', `${path(id)}/history?page=99`)).body
+          .matchCancellation,
+      ).toBeNull();
+    expect((await a.browser.send('get', `${path(id)}/me`)).body).toBeNull();
+    const retry = await a.browser.send(
+      'post',
+      `${path(id)}/${first.id}/cancel`,
+      { reason: 'must not overwrite' },
+    );
+    expect(retry.status).toBe(200);
+    expect(retry.body.cancellationSource).toBe('MATCH');
+    expect(
+      (await cancelMatch(organizer, id, 'must not overwrite')).status,
+    ).toBe(201);
+    expect(await db.match.findUniqueOrThrow({ where: { id } })).toEqual(
+      cancelled,
+    );
+    expect(
+      await db.matchChange.count({
+        where: { matchId: id, event: 'CANCELLED' },
+      }),
+    ).toBe(1);
+    const publicDetail = (await a.browser.send('get', `/matches/${id}`)).body;
+    expect(publicDetail).not.toHaveProperty('cancellationReason');
+    expect(publicDetail).not.toHaveProperty('matchCancellation');
+    const next = await match();
+    expect(
+      (await a.browser.send('post', path(next), { places: 1 })).status,
+    ).toBe(201);
+  });
+  it('lists each player match once, prefers confirmed reservations and includes voluntary cancellations privately', async () => {
+    const p = await player();
+    const first = await match();
+    const old = (await p.browser.send('post', path(first), { places: 1 })).body;
+    await p.browser.send('post', `${path(first)}/${old.id}/cancel`, {
+      reason: 'Private list reason',
+    });
+    const replacement = (
+      await p.browser.send('post', path(first), { places: 2 })
+    ).body;
+    const upcoming = await p.browser.send(
+      'get',
+      '/users/me/matches?role=player',
+    );
+    expect(upcoming.headers['cache-control']).toBe('no-store');
+    expect(upcoming.body).toMatchObject({ total: 1, pageSize: 9 });
+    expect(upcoming.body.items[0].reservation).toEqual({
+      id: replacement.id,
+      places: 2,
+      status: 'CONFIRMED',
+      cancellationSource: null,
+      cancelledAt: null,
+    });
+    expect(
+      (
+        await p.browser.send(
+          'get',
+          '/users/me/matches?role=player&filter=cancelled',
+        )
+      ).body.total,
+    ).toBe(0);
+    await p.browser.send('post', `${path(first)}/${replacement.id}/cancel`, {});
+    const cancelled = (
+      await p.browser.send(
+        'get',
+        '/users/me/matches?role=player&filter=cancelled',
+      )
+    ).body;
+    expect(cancelled.total).toBe(1);
+    expect(cancelled.items[0].reservation.id).toBe(replacement.id);
+    expect(cancelled.items[0].reservation.cancellationSource).toBe('USER');
+    expect(JSON.stringify(cancelled)).not.toContain('Private list reason');
+    expect(
+      (await p.browser.send('get', '/users/me/matches?role=player')).body.total,
+    ).toBe(0);
+    expect((await p.browser.send('get', '/users/me/matches')).body.total).toBe(
+      0,
+    );
+    expect(
+      (await p.browser.send('get', '/users/me/matches?role=invalid')).status,
+    ).toBe(400);
+    const other = await player();
+    expect(
+      (
+        await other.browser.send(
+          'get',
+          '/users/me/matches?role=player&filter=cancelled',
+        )
+      ).body.total,
+    ).toBe(0);
+    for (let index = 0; index < 10; index++) {
+      const id = await match(
+        2,
+        `2099-12-${String(index + 1).padStart(2, '0')}T23:00:00Z`,
+      );
+      expect(
+        (await p.browser.send('post', path(id), { places: 1 })).status,
+      ).toBe(201);
+    }
+    expect(
+      (await p.browser.send('get', '/users/me/matches?role=player')).body.items,
+    ).toHaveLength(9);
+    expect(
+      (await p.browser.send('get', '/users/me/matches?role=player&page=2'))
+        .body,
+    ).toMatchObject({ total: 10, page: 2, hasMore: false });
+    const onePast = (
+      await p.browser.send('get', '/users/me/matches?role=player&page=2')
+    ).body.items[0].id;
+    await db.match.update({
+      where: { id: onePast },
+      data: { startsAt: new Date('2000-01-01') },
+    });
+    expect(
+      (await p.browser.send('get', '/users/me/matches?role=player&filter=past'))
+        .body.total,
+    ).toBe(1);
+  });
+  it('rolls back bulk cancellation when reservations, players, capacity or organizer participation disagree', async () => {
+    for (const damage of [
+      'capacity',
+      'missingPlayer',
+      'wrongPlayerDate',
+      'missingOrganizer',
+      'wrongOrganizerDate',
+      'orphanPlayer',
+    ]) {
+      const { organizer, id } = await organized();
+      const p = await player();
+      expect(
+        (await p.browser.send('post', path(id), { places: 1 })).status,
+      ).toBe(201);
+      if (damage === 'capacity')
+        await db.match.update({ where: { id }, data: { availablePlaces: 3 } });
+      if (damage === 'missingPlayer')
+        await db.participation.updateMany({
+          where: { matchId: id, userId: p.id },
+          data: { active: false },
+        });
+      if (damage === 'wrongPlayerDate')
+        await db.participation.updateMany({
+          where: { matchId: id, userId: p.id },
+          data: { localDate: new Date('2099-11-04') },
+        });
+      if (damage === 'missingOrganizer')
+        await db.participation.updateMany({
+          where: { matchId: id, userId: organizer.id },
+          data: { active: false },
+        });
+      if (damage === 'wrongOrganizerDate')
+        await db.participation.updateMany({
+          where: { matchId: id, userId: organizer.id },
+          data: { localDate: new Date('2099-11-04') },
+        });
+      if (damage === 'orphanPlayer')
+        await db.reservation.deleteMany({ where: { matchId: id } });
+      const before = await db.match.findUniqueOrThrow({ where: { id } });
+      const reservations = await db.reservation.findMany({
+        where: { matchId: id },
+      });
+      const participants = await db.participation.findMany({
+        where: { matchId: id },
+      });
+      expect((await cancelMatch(organizer, id)).body.code).toBe(
+        'MATCH_CANCELLATION_INCONSISTENT',
+      );
+      expect(await db.match.findUniqueOrThrow({ where: { id } })).toEqual(
+        before,
+      );
+      expect(await db.reservation.findMany({ where: { matchId: id } })).toEqual(
+        reservations,
+      );
+      expect(
+        await db.participation.findMany({ where: { matchId: id } }),
+      ).toEqual(participants);
+      expect(await db.matchChange.count({ where: { matchId: id } })).toBe(0);
+      // Independent fixture groups need independent real-login quota.
+      app
+        .get<ThrottlerStorageService>(getStorageToken())
+        .onApplicationShutdown();
+    }
+  });
+  it('serializes organizer cancellation against booking, individual cancellation, capacity edits and another cancellation', async () => {
+    for (const competing of ['reserve', 'cancel', 'edit', 'bulk']) {
+      const { organizer, id } = await organized();
+      const p = await player();
+      const other = await player();
+      const reservation = (
+        await p.browser.send('post', path(id), { places: 1 })
+      ).body;
+      const before = await db.match.findUniqueOrThrow({ where: { id } });
+      const bulkBody = {
+        expectedVersion: before.version,
+        reason: 'First winner',
+      };
+      const concurrent =
+        competing === 'reserve'
+          ? other.browser.send('post', path(id), { places: 1 })
+          : competing === 'cancel'
+            ? p.browser.send('post', `${path(id)}/${reservation.id}/cancel`, {})
+            : competing === 'edit'
+              ? organizer.browser.send('patch', `/matches/${id}`, {
+                  expectedVersion: before.version,
+                  totalPlaces: 4,
+                })
+              : organizer.browser.send(
+                  'post',
+                  `/matches/${id}/cancel`,
+                  bulkBody,
+                );
+      const [bulk, operation] = await Promise.all([
+        organizer.browser.send('post', `/matches/${id}/cancel`, bulkBody),
+        concurrent,
+      ]);
+      expect([201, 409]).toContain(bulk.status);
+      expect([200, 201, 409]).toContain(operation.status);
+      if (bulk.status === 409)
+        expect(bulk.body.code).toBe('MATCH_VERSION_CONFLICT');
+      if (
+        (await db.match.findUniqueOrThrow({ where: { id } })).status !==
+        'CANCELLED'
+      )
+        expect((await cancelMatch(organizer, id)).status).toBe(201);
+      const after = await db.match.findUniqueOrThrow({ where: { id } });
+      expect(after.availablePlaces).toBe(after.totalPlaces);
+      expect(after.status).toBe('CANCELLED');
+      expect(
+        await db.reservation.count({
+          where: { matchId: id, status: 'CONFIRMED' },
+        }),
+      ).toBe(0);
+      expect(
+        await db.participation.count({ where: { matchId: id, active: true } }),
+      ).toBe(0);
+      expect(
+        await db.matchChange.count({
+          where: { matchId: id, event: 'CANCELLED' },
+        }),
+      ).toBe(1);
+      app
+        .get<ThrottlerStorageService>(getStorageToken())
+        .onApplicationShutdown();
+    }
+  });
+  it.each(['reservation', 'publication'] as const)(
+    'serializes bulk cancellation against an affected player %s on another match on the same local date',
+    async (operation) => {
+      const { organizer, id } = await organized();
+      const p = await player();
+      const target = await match();
+      expect(
+        (await p.browser.send('post', path(id), { places: 1 })).status,
+      ).toBe(201);
+      const version = (await db.match.findUniqueOrThrow({ where: { id } }))
+        .version;
+      const publish = (owner: typeof p) =>
+        owner.browser.send('post', '/matches', {
+          sportId,
+          locationId,
+          startsAt: '2099-11-03T23:00:00Z',
+          placeName: 'Cross-match race',
+          address: '1 y 2',
+          pricePerPerson: '1000',
+          totalPlaces: 2,
+        });
+      const compete = () =>
+        operation === 'reservation'
+          ? p.browser.send('post', path(target), { places: 1 })
+          : publish(p);
+      const [cancelled, attempt] = await Promise.all([
+        organizer.browser.send('post', `/matches/${id}/cancel`, {
+          expectedVersion: version,
+        }),
+        compete(),
+      ]);
+      expect(cancelled.status).toBe(201);
+      expect([201, 409]).toContain(attempt.status);
+      if (attempt.status === 409)
+        expect(attempt.body.code).toBe(
+          operation === 'reservation'
+            ? 'DAILY_PARTICIPATION_CONFLICT'
+            : 'PARTICIPATION_DATE_CONFLICT',
+        );
+      const confirmed = attempt.status === 201 ? attempt : await compete();
+      expect(confirmed.status).toBe(201);
+      if (operation === 'publication') matchIds.push(confirmed.body.id);
+      const destination =
+        operation === 'reservation' ? target : confirmed.body.id;
+      const active = await db.participation.findMany({
+        where: { userId: p.id, active: true },
+      });
+      expect(active).toHaveLength(1);
+      expect(active[0]).toMatchObject({
+        matchId: destination,
+        role: operation === 'reservation' ? 'PLAYER' : 'ORGANIZER',
+        localDate: new Date('2099-11-03'),
+      });
+      expect(
+        await db.participation.count({ where: { matchId: id, active: true } }),
+      ).toBe(0);
+      expect(
+        await db.reservation.count({
+          where: { matchId: id, status: 'CONFIRMED' },
+        }),
+      ).toBe(0);
+      // The same atomic cancellation also releases the organizer's local date.
+      const reorganized = await publish(organizer);
+      expect(reorganized.status).toBe(201);
+      matchIds.push(reorganized.body.id);
+      expect(
+        await db.participation.count({
+          where: { userId: organizer.id, active: true },
+        }),
+      ).toBe(1);
+      expect(
+        await db.matchChange.count({
+          where: { matchId: id, event: 'CANCELLED' },
+        }),
+      ).toBe(1);
+    },
+  );
 });

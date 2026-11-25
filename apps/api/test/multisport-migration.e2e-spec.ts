@@ -66,15 +66,25 @@ describe('legacy football migration on isolated PostgreSQL schema', () => {
       const reservationBefore = await db.$queryRaw`SELECT to_jsonb(r) AS snapshot FROM "Reservation" r`;
       applyMigration('202611240001_reservation_cancellation');
       expect(await db.$queryRaw`SELECT to_jsonb(r) - 'status' - 'cancelledAt' - 'cancellationReason' AS snapshot FROM "Reservation" r`).toEqual(reservationBefore);
+      const oldCancelledId = randomUUID();
+      await db.$executeRaw`INSERT INTO "Reservation" ("id", "userId", "matchId", "places", "status", "cancelledAt", "cancellationReason") VALUES (${oldCancelledId}::uuid, ${userId}::uuid, ${ids[0]}::uuid, 1, 'CANCELLED', '2026-10-02T01:02:03.456Z', 'Private legacy reason')`;
+      const beforeSource = await db.$queryRaw`SELECT to_jsonb(r) AS snapshot FROM "Reservation" r ORDER BY "id"`;
+      applyMigration('202611250001_match_reservation_cancellation');
+      expect(await db.$queryRaw`SELECT to_jsonb(r) - 'cancellationSource' AS snapshot FROM "Reservation" r ORDER BY "id"`).toEqual(beforeSource);
+      expect(await db.reservation.findUniqueOrThrow({ where: { id: oldCancelledId } })).toMatchObject({ cancellationSource: 'USER', cancellationReason: 'Private legacy reason', cancelledAt: new Date('2026-10-02T01:02:03.456Z') });
+      expect(await db.reservation.findUniqueOrThrow({ where: { id: reservationId } })).toMatchObject({ cancellationSource: null });
+      await db.reservation.delete({ where: { id: oldCancelledId } });
       expect(await db.reservation.findUniqueOrThrow({ where: { id: reservationId } })).toMatchObject({ status: 'CONFIRMED', cancelledAt: null, cancellationReason: null });
       await expect(db.reservation.create({ data: { userId, matchId: ids[0], places: 1 } })).rejects.toMatchObject({ code: 'P2002' });
-      await db.reservation.update({ where: { id: reservationId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: 'Preserved history' } });
+      await db.reservation.update({ where: { id: reservationId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: 'Preserved history', cancellationSource: 'USER' } });
       const replacement = await db.reservation.create({ data: { userId, matchId: ids[0], places: 1 } });
-      await db.reservation.update({ where: { id: replacement.id }, data: { status: 'CANCELLED', cancelledAt: new Date() } });
+      await db.reservation.update({ where: { id: replacement.id }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationSource: 'MATCH' } });
       await db.reservation.create({ data: { userId, matchId: ids[0], places: 1 } });
       expect(await db.reservation.count({ where: { userId, matchId: ids[0] } })).toBe(3);
       expect(await db.reservation.findUniqueOrThrow({ where: { id: reservationId } })).toMatchObject({ status: 'CANCELLED', cancellationReason: 'Preserved history', places: 2 });
       await expect(db.reservation.update({ where: { id: reservationId }, data: { cancelledAt: null } })).rejects.toThrow();
+      await expect(db.reservation.update({ where: { id: reservationId }, data: { cancellationSource: null } })).rejects.toThrow();
+      await expect(db.reservation.update({ where: { id: reservationId }, data: { cancellationSource: 'MATCH' } })).rejects.toThrow();
       const mapped = await db.match.findMany({ orderBy: { seedKey: 'asc' }, include: { sport: true, sportFormat: true } });
       expect(mapped.map(match => ({ id: match.id, sport: match.sport.slug, format: match.sportFormat?.name }))).toEqual([
         { id: ids[0], sport: 'futbol', format: 'Fútbol 5' },

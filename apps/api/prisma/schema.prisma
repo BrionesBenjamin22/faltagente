@@ -26,6 +26,11 @@ enum ReservationStatus {
   CONFIRMED
   CANCELLED
 }
+
+enum ReservationCancellationSource {
+  USER
+  MATCH
+}
 enum EmailTokenKind {
   VERIFY
   RESET
@@ -187,6 +192,7 @@ model Reservation {
   cancelledAt DateTime? @db.Timestamptz(3)
   cancellationReason String? @db.VarChar(500)
   // Confirmed uniqueness is enforced by a partial index in the migration.
+  cancellationSource ReservationCancellationSource?
   @@index([userId, matchId, createdAt, id])
   @@index([matchId])
 }

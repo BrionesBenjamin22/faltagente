@@ -17,10 +17,30 @@ export class MatchManagementService {
 
   async ownList(userId: string, query: MyMatchesQueryDto) {
     const now = new Date();
+    const playerRole = query.role === 'player';
     const where: Prisma.MatchWhereInput = {
-      organizerId: userId,
+      ...(playerRole
+        ? {
+            reservations: {
+              some: {
+                userId,
+                status:
+                  query.filter === 'cancelled' ? 'CANCELLED' : 'CONFIRMED',
+              },
+            },
+            ...(query.filter === 'cancelled'
+              ? {
+                  NOT: {
+                    reservations: { some: { userId, status: 'CONFIRMED' } },
+                  },
+                }
+              : {}),
+          }
+        : { organizerId: userId }),
       ...(query.filter === 'cancelled'
-        ? { status: 'CANCELLED' }
+        ? playerRole
+          ? {}
+          : { status: 'CANCELLED' as const }
         : {
             status: { in: ['OPEN', 'CLOSED'] },
             startsAt: query.filter === 'past' ? { lte: now } : { gt: now },
@@ -43,6 +63,31 @@ export class MatchManagementService {
             location: { select: { id: true, name: true, type: true } },
             sport: { select: { id: true, name: true, slug: true } },
             sportFormat: { select: { id: true, name: true, slug: true } },
+            ...(playerRole
+              ? {
+                  reservations: {
+                    where: {
+                      userId,
+                      status:
+                        query.filter === 'cancelled'
+                          ? ('CANCELLED' as const)
+                          : ('CONFIRMED' as const),
+                    },
+                    select: {
+                      id: true,
+                      places: true,
+                      status: true,
+                      cancellationSource: true,
+                      cancelledAt: true,
+                    },
+                    orderBy: [
+                      { createdAt: 'desc' as const },
+                      { id: 'desc' as const },
+                    ],
+                    take: 1,
+                  },
+                }
+              : {}),
           },
           orderBy: [{ startsAt: direction }, { id: direction }],
           take: 9,
@@ -53,7 +98,12 @@ export class MatchManagementService {
       { isolationLevel: 'RepeatableRead' },
     );
     return {
-      items,
+      items: playerRole
+        ? items.map(({ reservations, ...match }) => ({
+            ...match,
+            reservation: reservations[0],
+          }))
+        : items,
       total,
       page: query.page,
       pageSize: 9,
@@ -267,7 +317,7 @@ export class MatchManagementService {
       activePlayerCount,
       hasConfirmedParticipants,
       canEdit,
-      canCancel: canEdit && !hasConfirmedParticipants,
+      canCancel: canEdit,
       canAdjustCapacity:
         canEdit && this.capacityConsistent(occupiedPlaces, activePlayerCount),
     };
@@ -520,19 +570,64 @@ export class MatchManagementService {
       if (match.status === 'CANCELLED') return { id };
       this.checkVersion(match.version, dto.expectedVersion);
       this.checkFuture(match);
+      const [reservations, participations] = await Promise.all([
+        tx.reservation.findMany({
+          where: { matchId: id, status: 'CONFIRMED' },
+          select: { userId: true, places: true },
+        }),
+        tx.participation.findMany({
+          where: { matchId: id, active: true },
+          select: { userId: true, role: true, localDate: true },
+        }),
+      ]);
+      const [{ localDate }] = await tx.$queryRaw<
+        { localDate: Date }[]
+      >`SELECT (${match.startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"`;
+      const players = participations.filter((p) => p.role === 'PLAYER');
+      const playerIds = new Set(players.map(p => p.userId));
+      const organizers = participations.filter((p) => p.role === 'ORGANIZER');
+      const occupiedPlaces = reservations.reduce(
+        (sum, row) => sum + row.places,
+        0,
+      );
       if (
-        match._count.participations > 0 ||
-        match.totalPlaces - match.availablePlaces > 0
-      )
+        match.availablePlaces < 0 ||
+        match.availablePlaces > match.totalPlaces ||
+        occupiedPlaces !== match.totalPlaces - match.availablePlaces ||
+        (match.status === 'CLOSED') !== (match.availablePlaces === 0) ||
+        organizers.length !== 1 ||
+        organizers[0].userId !== userId ||
+        participations.some(
+          (p) => p.localDate.getTime() !== localDate.getTime(),
+        ) ||
+        players.length !== reservations.length ||
+        reservations.some(
+          (row) =>
+            row.userId === userId ||
+            !playerIds.has(row.userId),
+        )
+      ) {
         throw new ConflictException({
-          code: 'MATCH_CANCELLATION_REQUIRES_RESERVATIONS_INTEGRATION',
+          code: 'MATCH_CANCELLATION_INCONSISTENT',
           message:
-            'Este partido tiene jugadores o lugares ocupados. La cancelación requiere la gestión de reservas.',
+            'No pudimos cancelar el partido porque sus reservas y lugares no coinciden. Recargue e intente nuevamente.',
         });
+      }
       const cancelledAt = new Date();
       const cancellationReason = dto.reason?.trim() || null;
+      // The match lock serializes every writer of these relations. Releasing a
+      // daily participation needs no player User lock; never acquire one here.
+      await tx.reservation.updateMany({
+        where: { matchId: id, status: 'CONFIRMED' },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt,
+          cancellationSource: 'MATCH',
+          cancellationReason: null,
+        },
+      });
       await tx.participation.updateMany({
-        where: { userId, matchId: id, role: 'ORGANIZER', active: true },
+        where: { matchId: id, active: true },
         data: { active: false },
       });
       await tx.match.update({
@@ -541,6 +636,7 @@ export class MatchManagementService {
           status: 'CANCELLED',
           cancelledAt,
           cancellationReason,
+          availablePlaces: match.totalPlaces,
           version: { increment: 1 },
           changes: {
             create: {
@@ -550,13 +646,17 @@ export class MatchManagementService {
                 status: { before: match.status, after: 'CANCELLED' },
                 cancelledAt: { before: null, after: cancelledAt.toISOString() },
                 cancellationReason: { before: null, after: cancellationReason },
+                availablePlaces: {
+                  before: match.availablePlaces,
+                  after: match.totalPlaces,
+                },
               },
             },
           },
         },
       });
       return { id };
-    });
+    }, { maxWait: 10_000 });
   }
 
   async history(userId: string, id: string, page: number) {

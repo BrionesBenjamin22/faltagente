@@ -381,7 +381,7 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
     expect(
       (await browser.mutate(id, { expectedVersion: 3 }, true).expect(409)).body
         .code,
-    ).toBe('MATCH_CANCELLATION_REQUIRES_RESERVATIONS_INTEGRATION');
+    ).toBe('MATCH_CANCELLATION_INCONSISTENT');
     await db.participation.updateMany({
       where: { matchId: id, role: 'PLAYER' },
       data: { active: false },
@@ -540,9 +540,9 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
     const player = await fixture();
     await db.participation.create({ data: { userId: player.user.id, matchId: id, role: 'PLAYER', localDate: new Date('2099-11-12') } });
     const management = (await browser.get(`/matches/${id}/management`).expect(200)).body;
-    expect(management).toMatchObject({ occupiedPlaces: 0, activePlayerCount: 1, hasConfirmedParticipants: true, canCancel: false, canAdjustCapacity: false });
+    expect(management).toMatchObject({ occupiedPlaces: 0, activePlayerCount: 1, hasConfirmedParticipants: true, canCancel: true, canAdjustCapacity: false });
     expect((await browser.mutate(id, { expectedVersion: 1, totalPlaces: 4 }).expect(409)).body.code).toBe('MATCH_CAPACITY_INCONSISTENT');
-    expect((await browser.mutate(id, { expectedVersion: 1 }, true).expect(409)).body.code).toBe('MATCH_CANCELLATION_REQUIRES_RESERVATIONS_INTEGRATION');
+    expect((await browser.mutate(id, { expectedVersion: 1 }, true).expect(409)).body.code).toBe('MATCH_CANCELLATION_INCONSISTENT');
     expect(await db.matchChange.count({ where: { matchId: id } })).toBe(1);
   });
 });

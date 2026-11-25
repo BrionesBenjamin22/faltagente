@@ -80,6 +80,12 @@ export class ReservationHistoryItemResponse extends ReservationResponse {
   cancelledAt: Date | null;
   @ApiProperty({ type: String, nullable: true }) cancellationReason:
     string | null;
+  @ApiProperty({ enum: ['USER', 'MATCH'], nullable: true }) cancellationSource:
+    string | null;
+}
+export class ReservationMatchCancellationResponse {
+  @ApiProperty({ format: 'date-time' }) cancelledAt: Date;
+  @ApiProperty({ type: String, nullable: true }) reason: string | null;
 }
 export class ReservationHistoryResponse {
   @ApiProperty({ type: [ReservationHistoryItemResponse] })
@@ -88,6 +94,8 @@ export class ReservationHistoryResponse {
   @ApiProperty() page: number;
   @ApiProperty({ example: 3 }) pageSize: number;
   @ApiProperty() hasMore: boolean;
+  @ApiProperty({ type: ReservationMatchCancellationResponse, nullable: true })
+  matchCancellation: ReservationMatchCancellationResponse | null;
 }
 const projection = {
   id: true,
@@ -100,6 +108,7 @@ const historyProjection = {
   status: true,
   cancelledAt: true,
   cancellationReason: true,
+  cancellationSource: true,
 } as const;
 const conflict = (code: string, message: string) =>
   new ConflictException({ code, message });
@@ -121,33 +130,51 @@ export class ReservationsService {
     });
   }
   async history(userId: string, matchId: string, page: number) {
-    if (
-      !(await this.db.match.findUnique({
-        where: { id: matchId },
-        select: { id: true },
-      }))
-    )
-      throw new NotFoundException();
-    const where = { userId, matchId };
-    const [items, total] = await this.db.$transaction(
-      [
-        this.db.reservation.findMany({
-          where,
-          select: historyProjection,
-          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-          take: 3,
-          skip: (page - 1) * 3,
-        }),
-        this.db.reservation.count({ where }),
-      ],
+    return this.db.$transaction(
+      async (tx) => {
+        const match = await tx.match.findUnique({
+          where: { id: matchId },
+          select: { cancelledAt: true, cancellationReason: true },
+        });
+        if (!match) throw new NotFoundException();
+        const where = { userId, matchId };
+        const [items, total, affected] = await Promise.all([
+          tx.reservation.findMany({
+            where,
+            select: historyProjection,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: 3,
+            skip: (page - 1) * 3,
+          }),
+          tx.reservation.count({ where }),
+          tx.reservation.findFirst({
+            where: { ...where, cancellationSource: 'MATCH' },
+            select: { id: true },
+          }),
+        ]);
+        return {
+          items,
+          total,
+          page,
+          pageSize: 3,
+          hasMore: page * 3 < total,
+          matchCancellation:
+            affected && match.cancelledAt
+              ? {
+                  cancelledAt: match.cancelledAt,
+                  reason: match.cancellationReason,
+                }
+              : null,
+        };
+      },
       { isolationLevel: 'RepeatableRead' },
     );
-    return { items, total, page, pageSize: 3, hasMore: page * 3 < total };
   }
   async create(userId: string, matchId: string, places: number) {
     return this.db.$transaction(
       async (tx) => {
-        // All participation writers lock user before match, including cancellation.
+        // Confirmation locks user before match. Match-wide cancellation only
+        // releases participation under the same match lock.
         await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
         await tx.$queryRaw`SELECT "id" FROM "Match" WHERE "id" = ${matchId}::uuid FOR UPDATE`;
         const existing = await tx.reservation.findFirst({
@@ -314,6 +341,7 @@ export class ReservationsService {
             status: 'CANCELLED',
             cancelledAt,
             cancellationReason: reason?.trim() || null,
+            cancellationSource: 'USER',
           },
           select: historyProjection,
         });
