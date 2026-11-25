@@ -27,11 +27,11 @@ La API valida UUID y es la autoridad sobre visibilidad y estados. El frontend co
 
 `/partidos/nuevo` requiere sesión vigente y permite publicar sin email verificado. El formulario usa deportes/formatos y localidades reales, valida fechas futuras en horario de Buenos Aires, precio decimal no negativo y cupos enteros positivos. Incluye placeholders, labels, errores asociados a campos, foco al primer error y feedback recuperable conservando valores. Se envía CSRF mediante el transporte existente. El alta regresa a `/?success=match-created`; no agrega reglas de reservas.
 
-`/mis-partidos` muestra sólo publicaciones del usuario, en todas las localidades, con filtros próximos/pasados/cancelados y nueve elementos por página. Cambiar filtro reinicia la página. La caché privada incluye identidad, filtro y página. Accesos desde el contenido de partidos; no se cambia layout ni navegación global.
+`/mis-partidos` permite elegir Organizados o Reservados, en todas las localidades, con filtros próximos/pasados/cancelados y nueve elementos por página. Cambiar sección o filtro reinicia la página. La caché privada incluye identidad, sección, filtro y página. Accesos desde el contenido de partidos; no se cambia layout ni navegación global.
 
 `types.ts` define los contratos de creación, gestión, historial y listado propio; `service.ts` conserva el transporte. `publication/use-create-match.ts` coordina la mutación e invalidación de listados y `detail/use-match-detail.ts` la consulta pública. `publication/create-validation.ts` centraliza validación y conversión del formulario a payload; `publication/create-match.tsx` implementa formulario y control de sesión. `organized/my-matches.tsx` presenta filtros y paginación. La sesión vencida vuelve al login; no hay renovación silenciosa.
 
-El detalle público mantiene su contrato. `match-management.tsx` consulta auditoría e historial únicamente para el organizador autenticado, con claves de caché por usuario/partido y páginas de tres eventos. Las autorizaciones se aplican otra vez en backend. Se muestra actor y fecha de publicación. Edición y cancelación quedan para etapas posteriores.
+El detalle público mantiene su contrato. `match-management.tsx` consulta auditoría e historial únicamente para el organizador autenticado, con claves de caché por usuario/partido y páginas de tres eventos. Las autorizaciones se aplican otra vez en backend. Se muestra actor y fecha de publicación. Edición y cancelación se describen en las secciones siguientes.
 
 Tests del formulario y detalle cubren validaciones, payload, errores, sesión y privacidad. `tests/match-create.spec.ts` recorre publicación, regreso al home, listado propio y detalle con API/PostgreSQL reales, además de reintentos y revocación de sesión.
 
@@ -52,7 +52,7 @@ El formulario comparte `MatchFormFields` con publicación y conserva sus validac
 
 La API decide `canEdit`, `canCancel`, `hasConfirmedParticipants` y `canAdjustCapacity`. Con participantes/cupos ocupados se deshabilitan los datos críticos y se explica que sólo se permiten descripción y capacidad. La ocupación y los permisos siguen siendo reglas del backend. La capacidad nunca se reduce por debajo de `occupiedPlaces`; la inconsistencia de cupos impide ajustar capacidad.
 
-Desde el detalle, `CancelMatchPanel` muestra advertencia y motivo opcional de hasta 500 caracteres. Mueve el foco al encabezado, devuelve el foco al botón al desistir y enfoca el resultado al confirmar. `POST /matches/:id/cancel` envía `{expectedVersion,reason}` por el cliente HTTP existente con cookies y CSRF. Evita doble envío, conserva el motivo ante errores y mantiene el resultado en el detalle. El motivo sólo se presenta en la gestión privada del organizador.
+Desde el detalle, `CancelMatchPanel` muestra advertencia y motivo opcional de hasta 500 caracteres. Mueve el foco al encabezado, devuelve el foco al botón al desistir y enfoca el resultado al confirmar. `POST /matches/:id/cancel` envía `{expectedVersion,reason}` por el cliente HTTP existente con cookies y CSRF. Evita doble envío, conserva el motivo ante errores y mantiene el resultado en el detalle. El motivo se presenta en la gestión privada del organizador y en el historial privado de los titulares afectados por la cancelación del partido.
 
 `MATCH_VERSION_CONFLICT` conserva el formulario/motivo, bloquea reenvíos y ofrece `Recargar versión actual`. La edición sólo sustituye el baseline después de esa acción explícita; nunca sobrescribe ni reintenta automáticamente. La recarga advierte que se descartan cambios de edición sin guardar; el motivo de cancelación se conserva.
 
@@ -77,3 +77,15 @@ El titular ve Cancelar reserva junto a su inscripción confirmada mientras el pa
 `ReservationHistory` muestra sólo el historial privado del usuario, tres reservas por página, con estado, cantidad, fechas en Buenos Aires y motivo. Sus claves incluyen usuario, partido y página; las mutaciones reinician la página visible. No cambia el historial del organizador. Los mensajes remotos se renderizan como texto escapado. No se modifican componentes globales, auth ni layout.
 
 Los tests del panel y Playwright cubren desistimiento, errores recuperables y conservación del motivo, liberación completa, reapertura, recarga, reinscripción reutilizando participación e historial paginado. La API mantiene la autoridad sobre permisos, inicio del partido y reglas de cupos y participación.
+
+## Cancelación del partido con reservas activas y Reservados
+
+El organizador puede cancelar partidos propios futuros con reservas. `CancelMatchPanel` informa cantidad de reservas confirmadas y lugares afectados, explica que la acción es irreversible y que el motivo será visible para sus titulares. Conserva motivo y confirmación ante errores; un conflicto exige recarga explícita y actualiza los conteos. Backend decide permisos, consistencia y versión. El resultado permanece en detalle con `Partido cancelado correctamente`.
+
+`ReservationHistory` diferencia `Cancelaste tu reserva` (USER) y `Cancelada por el organizador` (MATCH). Presenta fecha y motivo del organizador sólo si la API devuelve `matchCancellation`; también en una página vacía, sin depender del elemento visible. El motivo privado de una baja voluntaria conserva su alcance exclusivo al titular. No se incorporan motivos al detalle público ni nuevas inscripciones en partidos cancelados.
+
+`matchesService.mine(role,filter,page)` consume el listado privado con tipos MyMatchRole, MyMatch y MyMatchPage. `organized/my-matches.tsx` ofrece Organizados/Reservados, filtros, conteo, nueve resultados, vacíos y reintento. Una reserva confirmada tiene prioridad sobre sus bajas históricas; Cancelados incluye bajas voluntarias y del organizador con etiquetas distintas. Cambiar sección o filtro vuelve a la página uno. No se cambia navegación global.
+
+La clave de consulta es `[my-matches,userId,role,filter,page]`, con actualización al recuperar foco. Historial y reserva propia siguen aislados por usuario/partido. Las mutaciones de partidos invalidan listados, gestión, detalle e historiales/reservas cacheadas del partido; reservar o cancelar actualiza también Mis partidos. No se agregan tiempo real ni notificaciones persistidas.
+
+Pruebas de componentes cubren permisos con reservas activas, conteos tras recarga, fuente y motivo privados, contexto en página vacía y reinicio de filtros. `tests/match-reservation-cancellation.spec.ts` verifica cancelación real con varios titulares, desistimiento, conflicto conservando motivo, idempotencia, privacidad de afectados y bajas anteriores, paginación y reinscripción sin duplicados. Ver [validación aprobada](../../../docs/tasks/RESERVATIONS-03.md).

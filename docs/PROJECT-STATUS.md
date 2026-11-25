@@ -19,16 +19,17 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 - Localidad temporal independiente del perfil y carga progresiva de nueve resultados.
 - Detalle público en `/partidos/[id]`, datos mínimos del organizador y tratamiento de partidos inexistentes, cerrados o cancelados.
 - Publicación autenticada en `/partidos/nuevo`: validación de fecha futura, catálogos, precio y cupos; crea el partido y su participación ORGANIZER en una transacción. Aplica la restricción de una participación activa por fecha local. El usuario confirmó manualmente que pudo publicar.
-- Listado privado `/mis-partidos` de partidos organizados, con filtros próximos, pasados y cancelados y páginas de nueve.
+- Listado privado `/mis-partidos` con Organizados y Reservados, filtros próximos, pasados y cancelados y páginas de nueve. Reservados incluye bajas voluntarias y cancelaciones del organizador sin duplicar reinscripciones.
 - Capacidad, versión, auditoría e historial privados del organizador, paginado de tres eventos.
-- MVP-05 incorpora edición y cancelación de partidos futuros propios con control de versión, diferencias reales e historial. La cancelación de partidos con jugadores activos o cupos ocupados continúa bloqueada; cancelar reservas individuales ya está implementado. Validación completada el 20 de noviembre: 195 unitarios, 56 integraciones PostgreSQL y diez recorridos de navegador verificados; builds locales/Docker y revisión de seguridad aprobados. Evidencia en [la tarea MVP-05](tasks/finished/MVP-05-match-edit-cancel.md).
+- MVP-05 incorpora edición y cancelación de partidos futuros propios con control de versión, diferencias reales e historial. La integración posterior permite cancelar partidos con reservas activas; ver RESERVATIONS-03 debajo. Validación completada el 20 de noviembre: 195 unitarios, 56 integraciones PostgreSQL y diez recorridos de navegador verificados; builds locales/Docker y revisión de seguridad aprobados. Evidencia en [la tarea MVP-05](tasks/finished/MVP-05-match-edit-cancel.md).
 
 ### Reservas
 
 - Reserva de uno o varios lugares, confirmación automática y atómica, prevención de sobre-reserva y reservas propias del organizador, participación PLAYER y restricción diaria de Buenos Aires.
-- Cancelación completa antes del inicio, motivo privado opcional, liberación atómica de cupos y participación, reapertura e idempotencia por reserva concreta. El organizador puede cancelar el partido mediante la regla existente cuando ya no quedan jugadores ni cupos ocupados.
+- Cancelación completa antes del inicio, motivo privado opcional, liberación atómica de cupos y participación, reapertura e idempotencia por reserva concreta. El organizador también puede cancelar partidos con reservas activas mediante la transacción integrada descrita debajo.
 - Reinscripción sujeta a disponibilidad y regla diaria, conservando cada reserva anterior y reutilizando la participación. Historial privado con tres reservas por página.
 - Aprobación de la etapa y solicitud de commits recibidas el 24 de noviembre. Lint, typecheck, build, 271 unitarios, 75 integraciones y cuatro recorridos Playwright aprobados; las dos suites de integración afectadas por timeouts se repitieron correctamente. Migración aplicada, seeds actualizados y stack Docker saludable. Ver [cancelación de reservas](tasks/RESERVATIONS-02.md).
+- Cancelación atómica de partidos futuros con reservas activas: fuente USER/MATCH, liberación de cupos y participaciones, idempotencia y auditoría única. Motivo visible sólo a titulares afectados; las bajas voluntarias previas no otorgan acceso. El usuario confirmó manualmente la cancelación y el motivo en historial y solicitó commits el 24 de noviembre. Aprobaron 276 unitarios, 81 integraciones y seis escenarios Playwright, además de lint, typecheck, builds y seguridad. Nueve migraciones aplicadas y Docker saludable. Ver [RESERVATIONS-03](tasks/RESERVATIONS-03.md).
 
 ### Interfaz y base técnica
 
@@ -43,14 +44,12 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 ## Pendiente del producto
 
 1. **Refactorizar la UI.** Alcance visual y pantallas a definir en [UI-04](tasks/pending/UI-04-refactor-ui.md). No se implementó un rediseño como parte del cambio estructural.
-2. **Cancelar partidos con reservas activas.** Sigue bloqueado: falta coordinar la cancelación de reservas asociadas, su visibilidad y notificaciones. Cancelar una reserva individual y liberar sus cupos ya está implementado.
-3. **Cancelación parcial de reservas.** Queda para una etapa posterior; la cancelación actual siempre incluye todos los lugares y acompañantes de la reserva.
-4. **Acompañantes y contacto privado.** Nombres opcionales de acompañantes; definir/cargar el contacto y revelarlo sólo tras una reserva confirmada, con autorización backend.
-5. **Lista de espera y ofertas.** Alta/baja, cantidad de lugares, selección por mejor aprovechamiento y antigüedad, oferta de 15 minutos, aceptación/rechazo/expiración e invalidaciones atómicas de otras ofertas/listas del mismo día al confirmar participación.
-6. **Completar Mis partidos.** Reservados e historial de participación como jugador, además de los organizados ya disponibles.
-7. **Notificaciones de negocio.** Persistencia y consulta de avisos in-app, próximos partidos y eventos de reservas/cancelaciones/ofertas; correos de esos eventos. Los toasts actuales sólo son feedback de UI.
-8. **Acceso Google.** OAuth y asociación segura con cuentas existentes; el acceso actual es local.
-9. **Otras capacidades previstas.** Propuesta de localidades faltantes y acciones de compartir (copiar enlace y destinos sociales). Ya existe la URL pública estable; no hay controles específicos para compartir.
+2. **Cancelación parcial de reservas.** Queda para una etapa posterior; la cancelación actual siempre incluye todos los lugares y acompañantes de la reserva.
+3. **Acompañantes y contacto privado.** Nombres opcionales de acompañantes; definir/cargar el contacto y revelarlo sólo tras una reserva confirmada, con autorización backend.
+4. **Lista de espera y ofertas.** Alta/baja, cantidad de lugares, selección por mejor aprovechamiento y antigüedad, oferta de 15 minutos, aceptación/rechazo/expiración e invalidaciones atómicas de otras ofertas/listas del mismo día al confirmar participación.
+5. **Notificaciones de negocio.** Persistencia y consulta de avisos in-app, próximos partidos y eventos de reservas/cancelaciones/ofertas; correos de esos eventos. Los toasts actuales sólo son feedback de UI.
+6. **Acceso Google.** OAuth y asociación segura con cuentas existentes; el acceso actual es local.
+7. **Otras capacidades previstas.** Propuesta de localidades faltantes y acciones de compartir (copiar enlace y destinos sociales). Ya existe la URL pública estable; no hay controles específicos para compartir.
 
 Las etapas de reservas, edición, cancelación y espera deben diseñarse juntas en sus puntos de concurrencia y estados antes de implementar cada entrega. No están autorizadas como trabajo adicional por este resumen.
 
