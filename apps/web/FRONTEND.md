@@ -6,7 +6,7 @@ La landing ofrece `Ingresar` hacia `/auth/login`. El pie de login muestra `No te
 
 - `/`: presentación breve para visitantes; Home de partidos disponibles para usuarios autenticados, iniciado con `user.primaryLocation`. Una sesión sin localidad redirige a `/auth/location`.
 - `/partidos`: descubrimiento público con el mismo listado y filtros del Home.
-- `/account/profile`: edición del nombre y localidad principal, email de solo lectura, auditoría e historial con páginas de 3 cambios. Envía exclusivamente diferencias; sin cambios no llama al backend.
+- `/account/profile`: edición del nombre y localidad principal, email de solo lectura y feedback visible. No muestra ni consulta auditoría o historial de cambios. Envía exclusivamente diferencias; sin cambios no llama al backend.
 - `/account/security`: contraseña actual, nueva y confirmación. El backend revoca todas las sesiones; el cliente limpia datos privados y vuelve al login con mensaje de éxito.
 - `/account/appearance`: tema claro, oscuro o sistema. Persiste exclusivamente una preferencia visual en `hyt-theme-v1`; no contiene datos de autenticación.
 - `/auth/register`: nombre, email, contraseña (8 a 128 caracteres) y localidad de catálogo. Registro crea sesión y dirige al Home.
@@ -43,7 +43,7 @@ Las pruebas de componentes cubren menú completo, bloqueo de logout, renovación
 
 `features/appearance/theme-menu.tsx` utiliza Radix Dropdown Menu y el hook existente `useTheme`: Claro/sol, Oscuro/luna y Sistema/monitor. Las opciones son radio items con texto y marca de selección; el botón anuncia el modo actual, ofrece un área de 44 por 44 px y conserva foco visible. Radix gestiona teclado, Escape, foco y posicionamiento mediante portal. Los estilos del menú se encapsulan en `theme-menu.module.css` y reutilizan los tokens existentes. Apariencia y header se sincronizan mediante el mismo store, eventos y clave `hyt-theme-v1`; no cambia el script previo al pintado ni el snapshot de hidratación. No existen endpoints, payloads, permisos o validaciones de dominio nuevos; el control está disponible para visitantes y usuarios autenticados. No requiere cambios backend, migraciones ni seeds.
 
-`features/account/service.ts` consume `GET /users/me`, `PATCH /users/me` (`{name?,primaryLocationId?}`), `GET /users/me/history?page=n` y `POST /auth/password/change` (`{currentPassword,newPassword}`). El DTO privado agrega `hasLocalPassword`, `createdAt` y `updatedAt`. No se cambia email ni se introduce teléfono. Las consultas privadas usan claves que incluyen `session.user.id`; no se reutilizan datos de una cuenta al ingresar con otra. El historial muestra sólo cambios de campos, en páginas de 3.
+`features/account/service.ts` consume `GET /users/me`, `PATCH /users/me` (`{name?,primaryLocationId?}`) y `POST /auth/password/change` (`{currentPassword,newPassword}`). El DTO privado conserva `hasLocalPassword` y excluye `createdAt` y `updatedAt`. No se cambia email ni se introduce teléfono. Las consultas privadas usan claves que incluyen `session.user.id`; no se reutilizan datos de una cuenta al ingresar con otra. El historial de campos se registra internamente en backend, sin ruta de lectura disponible.
 
 `features/locations/location-combobox.tsx` reutiliza catálogo y búsqueda por nombre en registro, selección pendiente, Home y perfil. Usa cmdk + Radix Popover con opciones accesibles, teclado, Escape, retorno de foco y estados remotos. `components/account-menu.tsx` usa Radix Dropdown Menu: Perfil, Seguridad, Apariencia y Cerrar sesión. Los íconos son Lucide decorativos; todas las acciones tienen texto o nombre accesible. No se agregan destinos futuros.
 
@@ -76,7 +76,7 @@ Los elementos reutilizables de presentación viven en `components/`: `SiteHeader
 
 Estas piezas reutilizan los tokens de ambos temas y no dependen de autenticación, almacenamiento, llamadas HTTP ni infraestructura nueva. La integración de loading y empty corresponde a cada feature y mantiene separados carga pendiente, resultado vacío y error.
 
-Partidos compone `MatchesLoading` durante la consulta y `MatchCard` para los resultados reales; la tarjeta reutilizable conserva los datos generales y representa el deporte y formato opcional del contrato multideporte. Cuando falta localidad o el resultado está vacío, `EmptyState` abre el selector existente para elegir otra zona, sin modificar la localidad principal. `SessionLoading` se comparte entre Home, acceso a Cuenta y selección de localidad; `ProfileLoading` y el historial reutilizan las mismas primitivas. El historial vacío ofrece acceso al campo de nombre mediante Editar perfil. Las consultas, sus claves por identidad y los permisos permanecen intactos.
+Partidos compone `MatchesLoading` durante la consulta y `MatchCard` para los resultados reales; la tarjeta reutilizable conserva los datos generales y representa el deporte y formato opcional del contrato multideporte. Cuando falta localidad o el resultado está vacío, `EmptyState` abre el selector existente para elegir otra zona, sin modificar la localidad principal. `SessionLoading` se comparte entre Home, acceso a Cuenta y selección de localidad; `ProfileLoading` reutiliza las mismas primitivas. El perfil conserva sus consultas con identidad y permisos, sin consulta adicional de historial.
 
 ## Seguridad y configuración
 

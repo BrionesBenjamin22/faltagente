@@ -57,6 +57,8 @@ run('vertical slice against real PostgreSQL', { timeout: 30_000 }, () => {
     const email = `slice-${randomUUID()}@example.test`;
     const response = await browser.send('post', '/auth/register', { name: 'Slice Tester', email, password, primaryLocationId: tolosa });
     expect(response.status).toBe(201);
+    expect(response.body.user).not.toHaveProperty('createdAt');
+    expect(response.body.user).not.toHaveProperty('updatedAt');
     userIds.push(response.body.user.id);
     return { response, email, id: response.body.user.id as string };
   }

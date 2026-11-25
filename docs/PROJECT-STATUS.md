@@ -9,7 +9,7 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 - Registro y login con email y contraseña; selección de localidad principal y recuperación de cuentas que todavía no la tienen.
 - Sesiones mediante cookies Secure/HttpOnly, rotación de refresh, renovación explícita, aviso de expiración y logout. CSRF, validación de Origin, CORS restringido y rate limiting.
 - Verificación de email, reenvío y recuperación/restablecimiento de contraseña con enlaces de uso único. Integración de envío mediante Resend; su entrega real depende de la configuración del entorno.
-- Perfil propio editable: nombre y localidad, payload de diferencias, auditoría e historial privado de tres eventos por página.
+- Perfil propio editable: nombre y localidad, payload de diferencias y feedback visible. El historial se conserva internamente, sin acceso de lectura ni fechas técnicas en las respuestas.
 - Cambio de contraseña con revocación de todas las sesiones y enlaces pendientes.
 
 ### Descubrimiento y partidos
@@ -20,7 +20,7 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 - Detalle público en `/partidos/[id]`, datos mínimos del organizador y tratamiento de partidos inexistentes, cerrados o cancelados.
 - Publicación autenticada en `/partidos/nuevo`: validación de fecha futura, catálogos, precio y cupos; crea el partido y su participación ORGANIZER en una transacción. Aplica la restricción de una participación activa por fecha local. El usuario confirmó manualmente que pudo publicar.
 - Listado privado `/mis-partidos` con Organizados y Reservados, filtros próximos, pasados y cancelados y páginas de nueve. Reservados incluye bajas voluntarias y cancelaciones del organizador sin duplicar reinscripciones.
-- Capacidad, versión, auditoría e historial privados del organizador, paginado de tres eventos.
+- Gestión privada del organizador con capacidad, permisos y control de versión. Auditoría e historial de cambios retirados de UI y API; escrituras transaccionales conservadas para una futura administración.
 - MVP-05 incorpora edición y cancelación de partidos futuros propios con control de versión, diferencias reales e historial. La integración posterior permite cancelar partidos con reservas activas; ver RESERVATIONS-03 debajo. Validación completada el 20 de noviembre: 195 unitarios, 56 integraciones PostgreSQL y diez recorridos de navegador verificados; builds locales/Docker y revisión de seguridad aprobados. Evidencia en [la tarea MVP-05](tasks/finished/MVP-05-match-edit-cancel.md).
 
 ### Reservas
@@ -52,6 +52,10 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 7. **Otras capacidades previstas.** Propuesta de localidades faltantes y acciones de compartir (copiar enlace y destinos sociales). Ya existe la URL pública estable; no hay controles específicos para compartir.
 
 Las etapas de reservas, edición, cancelación y espera deben diseñarse juntas en sus puntos de concurrencia y estados antes de implementar cada entrega. No están autorizadas como trabajo adicional por este resumen.
+
+## Corrección de renovación concurrente
+
+El fallo preexistente de dos renovaciones con el mismo refresh fue corregido con autorización expresa: la reutilización revoca la sesión afectada y conserva otras sesiones independientes. La regresión determinista falla con el código anterior y aprueba con la corrección; integración completa 82/82 y revisión de seguridad aprobadas. Ver [AUTH-REFRESH-01](tasks/AUTH-REFRESH-01.md) y [AUDIT-01](tasks/AUDIT-01.md), validada manualmente por el usuario.
 
 ## Pendiente de preparación para integración y lanzamiento
 

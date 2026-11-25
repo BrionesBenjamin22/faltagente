@@ -1,5 +1,15 @@
 # Validación de las vertical slices de Falta Gente
 
+## Restricción de auditoría e historial de cambios
+
+El usuario validó manualmente [AUDIT-01](../docs/tasks/AUDIT-01.md) y solicitó commits. Perfil y partidos no muestran ni consultan auditoría/historial de campos; las rutas retiradas devuelven 404 incluso al titular u organizador. Las pruebas verifican ausencia de fechas técnicas en respuestas y conservación de escrituras históricas directamente en PostgreSQL. El historial de reservas sigue disponible.
+
+Aprobaron lint, typecheck, builds locales/Docker, 60 unitarios API, 220 web y quince escenarios Playwright (con repeticiones acotadas tras corregir expectativas antiguas del menú móvil y footer). Integración final: 82/82 tras corregir con autorización expresa la carrera preexistente de refresh. La nueva regresión determinista falla con el código original y aprueba con el arreglo, sin sustituir consultas ni escrituras reales. El stack habitual está saludable, con nueve migraciones y sin pendientes; no se requieren seeds nuevos para la funcionalidad.
+
+La validación ampliada de navegador aprobó los 31 escenarios existentes: 22 del harness y nueve públicos. Ejecutar integración y navegador en secuencia cuando compartan la misma base aislada: los fixtures temporales de localidad pueden interferir en búsquedas del catálogo durante una ejecución simultánea.
+
+Las secciones siguientes conservan evidencia histórica de entregas anteriores; sus referencias al historial de campos accesible quedan reemplazadas por AUDIT-01.
+
 ## Cancelación de partidos con reservas activas
 
 Etapa aprobada manualmente el 24 de noviembre de 2026: el usuario confirmó cancelación y motivo en historial y pidió commits. [RESERVATIONS-03](../docs/tasks/RESERVATIONS-03.md) registra alcance y preparación local.

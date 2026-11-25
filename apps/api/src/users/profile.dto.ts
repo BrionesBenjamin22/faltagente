@@ -1,16 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsString,
-  IsUUID,
-  Length,
-  ValidateIf,
-  IsInt,
-  Min,
-  Max,
-  IsOptional,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsUUID, Length, ValidateIf } from 'class-validator';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ minLength: 2, maxLength: 100 })
@@ -24,13 +14,4 @@ export class UpdateProfileDto {
   @ValidateIf((_object, value) => value !== undefined)
   @IsUUID()
   primaryLocationId?: string;
-}
-export class ProfileHistoryQueryDto {
-  @ApiPropertyOptional({ default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(10000)
-  page = 1;
 }

@@ -70,9 +70,9 @@ El endpoint no consulta servicios externos y no expone configuración ni secreto
 
 ## Estructura
 
-- `src/matches/`: `matches.module.ts` compone los providers y controllers; `matches.controller.ts` y `matches.service.ts` implementan descubrimiento y detalle públicos. `match-publication.controller.ts` y `my-matches.controller.ts` delegan publicación, gestión privada, historial y listado propio a `match-management.service.ts`. Los contratos y validaciones HTTP están en `dto/`.
+- `src/matches/`: `matches.module.ts` compone los providers y controllers; `matches.controller.ts` y `matches.service.ts` implementan descubrimiento y detalle públicos. `match-publication.controller.ts` y `my-matches.controller.ts` delegan publicación, gestión privada y listado propio a `match-management.service.ts`. Los contratos y validaciones HTTP están en `dto/`. El historial de cambios se escribe internamente, sin endpoint de lectura.
 - `src/locations/` y `src/sports/`: cada catálogo tiene module, controller, service y contratos de respuesta propios. Se conservan filtros de actividad, proyecciones y orden del catálogo.
-- `src/auth/auth-response.dto.ts`: respuestas de sesión y CSRF; `src/users/user-response.dto.ts` y `profile-response.dto.ts`: contratos de usuario e historial privado. Los DTO de localidades y deportes pertenecen a sus dominios y pueden ser referenciados por otros contratos.
+- `src/auth/auth-response.dto.ts`: respuestas de sesión y CSRF; `src/users/user-response.dto.ts`: contrato de usuario sin fechas técnicas. El historial de perfil permanece interno, sin DTO ni ruta de lectura. Los DTO de localidades y deportes pertenecen a sus dominios y pueden ser referenciados por otros contratos.
 - `src/config/`: contrato y validación del entorno.
 - `src/common/http/`: request ID, logging, filtro de errores y `MessageResponse`, el único DTO de respuesta transversal.
 - `src/health/`: endpoint y DTO de health.
