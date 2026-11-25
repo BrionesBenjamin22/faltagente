@@ -18,6 +18,7 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 - Descubrimiento público y Home autenticado: filtros por localidad, deporte, formato y fecha local de Buenos Aires, con estado en URL y navegación atrás/adelante.
 - Localidad temporal independiente del perfil y carga progresiva de nueve resultados.
 - Detalle público en `/partidos/[id]`, datos mínimos del organizador y tratamiento de partidos inexistentes, cerrados o cancelados.
+- Compartir partidos futuros abiertos o cerrados mediante URL limpia, copia con fallback manual, WhatsApp, Telegram, X y Web Share cuando esté disponible. El disparador del encabezado abre un popover en escritorio y un bottom sheet modal en móvil, con foco gestionado y sin desplazar la tarjeta. Etapa aprobada manualmente el 25 de noviembre de 2026; ver [documentación del módulo](../apps/web/MATCH-SHARING.md).
 - Publicación autenticada en `/partidos/nuevo`: validación de fecha futura, catálogos, precio y cupos; crea el partido y su participación ORGANIZER en una transacción. Aplica la restricción de una participación activa por fecha local. El usuario confirmó manualmente que pudo publicar.
 - Listado privado `/mis-partidos` con Organizados y Reservados, filtros próximos, pasados y cancelados y páginas de nueve. Reservados incluye bajas voluntarias y cancelaciones del organizador sin duplicar reinscripciones.
 - Gestión privada del organizador con capacidad, permisos y control de versión. Auditoría e historial de cambios retirados de UI y API; escrituras transaccionales conservadas para una futura administración.
@@ -49,7 +50,7 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 4. **Lista de espera y ofertas.** Alta/baja, cantidad de lugares, selección por mejor aprovechamiento y antigüedad, oferta de 15 minutos, aceptación/rechazo/expiración e invalidaciones atómicas de otras ofertas/listas del mismo día al confirmar participación.
 5. **Notificaciones de negocio.** Persistencia y consulta de avisos in-app, próximos partidos y eventos de reservas/cancelaciones/ofertas; correos de esos eventos. Los toasts actuales sólo son feedback de UI.
 6. **Acceso Google.** OAuth y asociación segura con cuentas existentes; el acceso actual es local.
-7. **Otras capacidades previstas.** Propuesta de localidades faltantes y acciones de compartir (copiar enlace y destinos sociales). Ya existe la URL pública estable; no hay controles específicos para compartir.
+7. **Otras capacidades previstas.** Propuesta de localidades faltantes. Las acciones de compartir enlaces y destinos sociales ya están implementadas.
 
 Las etapas de reservas, edición, cancelación y espera deben diseñarse juntas en sus puntos de concurrencia y estados antes de implementar cada entrega. No están autorizadas como trabajo adicional por este resumen.
 
