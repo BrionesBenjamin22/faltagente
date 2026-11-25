@@ -12,6 +12,7 @@ export interface MatchPage { items: Match[]; total: number; page: number; pageSi
 export interface MatchFilters { sportId?: string; sportFormatId?: string; date?: string }
 export interface MatchDetail {
   id: string;
+  totalPlaces?: number;
   sport: MatchSport;
   sportFormat: MatchSportFormat | null;
   startsAt: string;
@@ -52,6 +53,9 @@ export interface MatchManagement {
   cancelledAt: string | null;
   cancellationReason: string | null;
   hasConfirmedParticipants: boolean;
+  hasActiveWaitlist?: boolean;
+  heldPlaces?: number;
+  activeWaitlistCount?: number;
   canEdit: boolean;
   canCancel: boolean;
   canAdjustCapacity: boolean;

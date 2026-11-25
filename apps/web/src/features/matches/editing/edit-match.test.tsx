@@ -168,3 +168,14 @@ it("validates only changed values and preserves occupied places", () => {
   expect(matchEditInput({ ...matchEditValues(initial), description: " Editado " }, initial)).toEqual({ input: { expectedVersion: 2, description: "Editado" }, errors: {} });
   expect(matchEditInput({ ...matchEditValues(fixture), totalPlaces: "1" }, { ...fixture, occupiedPlaces: 2 }).errors.totalPlaces).toContain("2 lugares");
 });
+it("protects pending offer capacity and critical fields even without confirmed players", async () => {
+  current = { ...current, hasActiveWaitlist: true, heldPlaces: 3, occupiedPlaces: 0, availablePlaces: 1 };
+  open(); await ready();
+  expect(screen.getByLabelText("Fecha")).toBeDisabled();
+  expect(screen.getByLabelText("Nombre del lugar")).toBeDisabled();
+  expect(screen.getByLabelText("Lugares para jugadores")).toHaveAttribute("min", "3");
+  const changed = matchEditInput({ ...matchEditValues(current), totalPlaces: "2", placeName: "Otro club" }, current);
+  expect(changed.errors.totalPlaces).toContain("3 lugares");
+  expect(changed.errors.placeName).toBeDefined();
+  expect(changed.input).toEqual({ expectedVersion: 2 });
+});

@@ -7,6 +7,7 @@ import type { CancelMatchInput, UpdateMatchInput } from "../types";
 export async function invalidateMatch(client: QueryClient, ownerId: string, id: string) {
   await Promise.all([
     client.invalidateQueries({ queryKey: ["matches"] }),
+    client.invalidateQueries({ queryKey: ["waitlist"] }),
     client.invalidateQueries({ queryKey: ["matches-baseline"] }),
     client.invalidateQueries({ queryKey: ["organized-matches", ownerId] }),
     client.invalidateQueries({ queryKey: ["my-matches"] }),

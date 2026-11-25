@@ -10,6 +10,7 @@ export const reservationHistoryKey = (userId: string, id: string) => ["reservati
 async function refreshReservations(client: QueryClient, userId: string, id: string, organizerId: string) {
   await Promise.all([
     client.invalidateQueries({ queryKey: ["matches"] }),
+    client.invalidateQueries({ queryKey: ["waitlist"] }),
     client.invalidateQueries({ queryKey: ["matches-baseline"] }),
     client.invalidateQueries({ queryKey: ["organized-matches"] }),
     client.invalidateQueries({ queryKey: ["my-matches", userId] }),

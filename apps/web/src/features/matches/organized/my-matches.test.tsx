@@ -53,3 +53,12 @@ it("switches to reserved matches on page one and distinguishes voluntary and org
   fireEvent.click(screen.getByRole("button", { name: "Cancelados" }));
   await waitFor(() => expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("filter=cancelled&page=1&role=player"), expect.anything()));
 });
+it("opens waitlist listings without sending an unsupported participation role", async () => {
+  const fetch = vi.fn(async (input: string) => new Response(JSON.stringify(input.includes("/users/me/waitlist") ? { items: [], total: 0, page: 1, pageSize: 9, hasMore: false } : { items: [match], total: 1, page: 1, pageSize: 9, hasMore: false })));
+  vi.stubGlobal("fetch", fetch); open();
+  await screen.findByText("Cancha propia");
+  fireEvent.click(screen.getByRole("button", { name: "En espera" }));
+  expect(await screen.findByText("No tenés solicitudes activas en esta página.")).toBeInTheDocument();
+  expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("/users/me/waitlist?page=1"), expect.anything());
+  expect(screen.queryByRole("group", { name: "Estado de mis partidos" })).not.toBeInTheDocument();
+});

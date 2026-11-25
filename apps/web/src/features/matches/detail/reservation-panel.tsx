@@ -8,6 +8,7 @@ import { reservationsService } from "./reservations-service";
 import { reservationKey, useCreateReservation } from "./use-reservations";
 import { CancelReservation } from "./cancel-reservation";
 import { ReservationHistory } from "./reservation-history";
+import { WaitlistPanel } from "@/features/waitlist/waitlist-panel";
 import type { MatchDetail } from "../types";
 import styles from "./match-detail.module.css";
 const messages: Record<string, string> = {
@@ -67,9 +68,10 @@ function ReservationControls({ match, userId, onCancelled, onBooked }: { match: 
     </> : null}
   </>;
   if (match.organizer.id === userId) return <p>Organizás este partido. No podés reservar lugares en él.</p>;
-  if (match.status !== "OPEN" || Date.parse(match.startsAt) <= now) return <p>Este partido ya no admite inscripciones.</p>;
-  if (match.availablePlaces < 1) return <p>El partido está completo.</p>;
-  return <form onSubmit={event => { event.preventDefault(); if (!booking.isPending && Number.isInteger(places) && places >= 1 && places <= match.availablePlaces) booking.mutate(places, { onSuccess: onBooked }); }}>
+  if (match.status === "CANCELLED" || (match.status === "CLOSED" && match.availablePlaces > 0) || Date.parse(match.startsAt) <= now) return <p>Este partido ya no admite inscripciones.</p>;
+  const waitlist = <WaitlistPanel id={match.id} userId={userId} canJoin={match.availablePlaces === 0} maximum={match.totalPlaces ?? 2147483647} />;
+  if (match.availablePlaces < 1) return waitlist;
+  return <><form onSubmit={event => { event.preventDefault(); if (!booking.isPending && Number.isInteger(places) && places >= 1 && places <= match.availablePlaces) booking.mutate(places, { onSuccess: onBooked }); }}>
     <div className={styles.reservationControls}>
     <button className={`button ${styles.reservationButton}`} type="submit" disabled={booking.isPending || !Number.isInteger(places) || places < 1 || places > match.availablePlaces}>{booking.isPending ? "Confirmando…" : "Inscribirme"}</button>
     <div className={styles.reservationQuantity}><label htmlFor="reservation-places">Cantidad de lugares</label>
@@ -79,5 +81,5 @@ function ReservationControls({ match, userId, onCancelled, onBooked }: { match: 
     <p className={`muted ${styles.reservationHint}`}>La confirmación es automática. Podés reservar para vos y tus acompañantes.</p>
     {booking.isError ? <p className="error" role="alert">{booking.error instanceof ApiError ? messages[booking.error.code] ?? errorMessage(booking.error) : errorMessage(booking.error)}</p> : null}
 
-  </form>;
+  </form>{waitlist}</>;
 }

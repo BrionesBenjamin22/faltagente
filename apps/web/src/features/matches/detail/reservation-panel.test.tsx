@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ReservationPanel } from "./reservation-panel";
 import { reservationsService } from "./reservations-service";
+import { waitlistService } from "@/features/waitlist/service";
 import { ApiError } from "@/lib/http";
 import type { MatchDetail } from "../types";
 const state = vi.hoisted(() => ({ userId: "player" as string | null }));
@@ -12,7 +13,7 @@ function open(value = match, client = new QueryClient({ defaultOptions: { querie
   const view = render(<QueryClientProvider client={client}><ReservationPanel match={value} /></QueryClientProvider>);
   return { ...view, client };
 }
-beforeEach(() => { state.userId = "player"; vi.spyOn(reservationsService, "history").mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 3, matchCancellation: null, hasMore: false }); });
+beforeEach(() => { state.userId = "player"; vi.spyOn(waitlistService, "mine").mockResolvedValue(null); vi.spyOn(reservationsService, "history").mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 3, matchCancellation: null, hasMore: false }); });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 it("offers guests login without requesting private reservations", () => {
   state.userId = null;
