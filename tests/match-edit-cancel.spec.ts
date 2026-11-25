@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { test, expect, api, prismaFixture, hashFixturePassword } from './support/harness';
+import { expectNoAuditSections, trackChangeHistoryRequests } from './support/audit';
 
 const password = 'Match browser test 123!';
 async function fixture() {
@@ -60,7 +61,16 @@ test('edits only differences, consumes success once and confirms or dismisses ca
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: 'Cancelar partido', exact: true }).click();
     await panel.getByLabel('Motivo (opcional)', { exact: true }).fill('  Lluvia  ');
+    let failCancellation = true;
+    await page.route(`${api}/matches/${data.match.id}/cancel`, async route => {
+      if (route.request().method() === 'POST' && failCancellation) { failCancellation = false; await route.abort('failed'); }
+      else await route.continue();
+    });
     await page.screenshot({ path: '.runtime/mvp05-cancel-mobile.png', fullPage: true, animations: 'disabled' });
+    await panel.getByRole('button', { name: 'Confirmar cancelación', exact: true }).click();
+    await expect(panel.getByRole('alert')).toContainText(/intente nuevamente/i);
+    await expect(panel.getByLabel('Motivo (opcional)', { exact: true })).toHaveValue('  Lluvia  ');
+    expect((await data.db.match.findUniqueOrThrow({ where: { id: data.match.id } })).status).toBe('OPEN');
     await panel.getByRole('button', { name: 'Confirmar cancelación', exact: true }).click();
     await expect(page.getByText('Partido cancelado correctamente', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Editar', exact: true })).toHaveCount(0);
@@ -72,6 +82,36 @@ test('edits only differences, consumes success once and confirms or dismisses ca
     await page.getByRole('button', { name: 'Cancelados', exact: true }).click();
     await expect(page.getByText(data.match.venueName, { exact: true })).toBeVisible();
   } finally { await data.cleanup(); }
+});
+
+test('organizer actions load and recover independently of public detail without requesting audit history', async ({ page }) => {
+  const data = await fixture();
+  const historyRequests = trackChangeHistoryRequests(page);
+  let release!: () => void;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
+  let failManagement = true;
+  try {
+    await login(page, data.organizer.email);
+    await page.route(`${api}/matches/${data.match.id}/management`, async route => {
+      await barrier;
+      if (failManagement) await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'UNAVAILABLE', message: 'Temporalmente no disponible' }) });
+      else await route.continue();
+    });
+    await page.goto(`/partidos/${data.match.id}`);
+    await expect(page.getByText(data.match.venueName, { exact: true })).toBeVisible();
+    await expect(page.getByText('Cargando acciones del partido…', { exact: true })).toBeVisible();
+    await expectNoAuditSections(page);
+    release();
+    await expect(page.getByRole('button', { name: 'Reintentar acciones del partido', exact: true })).toBeVisible();
+    await expect(page.getByText(data.match.venueName, { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Editar', exact: true })).toHaveCount(0);
+    failManagement = false;
+    await page.getByRole('button', { name: 'Reintentar acciones del partido', exact: true }).click();
+    await expect(page.getByRole('link', { name: 'Editar', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancelar partido', exact: true })).toBeVisible();
+    await expectNoAuditSections(page);
+    expect(historyRequests).toEqual([]);
+  } finally { release(); await data.cleanup(); }
 });
 
 test('preserves edits after a concurrent version conflict and a recoverable network error', async ({ page }) => {

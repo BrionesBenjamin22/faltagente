@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: state.replace }
 vi.mock("@/features/auth/session", () => ({ useSession: () => ({ session: { authenticated: state.authenticated, user: { id: "owner" } }, isPending: false, isError: false, synchronize: state.synchronize }) }));
 const sport = { id: "20000000-0000-4000-8000-000000000001", name: "Fútbol", slug: "futbol", active: true };
 const location = { id: "10000000-0000-4000-8000-000000000001", name: "Tolosa", type: "LOCALITY", active: true };
-const fixture: MatchManagement = { id: "match", sport, sportFormat: null, location, startsAt: "2099-11-13T02:30:29.000Z", placeName: "Club", address: "Calle 1", pricePerPerson: "5000.5", totalPlaces: 4, availablePlaces: 4, version: 2, description: "Traer agua", status: "OPEN", createdAt: "2026-11-01T12:00:00Z", updatedAt: "2026-11-02T12:00:00Z", cancelledAt: null, cancellationReason: null, hasConfirmedParticipants: false, canEdit: true, canCancel: true, canAdjustCapacity: true, occupiedPlaces: 0, activePlayerCount: 0 };
+const fixture: MatchManagement = { id: "match", sport, sportFormat: null, location, startsAt: "2099-11-13T02:30:29.000Z", placeName: "Club", address: "Calle 1", pricePerPerson: "5000.5", totalPlaces: 4, availablePlaces: 4, version: 2, description: "Traer agua", status: "OPEN", cancelledAt: null, cancellationReason: null, hasConfirmedParticipants: false, canEdit: true, canCancel: true, canAdjustCapacity: true, occupiedPlaces: 0, activePlayerCount: 0 };
 let current: MatchManagement;
 let failure: "network" | "conflict" | "forbidden" | "expired" | undefined;
 let patches: Record<string, unknown>[];

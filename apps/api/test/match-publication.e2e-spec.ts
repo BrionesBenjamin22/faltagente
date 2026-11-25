@@ -156,34 +156,22 @@ describe(
       expect(
         (await browser.get(`/matches/${match.id}/management`).expect(200)).body,
       ).toMatchObject({ id: match.id, totalPlaces: 3, version: 1 });
-      const history = (
-        await browser.get(`/matches/${match.id}/history`).expect(200)
-      ).body;
-      expect(history).toMatchObject({
-        total: 1,
-        page: 1,
-        pageSize: 3,
-        hasMore: false,
-        items: [
-          {
-            event: 'PUBLISHED',
-            actor: { id: user.id, name: user.name },
-            changes: { totalPlaces: { before: null, after: 3 } },
-          },
-        ],
-      });
-      expect(
-        (await browser.get(`/matches/${match.id}/history?page=2`).expect(200))
-          .body.items,
-      ).toEqual([]);
+      const history = await db.matchChange.findMany({ where: { matchId: match.id } });
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({ event: 'PUBLISHED', actorId: user.id, changes: { totalPlaces: { before: null, after: 3 } } });
+      const management = (await browser.get(`/matches/${match.id}/management`).expect(200)).body;
+      expect(management).not.toHaveProperty('createdAt');
+      expect(management).not.toHaveProperty('updatedAt');
+      expect(management).not.toHaveProperty('organizerId');
+      await browser.get(`/matches/${match.id}/history`).expect(404);
       const other = (await fixture()).browser;
       await other.get(`/matches/${match.id}/management`).expect(403);
-      await other.get(`/matches/${match.id}/history`).expect(403);
+      await other.get(`/matches/${match.id}/history`).expect(404);
       const guest = new Browser();
       await guest.prepare();
-      await guest.get(`/matches/${match.id}/history`).expect(401);
+      await guest.get(`/matches/${match.id}/history`).expect(404);
       await guest.post(payload()).expect(401);
-      await browser.get(`/matches/${match.id}/history?page=0`).expect(400);
+      await browser.get(`/matches/${match.id}/history?page=0`).expect(404);
       const publicMatch = (
         await browser.get(`/matches/${match.id}`).expect(200)
       ).body;

@@ -13,7 +13,6 @@ export async function invalidateMatch(client: QueryClient, ownerId: string, id: 
     client.invalidateQueries({ predicate: query => query.queryKey[0] === "reservation-history" && query.queryKey[2] === id }),
     client.invalidateQueries({ predicate: query => query.queryKey[0] === "reservations" && query.queryKey[3] === id }),
     client.invalidateQueries({ queryKey: ["match-management", ownerId, id] }),
-    client.resetQueries({ queryKey: ["match-history", ownerId, id] }),
   ]);
 }
 export function useUpdateMatch(ownerId: string, id: string) {

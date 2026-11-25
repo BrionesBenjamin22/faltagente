@@ -29,9 +29,9 @@ La API valida UUID y es la autoridad sobre visibilidad y estados. El frontend co
 
 `/mis-partidos` permite elegir Organizados o Reservados, en todas las localidades, con filtros próximos/pasados/cancelados y nueve elementos por página. Cambiar sección o filtro reinicia la página. La caché privada incluye identidad, sección, filtro y página. Accesos desde el contenido de partidos; no se cambia layout ni navegación global.
 
-`types.ts` define los contratos de creación, gestión, historial y listado propio; `service.ts` conserva el transporte. `publication/use-create-match.ts` coordina la mutación e invalidación de listados y `detail/use-match-detail.ts` la consulta pública. `publication/create-validation.ts` centraliza validación y conversión del formulario a payload; `publication/create-match.tsx` implementa formulario y control de sesión. `organized/my-matches.tsx` presenta filtros y paginación. La sesión vencida vuelve al login; no hay renovación silenciosa.
+`types.ts` define los contratos de creación, gestión y listado propio; `service.ts` conserva el transporte. `publication/use-create-match.ts` coordina la mutación e invalidación de listados y `detail/use-match-detail.ts` la consulta pública. `publication/create-validation.ts` centraliza validación y conversión del formulario a payload; `publication/create-match.tsx` implementa formulario y control de sesión. `organized/my-matches.tsx` presenta filtros y paginación. La sesión vencida vuelve al login; no hay renovación silenciosa.
 
-El detalle público mantiene su contrato. `match-management.tsx` consulta auditoría e historial únicamente para el organizador autenticado, con claves de caché por usuario/partido y páginas de tres eventos. Las autorizaciones se aplican otra vez en backend. Se muestra actor y fecha de publicación. Edición y cancelación se describen en las secciones siguientes.
+El detalle público mantiene su contrato. `match-management.tsx` consulta gestión únicamente para el organizador autenticado, con clave de caché por usuario/partido. Conserva carga, error y reintento independientes del detalle público. No muestra auditoría, fechas técnicas ni versión, y no consulta historial de cambios. La versión se conserva para las mutaciones y las autorizaciones se aplican otra vez en backend.
 
 Tests del formulario y detalle cubren validaciones, payload, errores, sesión y privacidad. `tests/match-create.spec.ts` recorre publicación, regreso al home, listado propio y detalle con API/PostgreSQL reales, además de reintentos y revocación de sesión.
 
@@ -39,7 +39,7 @@ Tests del formulario y detalle cubren validaciones, payload, errores, sesión y 
 
 Los flujos de partidos se agrupan en `src/features/matches/discovery/`, `publication/`, `detail/` y `organized/`, con sus componentes, estilos, validaciones, hooks y pruebas locales. Las rutas de Next.js conservan sus URLs y delegan en esos flujos. `match-card.tsx`, `matches-loading.tsx`, `format.ts`, `service.ts` y `types.ts` permanecen en la raíz porque se comparten dentro del módulo.
 
-`local-date.ts` contiene únicamente `validLocalDate` y `localDate`: funciones puras compartidas por descubrimiento y publicación sin importar React ni History API. Los contratos de sesión y usuario viven en `features/auth/types.ts`; el historial de perfil en `features/account/types.ts`. Los providers globales, la sesión temporal, los controles CSRF, las claves de caché y las reglas de paginación mantienen su implementación.
+`local-date.ts` contiene únicamente `validLocalDate` y `localDate`: funciones puras compartidas por descubrimiento y publicación sin importar React ni History API. Los contratos de sesión y usuario viven en `features/auth/types.ts`, sin fechas técnicas de auditoría. Se retiraron los tipos del historial de perfil. Los providers globales, la sesión temporal, los controles CSRF y las reglas de paginación mantienen su implementación.
 
 La suite transversal se encuentra en `src/test/integration/vertical-slice.test.tsx`; conserva el mismo harness y los mismos escenarios de sesión, cuenta, apariencia, descubrimiento y navegación. Las notificaciones de `features/notifications/` son feedback de interfaz en memoria; no representan notificaciones persistidas del dominio.
 # Edición y cancelación (MVP-05)
@@ -56,7 +56,7 @@ Desde el detalle, `CancelMatchPanel` muestra advertencia y motivo opcional de ha
 
 `MATCH_VERSION_CONFLICT` conserva el formulario/motivo, bloquea reenvíos y ofrece `Recargar versión actual`. La edición sólo sustituye el baseline después de esa acción explícita; nunca sobrescribe ni reintenta automáticamente. La recarga advierte que se descartan cambios de edición sin guardar; el motivo de cancelación se conserva.
 
-`use-match-mutations` invalida detalle, descubrimiento, baseline público, listados del titular y gestión. Reinicia el historial y su página visible a uno. Gestión e historial conservan claves con identidad: `[match-management,ownerId,id]` y `[match-history,ownerId,id,page]`. El historial muestra `PUBLISHED`, `UPDATED` y `CANCELLED`, con nombres de relaciones, fechas Buenos Aires, importes y cambios antes/después; la API pagina de tres eventos.
+`use-match-mutations` invalida detalle, descubrimiento, baseline público, listados del titular y gestión. Gestión conserva la clave con identidad `[match-management,ownerId,id]`. Se retiraron las invalidaciones del historial de cambios; se mantienen las del historial de reservas. Los eventos históricos continúan escribiéndose internamente en backend, sin acceso desde la aplicación.
 
 Pruebas: `editing/edit-match.test.tsx`, `detail/match-management.test.tsx` y `tests/match-edit-cancel.spec.ts` cubren diferencias, errores, restricciones, concurrencia optimista, foco, navegación, cancelación, feedback consumido, sesión y vista móvil/escritorio. No se modifican layout, auth, estilos base ni componentes globales.
 
@@ -74,7 +74,7 @@ El titular ve Cancelar reserva junto a su inscripción confirmada mientras el pa
 
 `reservationsService` define los tipos Reservation, ReservationHistoryItem y ReservationHistory, y los métodos de creación, consulta propia, cancelación por ID concreto e historial. Usa el transporte existente con cookies, CSRF y consultas privadas sin caché. `use-reservations.ts` coordina las mutaciones y refresca reserva propia, detalle, disponibilidad, gestión del organizador y listados. Tras cancelar permanece en detalle con Reserva cancelada correctamente y vuelve a ofrecer inscripción cuando corresponde.
 
-`ReservationHistory` muestra sólo el historial privado del usuario, tres reservas por página, con estado, cantidad, fechas en Buenos Aires y motivo. Sus claves incluyen usuario, partido y página; las mutaciones reinician la página visible. No cambia el historial del organizador. Los mensajes remotos se renderizan como texto escapado. No se modifican componentes globales, auth ni layout.
+`ReservationHistory` muestra sólo el historial privado del usuario, tres reservas por página, con estado, cantidad, fechas en Buenos Aires y motivo. Sus claves incluyen usuario, partido y página; las mutaciones reinician la página visible. El historial de cambios del partido no está disponible para el organizador. Los mensajes remotos se renderizan como texto escapado. No se modifican componentes globales, auth ni layout.
 
 Los tests del panel y Playwright cubren desistimiento, errores recuperables y conservación del motivo, liberación completa, reapertura, recarga, reinscripción reutilizando participación e historial paginado. La API mantiene la autoridad sobre permisos, inicio del partido y reglas de cupos y participación.
 

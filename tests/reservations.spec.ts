@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { test, expect, api, prismaFixture, hashFixturePassword } from './support/harness';
+import { expectNoAuditSections, trackChangeHistoryRequests } from './support/audit';
 
 const password = 'Reservation browser password 123!';
 
 test('reserves, cancels with recovery, reopens places and preserves paginated private history', async ({ page, context }) => {
   test.setTimeout(120_000);
+  const historyRequests = trackChangeHistoryRequests(page);
   const db = prismaFixture();
   const suffix = randomUUID();
   const email = `reservation-player-${suffix}@example.test`;
@@ -28,6 +30,7 @@ test('reserves, cancels with recovery, reopens places and preserves paginated pr
     await page.goto(`/partidos/${matchId}`);
     await expect(page.getByText('3 lugares disponibles', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Inscribirme', exact: true })).toHaveCount(0);
+    await expectNoAuditSections(page);
     await page.goto('/auth/login');
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(password);
@@ -39,6 +42,7 @@ test('reserves, cancels with recovery, reopens places and preserves paginated pr
     await page.getByRole('button', { name: 'Inscribirme', exact: true }).click();
     expect((await confirmation).status()).toBe(201);
     await expect(page.getByText('Inscripción confirmada', { exact: true })).toBeVisible();
+    await expectNoAuditSections(page);
     await expect(page.getByText('1 lugar disponible', { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByText('Inscripción confirmada', { exact: true })).toBeVisible();
@@ -114,6 +118,8 @@ test('reserves, cancels with recovery, reopens places and preserves paginated pr
     await expect(pagination.getByRole('button', { name: 'Siguiente', exact: true })).toBeDisabled();
     await pagination.getByRole('button', { name: 'Anterior', exact: true }).click();
     await expect(history.getByText('Cambio de planes 3', { exact: true })).toBeVisible();
+    await expectNoAuditSections(page);
+    expect(historyRequests).toEqual([]);
   } finally {
     if (matchId) {
       await db.reservation.deleteMany({ where: { matchId } });

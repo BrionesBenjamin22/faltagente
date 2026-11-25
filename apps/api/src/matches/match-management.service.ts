@@ -246,8 +246,6 @@ export class MatchManagementService {
         totalPlaces: true,
         availablePlaces: true,
         version: true,
-        createdAt: true,
-        updatedAt: true,
         status: true,
         startsAt: true,
         venueName: true,
@@ -295,23 +293,44 @@ export class MatchManagementService {
     userId: string,
     id: string,
   ) {
-    const {
-      organizerId: _organizerId,
-      venueName,
-      _count,
-      sportId: _sportId,
-      sportFormatId: _sportFormatId,
-      locationId: _locationId,
-      ...match
-    } = await this.ownMatch(userId, id, tx);
+    const match = await this.ownMatch(userId, id, tx);
     const occupiedPlaces = match.totalPlaces - match.availablePlaces;
-    const activePlayerCount = _count.participations;
+    const activePlayerCount = match._count.participations;
     const hasConfirmedParticipants =
       activePlayerCount > 0 || occupiedPlaces > 0;
     const canEdit = match.status !== 'CANCELLED' && match.startsAt > new Date();
     return {
-      ...match,
-      placeName: venueName,
+      id: match.id,
+      sport: {
+        id: match.sport.id,
+        name: match.sport.name,
+        slug: match.sport.slug,
+        active: match.sport.active,
+      },
+      sportFormat: match.sportFormat
+        ? {
+            id: match.sportFormat.id,
+            name: match.sportFormat.name,
+            slug: match.sportFormat.slug,
+            active: match.sportFormat.active,
+          }
+        : null,
+      location: {
+        id: match.location.id,
+        name: match.location.name,
+        type: match.location.type,
+        active: match.location.active,
+      },
+      startsAt: match.startsAt,
+      placeName: match.venueName,
+      address: match.address,
+      description: match.description,
+      status: match.status,
+      cancelledAt: match.cancelledAt,
+      cancellationReason: match.cancellationReason,
+      totalPlaces: match.totalPlaces,
+      availablePlaces: match.availablePlaces,
+      version: match.version,
       pricePerPerson: match.pricePerPerson.toString(),
       occupiedPlaces,
       activePlayerCount,
@@ -659,27 +678,4 @@ export class MatchManagementService {
     }, { maxWait: 10_000 });
   }
 
-  async history(userId: string, id: string, page: number) {
-    await this.ownMatch(userId, id);
-    const [items, total] = await this.db.$transaction(
-      [
-        this.db.matchChange.findMany({
-          where: { matchId: id },
-          select: {
-            id: true,
-            event: true,
-            occurredAt: true,
-            actor: { select: { id: true, name: true } },
-            changes: true,
-          },
-          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
-          take: 3,
-          skip: (page - 1) * 3,
-        }),
-        this.db.matchChange.count({ where: { matchId: id } }),
-      ],
-      { isolationLevel: 'RepeatableRead' },
-    );
-    return { items, total, page, pageSize: 3, hasMore: page * 3 < total };
-  }
 }
