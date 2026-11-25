@@ -17,7 +17,8 @@ describe("sharing public match data", () => {
   });
   it("shares the format and Buenos Aires local date, without availability claims", () => {
     const text = matchShareText(match);
-    expect(text).toMatch(/^Vóley & amigos · 6 vs 6 en Tolosa #1 — 25 nov 2026, (22:30|10:30 p\. m\.)\./);
+    // ICU versions can use a regular or non-breaking space in the day period.
+    expect(text).toMatch(/^Vóley & amigos · 6 vs 6 en Tolosa #1 — 25 nov 2026, (22:30|10:30 p\.\s+m\.)\./);
     expect(text).toContain("Consultá los detalles y la disponibilidad en Falta Gente.");
     expect(text).not.toContain("lugares disponibles");
   });
