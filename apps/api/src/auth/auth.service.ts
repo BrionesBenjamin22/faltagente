@@ -212,20 +212,24 @@ export class AuthService {
     const hash = hashToken(token);
     const next = randomToken();
     const rotated = await this.db.$transaction(async (tx) => {
-      const previous = await tx.usedRefreshToken.findUnique({
-        where: { hash },
-      });
-      if (previous) {
-        await tx.session.updateMany({
-          where: { id: previous.sessionId, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
-        return null;
-      }
       const session = await tx.session.findUnique({
         where: { refreshHash: hash },
       });
-      if (!session || session.revokedAt || session.expiresAt <= new Date())
+      if (!session) {
+        // Read replay evidence after the current hash: a concurrent rotation may
+        // have committed between queries under PostgreSQL READ COMMITTED.
+        const previous = await tx.usedRefreshToken.findUnique({
+          where: { hash },
+        });
+        if (previous) {
+          await tx.session.updateMany({
+            where: { id: previous.sessionId, revokedAt: null },
+            data: { revokedAt: new Date() },
+          });
+        }
+        return null;
+      }
+      if (session.revokedAt || session.expiresAt <= new Date())
         return null;
       const updated = await tx.session.updateMany({
         where: { id: session.id, refreshHash: hash, revokedAt: null },
