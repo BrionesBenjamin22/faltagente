@@ -10,10 +10,9 @@ Todos los endpoints utilizan el prefijo `/api/v1`, autenticación por cookies y 
 | --- | --- | --- |
 | GET `/users/me` | Sin payload | Usuario autenticado |
 | PATCH `/users/me` | `{name?,primaryLocationId?}` | Usuario actualizado |
-| GET `/users/me/history?page=1` | Página opcional | `{items,total,page,pageSize:3,hasMore}` |
 | POST `/auth/password/change` | `{currentPassword,newPassword}` | `{message}` y cookies de autenticación eliminadas |
 
-El DTO de usuario, utilizado también en `/auth/session`, contiene `{id,name,email,emailVerified,hasLocalPassword,createdAt,updatedAt,primaryLocation}`. La localidad es `{id,name,type}` o `null`. Las fechas son timestamps ISO. `hasLocalPassword` es un booleano calculado; jamás se expone el hash. El endpoint anterior `PATCH /users/me/location` se conserva para completar la localidad de usuarios existentes y utiliza la misma operación con historial.
+El DTO de usuario, utilizado también en registro, login y `/auth/session`, contiene `{id,name,email,emailVerified,hasLocalPassword,primaryLocation}`. La localidad es `{id,name,type}` o `null`. Las proyecciones explícitas excluyen `createdAt` y `updatedAt`. `hasLocalPassword` es un booleano calculado; jamás se expone el hash. El endpoint anterior `PATCH /users/me/location` se conserva para completar la localidad de usuarios existentes y utiliza la misma operación con historial.
 
 PATCH acepta solamente los campos editables enviados. Rechaza `null`, email, identificadores de usuario, passwords, roles y cualquier propiedad desconocida. El nombre se normaliza con trim y valida entre 2 y 100 caracteres. La localidad debe existir, estar activa y ser seleccionable. Si no hay diferencias, no actualiza `updatedAt` ni genera historial. El frontend evita enviar solicitudes sin cambios.
 
@@ -21,7 +20,7 @@ PATCH acepta solamente los campos editables enviados. Rechaza `null`, email, ide
 
 La migración `202610070001_profile_history` agrega `UserProfileChange`, relacionada con User sin modificar sus campos funcionales. Cada edición registra un timestamp y diferencias de nombre/localidad. La modificación y el historial se ejecutan en una transacción bajo bloqueo de la fila del usuario; no se generan eventos por campos sin cambios.
 
-Cada item del historial es `{id,occurredAt,changes}`. `changes.name` contiene `{before,after}` de tipo string. `changes.primaryLocation` contiene `{before:{id,name}|null,after:{id,name}}`; solo aparece cuando cambia esa relación. Los nombres se guardan como snapshots para no depender de futuras modificaciones del catálogo. El historial es privado, se obtiene exclusivamente para el dueño de la sesión y se ordena por fecha/UUID descendentes con páginas de tres elementos. Nunca contiene contraseñas, hashes, cookies ni tokens.
+Cada registro interno conserva diferencias de nombre y localidad con snapshots de sus nombres. La ruta `GET /users/me/history` fue retirada y devuelve 404, incluso al titular. Los registros quedan conservados para una futura administración; no se agregan roles, paneles ni endpoints administrativos. Nunca contienen contraseñas, hashes, cookies ni tokens. Las pruebas comprueban su escritura directamente en PostgreSQL.
 
 ## Cambio de contraseña y concurrencia
 
@@ -35,4 +34,4 @@ Los endpoints conservan CSRF, Origin exacto, CORS restringido, cookies HttpOnly/
 
 ## Validación
 
-Ejecutar `pnpm --filter api db:generate`, `db:migrate`, `lint`, `typecheck`, `test`, `test:e2e` y `build` con la configuración existente. Las pruebas unitarias validan payloads parciales, nulabilidad, normalización, ausencia de escrituras sin diferencias y límites de contraseñas. Las pruebas independientes de integración cubren persistencia e historial privado, cambio correcto/incorrecto, revocación de sesiones, bloqueo de contraseñas anteriores y concurrencia de login con cambios y recuperación.
+Ejecutar `pnpm --filter api db:generate`, `db:migrate`, `lint`, `typecheck`, `test`, `test:e2e` y `build` con la configuración existente. Las pruebas unitarias validan payloads parciales, nulabilidad, normalización, ausencia de escrituras sin diferencias y límites de contraseñas. La integración cubre persistencia histórica interna, 404 de las rutas retiradas, ausencia de fechas técnicas, cambio de contraseña, revocación y concurrencia. La carrera de refresh se corrigió con autorización expresa; ver [AUTH-REFRESH-01](../../docs/tasks/AUTH-REFRESH-01.md).

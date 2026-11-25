@@ -30,3 +30,35 @@ it("redirects anonymous direct access without requesting private listings", asyn
   await waitFor(() => expect(state.replace).toHaveBeenCalledWith("/auth/login"));
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it("switches to reserved matches on page one and distinguishes voluntary and organizer cancellations", async () => {
+  const fetch = vi.fn(async (input: string) => {
+    const url = new URL(input);
+    const reserved = url.searchParams.get("role") === "player";
+    return new Response(JSON.stringify({ items: reserved ? [
+      { ...match, id: "voluntary", reservation: { id: "r1", places: 2, status: "CANCELLED", cancellationSource: "USER", cancelledAt: "2099-01-01" } },
+      { ...match, id: "organizer", venueName: "Cancha cancelada", status: "CANCELLED", reservation: { id: "r2", places: 1, status: "CANCELLED", cancellationSource: "MATCH", cancelledAt: "2099-01-01" } },
+    ] : [match], total: 10, page: Number(url.searchParams.get("page")), pageSize: 9, hasMore: true }));
+  });
+  vi.stubGlobal("fetch", fetch); open();
+  await screen.findByText("Cancha propia");
+  fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+  await screen.findByText("Página 2");
+  fireEvent.click(screen.getByRole("button", { name: "Reservados" }));
+  expect(await screen.findByText("Cancha cancelada")).toBeInTheDocument();
+  expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("filter=upcoming&page=1&role=player"), expect.anything());
+  expect(screen.getByText("Cancelaste tu reserva. 2 lugares.")).toBeInTheDocument();
+  expect(screen.getByText("Cancelada por el organizador. 1 lugar.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reservados" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Cancelados" }));
+  await waitFor(() => expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("filter=cancelled&page=1&role=player"), expect.anything()));
+});
+it("opens waitlist listings without sending an unsupported participation role", async () => {
+  const fetch = vi.fn(async (input: string) => new Response(JSON.stringify(input.includes("/users/me/waitlist") ? { items: [], total: 0, page: 1, pageSize: 9, hasMore: false } : { items: [match], total: 1, page: 1, pageSize: 9, hasMore: false })));
+  vi.stubGlobal("fetch", fetch); open();
+  await screen.findByText("Cancha propia");
+  fireEvent.click(screen.getByRole("button", { name: "En espera" }));
+  expect(await screen.findByText("No tenés solicitudes activas en esta página.")).toBeInTheDocument();
+  expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("/users/me/waitlist?page=1"), expect.anything());
+  expect(screen.queryByRole("group", { name: "Estado de mis partidos" })).not.toBeInTheDocument();
+});

@@ -194,7 +194,7 @@ Prefijo:
 
 REST + JSON.
 
-OpenAPI debe reflejar el contrato implementado.
+OpenAPI generado debe reflejar el contrato implementado. La documentación descriptiva de contratos y de cada etapa se actualiza únicamente cuando el usuario aprueba formalmente los ajustes tras la validación manual y solicita preparar o ejecutar los commits, según `AGENTS.md`. Durante la revisión no actualizar README, documentación de funcionalidades ni estados de tareas. Las verificaciones técnicas del agente no sustituyen esa aprobación; los cambios solicitados expresamente a las instrucciones del agente se realizan en el momento.
 
 No agregar endpoints sin requerimiento.
 

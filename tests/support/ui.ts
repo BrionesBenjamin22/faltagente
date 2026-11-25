@@ -12,12 +12,11 @@ export async function chooseLocation(page: Page, label: string, location: string
 }
 
 export async function openAccountMenu(page: Page) {
-  // UI-02 deliberately exposes account navigation only at the desktop breakpoint.
-  if ((page.viewportSize()?.width ?? 1024) < 640) {
-    await expect(page.getByRole('button', { name: 'Mi cuenta', exact: true })).toBeHidden();
-    await page.setViewportSize({ width: 1024, height: 812 });
-  }
-  await page.getByRole('button', { name: 'Mi cuenta', exact: true }).click();
+  // The mobile icon and desktop trigger share the same accessible name.
+  const trigger = page.getByRole('button', { name: 'Mi cuenta', exact: true });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await expect(page.getByRole('menuitem', { name: 'Perfil', exact: true })).toBeVisible();
 }
 
 export async function logout(page: Page) {

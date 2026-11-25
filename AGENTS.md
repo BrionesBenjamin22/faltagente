@@ -43,7 +43,7 @@ Tratar toda entrada como no confiable. Validar autenticación, autorización y d
 
 ## Flujo de implementación y validación
 
-Realizar el cambio mínimo y cohesivo, actualizar contratos/documentación y añadir tests para todo comportamiento modificado. Ejecutar, según los scripts disponibles:
+Realizar el cambio mínimo y cohesivo y añadir tests para todo comportamiento modificado. La actualización de contratos y documentación de la etapa sigue la aprobación indicada debajo. Ejecutar, según los scripts disponibles:
 
 ```bash
 pnpm lint
@@ -53,6 +53,12 @@ pnpm build
 ```
 
 Usar tests unitarios para reglas puras, PostgreSQL real para integración y Playwright para flujos críticos. Si no corresponden tests nuevos, justificarlo.
+
+### Aprobación manual y documentación de cada etapa
+
+Primero implementar, ejecutar las verificaciones técnicas y dejar el stack local preparado para la validación manual del usuario. No actualizar documentación funcional o técnica de la etapa, contratos descriptivos, README, estados de tareas ni informes de cierre mientras los ajustes estén en revisión. La validación automática o en navegador del agente no sustituye la aprobación formal del usuario.
+
+Actualizar esa documentación únicamente después de que el usuario apruebe formalmente los ajustes tras su validación manual y solicite la preparación o ejecución de los commits. Documentar entonces el resultado final aprobado, antes de preparar los commits. Una solicitud de reconstrucción, pruebas o nuevos ajustes no constituye aprobación. No crear commits automáticamente; ejecutar sólo los que el usuario solicite expresamente. Si pide cambiar las propias instrucciones del agente, actualizar esas reglas en ese momento como parte del alcance autorizado.
 
 Antes de cerrar: revisar `git status` y `git diff`; confirmar criterios de aceptación, lint, typecheck, tests y build. No incluir cambios ajenos. No hacer commit si falla una verificación. Cuando se solicite un commit, usar la skill `commit-work` y mensajes como `feat(matches): agregar publicación de partidos`.
 

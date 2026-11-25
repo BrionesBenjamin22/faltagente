@@ -175,10 +175,9 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
       description: null,
       sportFormatId: null,
     });
-    const history = (await browser.get(`/matches/${id}/history`).expect(200))
-      .body;
-    expect(history.total).toBe(2);
-    expect(history.items[0]).toMatchObject({
+    const history = await db.matchChange.findMany({ where: { matchId: id }, orderBy: { occurredAt: 'desc' } });
+    expect(history).toHaveLength(2);
+    expect(history[0]).toMatchObject({
       event: 'UPDATED',
       changes: {
         sportFormatId: {
@@ -381,7 +380,7 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
     expect(
       (await browser.mutate(id, { expectedVersion: 3 }, true).expect(409)).body
         .code,
-    ).toBe('MATCH_CANCELLATION_REQUIRES_RESERVATIONS_INTEGRATION');
+    ).toBe('MATCH_CANCELLATION_INCONSISTENT');
     await db.participation.updateMany({
       where: { matchId: id, role: 'PLAYER' },
       data: { active: false },
@@ -526,9 +525,9 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
       totalPlaces: 3, availablePlaces: 3, occupiedPlaces: 0, activePlayerCount: 0,
       hasConfirmedParticipants: false, canEdit: true, canCancel: true, canAdjustCapacity: true,
     });
-    const history = (await browser.get(`/matches/${id}/history`).expect(200)).body;
-    expect(history.total).toBe(2);
-    expect(history.items[0]).toMatchObject({ event: 'UPDATED', changes: {
+    const history = await db.matchChange.findMany({ where: { matchId: id }, orderBy: { occurredAt: 'desc' } });
+    expect(history).toHaveLength(2);
+    expect(history[0]).toMatchObject({ event: 'UPDATED', changes: {
       sportId: { before: { id: sportId, name: 'Deporte publicación' }, after: { id: sport.id, name: sport.name } },
       sportFormatId: { before: { id: formatId, name: 'Formato' }, after: { id: format.id, name: format.name } },
       locationId: { before: { id: locationId }, after: { id: location.id, name: location.name } },
@@ -540,9 +539,9 @@ describe('match mutations against real PostgreSQL', { timeout: 30000 }, () => {
     const player = await fixture();
     await db.participation.create({ data: { userId: player.user.id, matchId: id, role: 'PLAYER', localDate: new Date('2099-11-12') } });
     const management = (await browser.get(`/matches/${id}/management`).expect(200)).body;
-    expect(management).toMatchObject({ occupiedPlaces: 0, activePlayerCount: 1, hasConfirmedParticipants: true, canCancel: false, canAdjustCapacity: false });
+    expect(management).toMatchObject({ occupiedPlaces: 0, activePlayerCount: 1, hasConfirmedParticipants: true, canCancel: true, canAdjustCapacity: false });
     expect((await browser.mutate(id, { expectedVersion: 1, totalPlaces: 4 }).expect(409)).body.code).toBe('MATCH_CAPACITY_INCONSISTENT');
-    expect((await browser.mutate(id, { expectedVersion: 1 }, true).expect(409)).body.code).toBe('MATCH_CANCELLATION_REQUIRES_RESERVATIONS_INTEGRATION');
+    expect((await browser.mutate(id, { expectedVersion: 1 }, true).expect(409)).body.code).toBe('MATCH_CANCELLATION_INCONSISTENT');
     expect(await db.matchChange.count({ where: { matchId: id } })).toBe(1);
   });
 });

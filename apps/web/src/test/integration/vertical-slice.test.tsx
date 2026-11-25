@@ -15,7 +15,7 @@ const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
 const tolosa = { id: "10000000-0000-4000-8000-000000000001", name: "Tolosa", type: "LOCALIDAD" };
 const cityBell = { id: "10000000-0000-4000-8000-000000000002", name: "City Bell", type: "LOCALIDAD" };
-const user = { id: "user", name: "Benjamín", email: "ben@example.com", emailVerified: true, hasLocalPassword: true, createdAt: "2026-10-01T12:00:00Z", updatedAt: "2026-10-01T12:00:00Z", primaryLocation: tolosa };
+const user = { id: "user", name: "Benjamín", email: "ben@example.com", emailVerified: true, hasLocalPassword: true, primaryLocation: tolosa };
 let current = { authenticated: true, user: user as typeof user | null, refreshAvailable: true, accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString() };
 let fetchMock: Mock<(url: string, init: RequestInit) => Promise<Response>>;
 beforeEach(() => {
@@ -30,7 +30,6 @@ beforeEach(() => {
     else if (path.endsWith("/sports")) body = { items: [{ id: "20000000-0000-4000-8000-000000000001", name: "Fútbol", slug: "futbol", formats: [] }] };
     else if (path.endsWith("/matches")) { const location = new URL(url).searchParams.get("locationId") === tolosa.id ? tolosa : cityBell; body = { items: [{ id: location.id, location, sport: { id: "sport-football", name: "Fútbol", slug: "futbol" }, sportFormat: { id: "format-football-5", name: "Fútbol 5", slug: "futbol-5" }, startsAt: "2026-11-01T22:00:00Z", venueName: `Cancha ${location.name}`, address: "Calle 1", pricePerPerson: "5000", availablePlaces: 2, status: "OPEN", description: null }], total: 1, page: 1, pageSize: 9, hasMore: false }; }
     else if (path.endsWith("/users/me/location")) { const input = JSON.parse(init?.body as string); current.user = { ...user, primaryLocation: input.primaryLocationId === tolosa.id ? tolosa : cityBell }; body = current.user; }
-    else if (path.endsWith("/users/me/history")) body = { items: [], total: 0, page: 1, pageSize: 3, hasMore: false };
     else if (path.endsWith("/users/me")) { if (init?.method === "PATCH") { const input = JSON.parse(init.body as string); current.user = { ...user, name: input.name ?? user.name, primaryLocation: input.primaryLocationId === cityBell.id ? cityBell : tolosa }; } body = current.user; }
     else if (path.endsWith("/auth/password/change")) { current = { ...current, user: null, authenticated: false, refreshAvailable: false }; body = { message: "Contraseña actualizada." }; }
     else if (path.endsWith("/auth/register") || path.endsWith("/auth/login")) { current = { ...current, authenticated: true, user }; body = current; }
@@ -184,24 +183,12 @@ it("shows an empty locality search and closes it with Escape", async () => {
   await waitFor(() => expect(screen.queryByPlaceholderText("Buscar localidad…")).not.toBeInTheDocument());
   expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
-it("paginates private field history in groups of three", async () => {
-  const base = fetchMock.getMockImplementation()!;
-  fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => {
-    if (new URL(url).pathname.endsWith("/users/me/history")) {
-      const page = Number(new URL(url).searchParams.get("page"));
-      const all = [1, 2, 3, 4].map(number => ({ id: String(number), occurredAt: "2026-10-01T12:00:00Z", changes: { name: { before: "Benjamín", after: `Nombre ${number}` } } }));
-      return new Response(JSON.stringify({ items: all.slice((page - 1) * 3, page * 3), total: 4, page, pageSize: 3, hasMore: page === 1 }));
-    }
-    return base(url, init);
-  });
+it("keeps profile editing without audit sections or field history requests", async () => {
   render(<Providers><Profile /></Providers>);
-  await screen.findByText("Nombre: Benjamín → Nombre 1");
-  expect(screen.getByText("Nombre: Benjamín → Nombre 3")).toBeInTheDocument();
-  expect(screen.queryByText("Nombre: Benjamín → Nombre 4")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
-  expect(await screen.findByText("Nombre: Benjamín → Nombre 4")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Siguiente" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Anterior" })).toBeEnabled();
+  await screen.findByDisplayValue("ben@example.com");
+  expect(screen.queryByRole("heading", { name: "Auditoría" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Historial de cambios" })).not.toBeInTheDocument();
+  expect(fetchMock.mock.calls.some(([url]) => url.includes("/users/me/history"))).toBe(false);
 });
 it("shows an empty match listing without inventing matches", async () => {
   const base = fetchMock.getMockImplementation()!;

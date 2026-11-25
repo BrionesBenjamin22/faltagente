@@ -1,5 +1,29 @@
 # Validación de las vertical slices de Falta Gente
 
+## Restricción de auditoría e historial de cambios
+
+El usuario validó manualmente [AUDIT-01](../docs/tasks/AUDIT-01.md) y solicitó commits. Perfil y partidos no muestran ni consultan auditoría/historial de campos; las rutas retiradas devuelven 404 incluso al titular u organizador. Las pruebas verifican ausencia de fechas técnicas en respuestas y conservación de escrituras históricas directamente en PostgreSQL. El historial de reservas sigue disponible.
+
+Aprobaron lint, typecheck, builds locales/Docker, 60 unitarios API, 220 web y quince escenarios Playwright (con repeticiones acotadas tras corregir expectativas antiguas del menú móvil y footer). Integración final: 82/82 tras corregir con autorización expresa la carrera preexistente de refresh. La nueva regresión determinista falla con el código original y aprueba con el arreglo, sin sustituir consultas ni escrituras reales. El stack habitual está saludable, con nueve migraciones y sin pendientes; no se requieren seeds nuevos para la funcionalidad.
+
+La validación ampliada de navegador aprobó los 31 escenarios existentes: 22 del harness y nueve públicos. Ejecutar integración y navegador en secuencia cuando compartan la misma base aislada: los fixtures temporales de localidad pueden interferir en búsquedas del catálogo durante una ejecución simultánea.
+
+Las secciones siguientes conservan evidencia histórica de entregas anteriores; sus referencias al historial de campos accesible quedan reemplazadas por AUDIT-01.
+
+## Cancelación de partidos con reservas activas
+
+Etapa aprobada manualmente el 24 de noviembre de 2026: el usuario confirmó cancelación y motivo en historial y pidió commits. [RESERVATIONS-03](../docs/tasks/RESERVATIONS-03.md) registra alcance y preparación local.
+
+Validación: lint y typecheck globales, builds API/web y Docker, 60 unitarios API, 216 web, 79 integraciones completas más dos casos nuevos de concurrencia entre partidos y seis escenarios Playwright. El timeout inicial de arranque unitario bajo carga aprobó al repetir API en serie; el selector de enlaces del nuevo test de paginación se corrigió al nombre accesible real y aprobó al repetir ese caso. No se relajaron controles del producto.
+
+`reservations.e2e-spec.ts` cubre fuente USER/MATCH, motivo privado independiente de página, consistencia y rollback, idempotencia, listados y carreras con reserva/baja/edición/doble cancelación y publicación/reserva del jugador en otro partido de la misma fecha. `multisport-migration.e2e-spec.ts` comprueba backfill y conservación de motivos/fechas. `match-reservation-cancellation.spec.ts` cubre varios titulares y lugares, conflicto conservando motivo, afectados y bajas previas, paginación de nueve y reinicio de sección/filtro. Se mantienen las regresiones de reservas y edición/cancelación existentes.
+
+## Cancelación de reservas propias
+
+La etapa del 24 de noviembre de 2026 está aprobada para commits. Ver [alcance, evidencia y preparación local](../docs/tasks/RESERVATIONS-02.md). `apps/api/test/reservations.e2e-spec.ts` agrega cancelación completa e idempotente, historial privado, reinscripción, restricción diaria, permisos y seguridad, rollback y concurrencia. `multisport-migration.e2e-spec.ts` comprueba la migración conservativa y el índice único parcial dentro de un schema descartable.
+
+`tests/reservations.spec.ts` recorre desistimiento, error recuperable conservando motivo, liberación de cupos, reapertura, recarga, reinscripción e historial paginado. Aprobaron 271 unitarios, 75 integraciones y cuatro recorridos de navegador, además de lint, tipos y builds. Las dos suites afectadas por timeouts locales se repitieron correctamente sin cambiar límites. Las pruebas de persistencia usan exclusivamente `falta_gente_test`; la revisión de seguridad no encontró bloqueos.
+
 ## MVP-05: edición y cancelación
 
 `apps/api/test/match-mutations.e2e-spec.ts` verifica contra PostgreSQL real los

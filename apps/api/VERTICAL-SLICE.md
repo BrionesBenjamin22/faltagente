@@ -1,6 +1,6 @@
 # Authentication and location vertical slice
 
-Profile editing, audit history and authenticated password change extend these contracts in [PROFILE.md](PROFILE.md). The current public user DTO additionally includes `hasLocalPassword`, `createdAt` and `updatedAt`.
+Profile editing and authenticated password change extend these contracts in [PROFILE.md](PROFILE.md). The user DTO includes `hasLocalPassword` and excludes `createdAt` and `updatedAt`. Profile changes remain recorded internally; their read endpoint is no longer exposed.
 
 The API is a NestJS modular monolith. Auth manages credentials, sessions and email tokens; users manages profile locality; locations exposes selectable active locations; matches exposes discovery. Prisma stores all state in PostgreSQL. PostGIS is available through the documented Compose image; this slice performs no spatial queries.
 

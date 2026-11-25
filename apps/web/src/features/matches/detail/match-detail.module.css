@@ -23,3 +23,5 @@
 .reservationQuantity label { font-size:.875rem; font-weight:600; }
 .reservationHint { margin:10px 0 0; font-size:.875rem; }
 .reservationFooter { border-top:1px solid var(--line); margin-top:24px; padding-top:24px; }
+.reservationTextarea { width:100%; min-height:100px; resize:vertical; }
+.reservationReason { white-space:pre-wrap; overflow-wrap:anywhere; }

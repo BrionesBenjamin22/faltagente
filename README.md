@@ -175,13 +175,21 @@ MVP-04 agrega publicación autenticada en `/partidos/nuevo`, creación atómica 
 Google OAuth y reservas también continúan pendientes.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
-- [Backend: perfil e historial privado](apps/api/PROFILE.md).
+- [Backend: perfil y trazabilidad interna](apps/api/PROFILE.md).
 - [Frontend: vistas, sesión y filtros](apps/web/FRONTEND.md).
 - [Pruebas de la vertical slice](tests/README.md).
 
 ### Inscripción a partidos
 
-El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md). Cancelación y lista de espera siguen pendientes.
+El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md).
+
+El titular puede cancelar toda su reserva antes del inicio, con motivo opcional privado. Se liberan sus lugares y participación de forma atómica, se conserva el historial paginado y puede volver a reservar sujeto a disponibilidad. Ver [cancelación de reservas](docs/tasks/RESERVATIONS-02.md). Siguen pendientes cancelación parcial, lista de espera y notificaciones.
+El organizador puede cancelar partidos futuros con reservas activas: cancela sus reservas y libera cupos y participaciones de forma atómica. El motivo es privado a los titulares afectados. Mis partidos incluye Organizados y Reservados con próximos, pasados y cancelados; diferencia bajas voluntarias y del organizador. Etapa validada manualmente y aprobada para commits: [cancelación de partidos con reservas](docs/tasks/RESERVATIONS-03.md).
+
+### Restricción de auditoría e historial de cambios
+
+Perfil y partidos ya no muestran auditoría ni historial de campos. Las rutas de lectura devuelven 404 y las respuestas afectadas excluyen fechas técnicas. Se conservan las escrituras históricas, el control de versión y el historial de reservas. El usuario validó manualmente el ajuste; ver [AUDIT-01](docs/tasks/AUDIT-01.md) para evidencia y la corrección autorizada de la carrera preexistente de refresh.
+
 ## Operación local con Docker Compose
 
 Con Docker Desktop iniciado y `.env` configurado, ejecutar desde la raíz:
