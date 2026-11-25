@@ -48,6 +48,10 @@ No se modifica el cliente HTTP: conserva cookies mediante `credentials: "include
 
 Consultar [Docker](../../docs/DOCKER.md) para migraciones controladas, configuración, logs, persistencia y parada del stack.
 
+## Compartir partidos
+
+El detalle público permite copiar su enlace y abrir WhatsApp, Telegram, X o las aplicaciones nativas disponibles. Un disparador con icono abre un popover en escritorio y un bottom sheet modal en móvil. Ver [MATCH-SHARING.md](MATCH-SHARING.md) para componentes, permisos, validaciones, accesibilidad y pruebas.
+
 ## Inscripción a partidos
 
 El detalle `/partidos/:id` conserva su contenido público y agrega inscripción autenticada de uno o varios lugares hasta la disponibilidad informada. Los visitantes acceden a Login. Organizadores, partidos completos, cerrados, cancelados o iniciados no ofrecen confirmación.

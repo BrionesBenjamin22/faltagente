@@ -138,3 +138,7 @@ Los errores de logout y el feedback de renovación conservan su presentación in
 ### Pruebas
 
 `features/notifications/notifications.test.tsx` cubre variantes, límite activo, duraciones y override, barra, pausa combinada, cierre, deduplicación en Strict Mode, eventos legítimos y remontaje. Aísla la animación de Motion para verificar el reloj propio. `features/auth/logout-feedback.test.tsx` cubre éxito único, navegación y remontaje sin reconstrucción, fallo seguro y conservación del POST con credenciales y CSRF. La carrera de reutilización de ID durante la salida se verificó mediante revisión de código. UI-03 reserva la comprobación visual al desarrollador y no agrega capturas, regresión visual ni Playwright.
+
+## Compartir partidos
+
+El detalle integra `features/matches/sharing/` en el encabezado. Reutiliza Radix Popover para el popover de escritorio y el bottom sheet modal responsive, con acciones comunes y sin nuevos servicios HTTP. Consultar [MATCH-SHARING.md](MATCH-SHARING.md) para enlaces, disponibilidad, permisos, feedback, accesibilidad y pruebas de la etapa aprobada.

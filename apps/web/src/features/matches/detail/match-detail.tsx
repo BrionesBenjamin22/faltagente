@@ -12,6 +12,7 @@ import { MatchFeedback } from "./match-feedback";
 import type { MatchDetail } from "../types";
 import styles from "./match-detail.module.css";
 import { ReservationPanel } from "./reservation-panel";
+import { MatchSharing } from "../sharing/match-sharing";
 
 export function MatchDetailScreen({ id, initialData, success }: { id: string; initialData?: MatchDetail; success?: string }) {
   const query = useMatchDetail(id, initialData);
@@ -34,9 +35,12 @@ export function MatchDetailContent({ match, reservation }: { match: MatchDetail;
   const available = match.availablePlaces > 0;
   return <article className={styles.article} aria-labelledby="match-title">
     <header>
-      <div className={styles.sports}>
-        <h1 id="match-title" className={styles.title}>{match.sport.name}</h1>
-        {match.sportFormat ? <span className={styles.format}>{match.sportFormat.name}</span> : null}
+      <div className={styles.heading}>
+        <div className={styles.sports}>
+          <h1 id="match-title" className={styles.title}>{match.sport.name}</h1>
+          {match.sportFormat ? <span className={styles.format}>{match.sportFormat.name}</span> : null}
+        </div>
+        <MatchSharing key={`${match.id}:${match.startsAt}:${match.status}`} match={match} />
       </div>
       <time className={styles.date} dateTime={match.startsAt}>{matchDateFormat.format(new Date(match.startsAt))}</time>
       {match.status !== "OPEN" ? <p className={styles.status}>{match.status === "CANCELLED" ? "Partido cancelado" : "Partido cerrado"}</p> : null}
