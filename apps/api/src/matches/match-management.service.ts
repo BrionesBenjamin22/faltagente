@@ -20,10 +20,14 @@ import { PrismaService } from '../prisma/prisma.module.js';
 import type { CreateMatchDto } from './dto/match-publication.dto.js';
 import type { CancelMatchDto, UpdateMatchDto } from './dto/match-update.dto.js';
 import type { MyMatchesQueryDto } from './dto/my-matches.dto.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
 export class MatchManagementService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async ownList(userId: string, query: MyMatchesQueryDto) {
     const now = new Date();
@@ -419,8 +423,9 @@ export class MatchManagementService {
   }
 
   async update(userId: string, id: string, dto: UpdateMatchDto) {
+    let hasChanged = false;
     try {
-      return await this.db.$transaction(async (tx) => {
+      const result = await this.db.$transaction(async (tx) => {
         const match = await this.lockedMatch(tx, userId, id);
         this.checkVersion(match.version, dto.expectedVersion);
         this.checkFuture(match);
@@ -457,6 +462,7 @@ export class MatchManagementService {
           Object.keys(before) as (keyof typeof before)[]
         ).filter((key) => before[key] !== after[key]);
         if (!changed.length) return { id };
+        hasChanged = true;
         const held = await heldPlaces(tx, id);
         const activeWaitlistCount = await tx.waitlistEntry.count({
           where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
@@ -609,6 +615,8 @@ export class MatchManagementService {
         await allocateOffers(tx, id);
         return { id };
       }, { maxWait: 10_000, timeout: 30_000 });
+      if (hasChanged) await this.notifyMatchUpdated(userId, id);
+      return result;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -620,7 +628,7 @@ export class MatchManagementService {
   }
 
   async cancel(userId: string, id: string, dto: CancelMatchDto) {
-    return this.db.$transaction(async (tx) => {
+    const result = await this.db.$transaction(async (tx) => {
       const match = await this.lockedMatch(tx, userId, id);
       // Ownership is always checked; a repeated cancellation cannot rewrite audit.
       if (match.status === 'CANCELLED') return { id };
@@ -732,5 +740,111 @@ export class MatchManagementService {
       });
       return { id };
     }, { maxWait: 10_000, timeout: 30_000 });
+    await this.notifyMatchCancelled(userId, id);
+    return result;
+  }
+
+  private async notifyMatchUpdated(userId: string, matchId: string) {
+    const match = await this.db.match.findUnique({
+      where: { id: matchId },
+      select: {
+        id: true,
+        version: true,
+        venueName: true,
+        organizerId: true,
+        sport: { select: { name: true } },
+        reservations: {
+          where: { status: 'CONFIRMED' },
+          select: { userId: true },
+        },
+      },
+    });
+    if (!match) return;
+    await this.notifications.safeCreate({
+      userId,
+      type: 'MATCH_UPDATED',
+      title: 'Actualizaste tu partido',
+      body: `Modificaste ${match.sport.name} en ${match.venueName}.`,
+      detail: 'La modificación quedó registrada.',
+      relatedMatchId: match.id,
+      actorUserId: userId,
+      dedupeKey: `MATCH_UPDATED_CONFIRMATION:${match.id}:${match.version}`,
+    });
+    for (const reservation of match.reservations) {
+      if (reservation.userId === match.organizerId || reservation.userId === userId) continue;
+      await this.notifications.safeCreate({
+        userId: reservation.userId,
+        type: 'MATCH_UPDATED',
+        title: 'Se modificó tu partido',
+        body: `El organizador modificó ${match.sport.name} en ${match.venueName}.`,
+        detail: 'Revisá la información actualizada antes de participar.',
+        relatedMatchId: match.id,
+        actorUserId: userId,
+        dedupeKey: `MATCH_UPDATED_PARTICIPANT:${match.id}:${reservation.userId}:${match.version}`,
+      });
+    }
+  }
+
+  private async notifyMatchCancelled(userId: string, matchId: string) {
+    const match = await this.db.match.findUnique({
+      where: { id: matchId },
+      select: {
+        id: true,
+        venueName: true,
+        sport: { select: { name: true } },
+      },
+    });
+    if (!match) return;
+    await this.notifications.safeCreate({
+      userId,
+      type: 'MATCH_CANCELLED',
+      title: 'Cancelaste tu partido',
+      body: `Cancelaste ${match.sport.name} en ${match.venueName}.`,
+      detail: 'La cancelación quedó registrada.',
+      relatedMatchId: match.id,
+      actorUserId: userId,
+      dedupeKey: `MATCH_CANCELLED_CONFIRMATION:${match.id}`,
+    });
+    const reservations = await this.db.reservation.findMany({
+      where: { matchId: match.id, status: 'CANCELLED', cancellationSource: 'MATCH' },
+      select: { userId: true, id: true },
+    });
+    for (const reservation of reservations) {
+      if (reservation.userId === userId) continue;
+      await this.notifications.safeCreate({
+        userId: reservation.userId,
+        type: 'MATCH_CANCELLED',
+        title: 'Se canceló tu partido',
+        body: `El organizador canceló ${match.sport.name} en ${match.venueName}.`,
+        detail: 'La cancelación quedó registrada.',
+        relatedMatchId: match.id,
+        actorUserId: userId,
+        dedupeKey: `MATCH_CANCELLED_PARTICIPANT:${match.id}:${reservation.id}`,
+      });
+    }
+  }
+
+  async history(userId: string, id: string, page: number) {
+    await this.ownMatch(userId, id);
+    const [items, total] = await this.db.$transaction(
+      [
+        this.db.matchChange.findMany({
+          where: { matchId: id },
+          select: {
+            id: true,
+            event: true,
+            occurredAt: true,
+            actor: { select: { id: true, name: true } },
+            changes: true,
+          },
+          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+          take: 3,
+          skip: (page - 1) * 3,
+        }),
+        this.db.matchChange.count({ where: { matchId: id } }),
+      ],
+      { isolationLevel: 'RepeatableRead' },
+    );
+    return { items, total, page, pageSize: 3, hasMore: page * 3 < total };
   }
 }

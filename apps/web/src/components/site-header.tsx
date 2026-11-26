@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Goal } from "lucide-react";
 import { AccountMenu } from "./account-menu";
 import { ThemeMenu } from "@/features/appearance/theme-menu";
+import { NotificationBell } from "@/features/notifications/notification-bell";
 import styles from "./site-header.module.css";
 
 export function SiteHeader({ authenticated }: { authenticated: boolean }) {
@@ -17,6 +18,7 @@ export function SiteHeader({ authenticated }: { authenticated: boolean }) {
               <><Link href="/auth/login">Ingresar</Link><Link className="button" href="/auth/register">Crear cuenta</Link></>
             )}
           </nav>
+          {authenticated ? <NotificationBell authenticated={authenticated} /> : null}
           <ThemeMenu />
         </div>
       </div>

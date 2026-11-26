@@ -557,6 +557,29 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
       ).status,
     ).toBe(200);
     expect(
+      (await other.browser.send('post', `${endpoint}/cancel-by-organizer`, payload))
+        .status,
+    ).toBe(404);
+    const removalNotifications = await db.notification.findMany({
+      where: { relatedMatchId: id, type: 'PLAYER_REMOVED' },
+      orderBy: { dedupeKey: 'asc' },
+    });
+    expect(removalNotifications).toHaveLength(2);
+    expect(removalNotifications.find(row => row.userId === p.id)).toMatchObject({
+      actorUserId: organizer.id,
+      detail: 'Ajuste del organizador',
+      dedupeKey: `PLAYER_REMOVED:${id}:${r.id}`,
+      metadata: { places: 3 },
+    });
+    expect(removalNotifications.find(row => row.userId === organizer.id)).toMatchObject({
+      actorUserId: organizer.id,
+      title: 'Diste de baja una reserva',
+      dedupeKey: `PLAYER_REMOVED_CONFIRMATION:${id}:${r.id}`,
+    });
+    expect(await db.notification.count({
+      where: { relatedMatchId: id, type: 'MATCH_LEFT' },
+    })).toBe(0);
+    expect(
       (await p.browser.send('get', `${endpoint}/cancellations`)).body,
     ).toMatchObject({
       total: 1,

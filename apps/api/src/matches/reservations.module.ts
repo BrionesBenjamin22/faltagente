@@ -51,6 +51,8 @@ import {
 } from '../waitlist/waitlist.domain.js';
 import { MatchIdDto } from './dto/match-id.dto.js';
 import { MAX_RESERVATION_PLACES } from './reservation-limits.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 export class CreateReservationDto {
   @ApiProperty({ minimum: 1, maximum: MAX_RESERVATION_PLACES, example: 1 })
@@ -171,7 +173,10 @@ const conflict = (code: string, message: string) =>
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
   async mine(userId: string, matchId: string) {
     if (
       !(await this.db.match.findUnique({
@@ -227,14 +232,95 @@ export class ReservationsService {
     );
   }
   async create(userId: string, matchId: string, places: number) {
-    return this.db.$transaction(
+    const outcome = await this.db.$transaction(
       async (tx) => {
         await lockBookingDomain(tx);
         await settleMatch(tx, matchId);
-        return confirmReservation(tx, userId, matchId, places);
+        const existing = await tx.reservation.findFirst({
+          where: { userId, matchId, status: 'CONFIRMED' },
+          select: projection,
+        });
+        const match = await tx.match.findUnique({
+          where: { id: matchId },
+          select: {
+            organizerId: true,
+            availablePlaces: true,
+            totalPlaces: true,
+          },
+        });
+        const reservation = await confirmReservation(
+          tx,
+          userId,
+          matchId,
+          places,
+        );
+        return {
+          reservation,
+          notify: !existing,
+          completed: !existing && match?.availablePlaces === places,
+          organizerId: match?.organizerId ?? null,
+        };
       },
       { maxWait: 10_000, timeout: 30_000 },
     );
+    if (outcome.notify && outcome.organizerId) {
+      const [player, match] = await Promise.all([
+        this.db.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        }),
+        this.db.match.findUnique({
+          where: { id: matchId },
+          select: {
+            venueName: true,
+            totalPlaces: true,
+            availablePlaces: true,
+            sport: { select: { name: true } },
+          },
+        }),
+      ]);
+      await this.notifications.safeCreate({
+        userId: outcome.organizerId,
+        type: 'MATCH_JOINED',
+        title: 'Alguien se sumó a tu partido',
+        body: `${player?.name ?? 'Un jugador'} reservó ${places} ${places === 1 ? 'lugar' : 'lugares'}.`,
+        detail: match
+          ? `${match.availablePlaces} de ${match.totalPlaces} lugares disponibles.`
+          : undefined,
+        relatedMatchId: matchId,
+        actorUserId: userId,
+        dedupeKey: `MATCH_JOINED:${matchId}:${outcome.reservation.id}`,
+        metadata: { places, remainingPlaces: match?.availablePlaces ?? null },
+      });
+      await this.notifications.safeCreate({
+        userId,
+        type: 'RESERVATION_CONFIRMED',
+        title: 'Te sumaste al partido',
+        body: match
+          ? `Reservaste ${places} ${places === 1 ? 'lugar' : 'lugares'} en ${match.venueName}.`
+          : 'Tu reserva quedó confirmada.',
+        detail: match
+          ? `${match.sport.name}. ${match.availablePlaces} lugares disponibles.`
+          : undefined,
+        relatedMatchId: matchId,
+        dedupeKey: `RESERVATION_CONFIRMED:${matchId}:${outcome.reservation.id}`,
+        metadata: { places, remainingPlaces: match?.availablePlaces ?? null },
+      });
+      if (outcome.completed) {
+        await this.notifications.safeCreate({
+          userId: outcome.organizerId,
+          type: 'MATCH_COMPLETED',
+          title: 'Tu partido se completó',
+          body: match
+            ? `Se completaron los cupos de ${match.sport.name} en ${match.venueName}.`
+            : 'Se completaron los cupos de tu partido.',
+          relatedMatchId: matchId,
+          dedupeKey: `MATCH_COMPLETED:${matchId}`,
+          metadata: { totalPlaces: match?.totalPlaces ?? null },
+        });
+      }
+    }
+    return outcome.reservation;
   }
   async organizerList(userId: string, matchId: string, page: number) {
     return this.db.$transaction(
@@ -430,7 +516,7 @@ export class ReservationsService {
     reservationId: string,
     organizerCancellation?: OrganizerCancelReservationDto,
   ) {
-    return this.db.$transaction(
+    const outcome = await this.db.$transaction(
       async (tx) => {
         await lockBookingDomain(tx);
         await settleMatch(tx, matchId);
@@ -451,7 +537,8 @@ export class ReservationsService {
         });
         if (organizerCancellation && match.organizerId !== userId)
           throw new NotFoundException();
-        if (reservation.status === 'CANCELLED') return reservation;
+        if (reservation.status === 'CANCELLED')
+          return { reservation, cancelled: false as const };
         if (
           organizerCancellation &&
           organizerCancellation.expectedVersion !== reservation.version
@@ -544,10 +631,79 @@ export class ReservationsService {
           select: historyProjection,
         });
         await allocateOffers(tx, matchId);
-        return result;
+        return {
+          reservation: result,
+          cancelled: true as const,
+          holderUserId: holder.userId,
+        };
       },
       { maxWait: 10_000, timeout: 30_000 },
     );
+    if (outcome.cancelled) {
+      const [player, match] = await Promise.all([
+        this.db.user.findUnique({
+          where: { id: outcome.holderUserId },
+          select: { name: true },
+        }),
+        this.db.match.findUnique({
+          where: { id: matchId },
+          select: {
+            organizerId: true,
+            venueName: true,
+            sport: { select: { name: true } },
+          },
+        }),
+      ]);
+      if (match) {
+        if (organizerCancellation) {
+          await this.notifications.safeCreate({
+            userId: outcome.holderUserId,
+            type: 'PLAYER_REMOVED',
+            title: 'Se dio de baja tu reserva',
+            body: `El organizador dio de baja tu reserva en ${match.sport.name}.`,
+            detail: outcome.reservation.cancellationReason ?? match.venueName,
+            relatedMatchId: matchId,
+            actorUserId: userId,
+            dedupeKey: `PLAYER_REMOVED:${matchId}:${reservationId}`,
+            metadata: { places: outcome.reservation.places },
+          });
+          await this.notifications.safeCreate({
+            userId,
+            type: 'PLAYER_REMOVED',
+            title: 'Diste de baja una reserva',
+            body: `Diste de baja la reserva de ${player?.name ?? 'un jugador'} en ${match.sport.name}.`,
+            detail: match.venueName,
+            relatedMatchId: matchId,
+            actorUserId: userId,
+            dedupeKey: `PLAYER_REMOVED_CONFIRMATION:${matchId}:${reservationId}`,
+            metadata: { places: outcome.reservation.places },
+          });
+        } else {
+          await this.notifications.safeCreate({
+            userId: match.organizerId,
+            type: 'MATCH_LEFT',
+            title: 'Alguien se bajó de tu partido',
+            body: `${player?.name ?? 'Un jugador'} canceló su reserva.`,
+            detail: `${match.sport.name} en ${match.venueName}.`,
+            relatedMatchId: matchId,
+            actorUserId: userId,
+            dedupeKey: `MATCH_LEFT:${matchId}:${reservationId}`,
+            metadata: { places: outcome.reservation.places },
+          });
+          await this.notifications.safeCreate({
+            userId,
+            type: 'MATCH_LEFT',
+            title: 'Cancelaste tu reserva',
+            body: `Liberaste ${outcome.reservation.places} ${outcome.reservation.places === 1 ? 'lugar' : 'lugares'} en ${match.sport.name}.`,
+            detail: match.venueName,
+            relatedMatchId: matchId,
+            dedupeKey: `MATCH_LEFT_CONFIRMATION:${matchId}:${reservationId}`,
+            metadata: { places: outcome.reservation.places },
+          });
+        }
+      }
+    }
+    return outcome.reservation;
   }
 }
 @ApiExtraModels(ReservationResponse)
@@ -702,7 +858,7 @@ export class ReservationsController {
   }
 }
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [ReservationsController],
   providers: [ReservationsService],
 })

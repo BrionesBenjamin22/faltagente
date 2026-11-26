@@ -5,9 +5,10 @@ import { MatchesService } from './matches.service.js';
 import { MatchPublicationController } from './match-publication.controller.js';
 import { MatchManagementService } from './match-management.service.js';
 import { MyMatchesController } from './my-matches.controller.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [MatchesController, MatchPublicationController, MyMatchesController],
   providers: [MatchesService, MatchManagementService],
 })
