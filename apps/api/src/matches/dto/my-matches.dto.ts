@@ -29,8 +29,8 @@ export class MyMatchReservationResponse {
   @ApiProperty({ format: 'uuid' }) id: string;
   @ApiProperty() places: number;
   @ApiProperty({ enum: ['CONFIRMED', 'CANCELLED'] }) status: string;
-  @ApiProperty({ enum: ['USER', 'MATCH'], nullable: true }) cancellationSource:
-    string | null;
+  @ApiProperty({ enum: ['USER', 'MATCH', 'ORGANIZER'], nullable: true })
+  cancellationSource: string | null;
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   cancelledAt: Date | null;
 }

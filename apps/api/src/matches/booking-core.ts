@@ -1,10 +1,13 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { Tx } from '../waitlist/waitlist.domain.js';
+import { MAX_RESERVATION_PLACES } from './reservation-limits.js';
 import {
   databaseTime,
   invalidateSameDay,
 } from '../waitlist/waitlist.domain.js';
-const projection = {
+export const reservationProjection = {
+  version: true,
+  originalPlaces: true,
   id: true,
   matchId: true,
   places: true,
@@ -19,13 +22,22 @@ export async function confirmReservation(
   matchId: string,
   places: number,
 ) {
+  if (
+    !Number.isInteger(places) ||
+    places < 1 ||
+    places > MAX_RESERVATION_PLACES
+  )
+    throw conflict(
+      'RESERVATION_PLACES_LIMIT',
+      'Puede reservar entre 1 y 100 lugares. Revise la cantidad e intente nuevamente.',
+    );
   // Confirmation locks user before match. Match-wide cancellation only
   // releases participation under the same match lock.
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
   await tx.$queryRaw`SELECT "id" FROM "Match" WHERE "id" = ${matchId}::uuid FOR UPDATE`;
   const existing = await tx.reservation.findFirst({
     where: { userId, matchId, status: 'CONFIRMED' },
-    select: projection,
+    select: reservationProjection,
   });
   if (existing) {
     if (existing.places !== places)
@@ -97,8 +109,13 @@ export async function confirmReservation(
     update: { active: true, localDate },
   });
   const reservation = await tx.reservation.create({
-    data: { userId, matchId, places },
-    select: projection,
+    data: {
+      userId,
+      matchId,
+      places,
+      originalPlaces: places,
+    },
+    select: reservationProjection,
   });
   await invalidateSameDay(tx, userId, localDate);
   return reservation;

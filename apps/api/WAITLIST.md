@@ -4,11 +4,13 @@
 
 Módulo NestJS `src/waitlist`, integrado con publicación, edición, reservas y cancelaciones. No envía emails ni crea notificaciones in-app. Conserva eventos internos para que el módulo de notificaciones se implemente por separado.
 
-Un usuario autenticado puede solicitar entre uno y la capacidad publicada de un partido completo y futuro, siempre que no lo organice ni tenga participación confirmada en esa fecha local. Sólo puede tener una solicitud activa por partido. Repetir el ingreso con la misma cantidad devuelve la existente; cambiar la cantidad requiere salir y volver a ingresar, con nueva antigüedad. La salida identifica la solicitud concreta para que un reintento anterior no afecte una nueva.
+Un usuario autenticado puede solicitar entre uno y el menor valor entre 100 y la capacidad publicada de un partido completo y futuro, siempre que no lo organice ni tenga participación confirmada en esa fecha local. Sólo puede tener una solicitud activa por partido. Repetir el ingreso con la misma cantidad devuelve la existente; cambiar la cantidad requiere salir y volver a ingresar, con nueva antigüedad. La salida identifica la solicitud concreta para que un reintento anterior no afecte una nueva.
 
 La asignación selecciona la mayor cantidad que entre en los lugares disponibles; desempata por antigüedad y luego por ID. No divide solicitudes. Puede emitir varias ofertas independientes. Cada oferta retiene sus lugares durante 15 minutos como máximo, sin superar el inicio del partido. `availablePlaces` excluye las retenciones: capacidad = reservas confirmadas + ofertas pendientes + disponibilidad.
 
-Aceptar crea una reserva normal y participación PLAYER dentro de la misma transacción. Invalida las otras solicitudes y ofertas del usuario para la fecha local de Buenos Aires. Reservar directamente, publicar o cambiar la fecha de un partido aplica la misma limpieza. Reintentar una aceptación devuelve la reserva original, incluso si después fue cancelada; nunca la recrea. Rechazar o vencer finaliza la solicitud y reasigna los cupos. Para volver a participar se requiere un ingreso nuevo y que el partido siga completo.
+Aceptar crea una reserva normal y participación PLAYER dentro de la misma transacción, con máximo de 100 lugares validado también en el núcleo compartido. Invalida las otras solicitudes y ofertas del usuario para la fecha local de Buenos Aires. Reservar directamente, publicar o cambiar la fecha de un partido aplica la misma limpieza. Reintentar una aceptación devuelve la misma reserva con su cantidad vigente, `originalPlaces` y `version`, incluso si después fue reducida o cancelada; nunca la recrea. Rechazar o vencer finaliza la solicitud y reasigna los cupos. Para volver a participar se requiere un ingreso nuevo y que el partido siga completo.
+
+Reducir una reserva por cantidad, desde el titular o el organizador, reasigna los lugares liberados a solicitudes compatibles en esa misma transacción. Una reducción conserva la participación diaria del titular; sólo cancelar la reserva completa la desactiva. Los cupos liberados pueden quedar inmediatamente retenidos por ofertas y el partido continuar completo. Contratos y permisos: [reservas por cantidad](RESERVATIONS.md).
 
 ## API
 
@@ -16,7 +18,7 @@ Todas las rutas usan `/api/v1`, sesión y respuestas privadas `Cache-Control: no
 
 | Método | Ruta | Resultado |
 | --- | --- | --- |
-| POST | `/matches/:id/waitlist` | 201; recibe `{places: number}` y devuelve la solicitud |
+| POST | `/matches/:id/waitlist` | 201; recibe `{places: number}` entero de 1 a 100 y hasta la capacidad publicada; devuelve la solicitud |
 | GET | `/matches/:id/waitlist/me` | 200; última solicitud propia, incluida terminal, o `null` |
 | POST | `/matches/:id/waitlist/:entryId/leave` | 200; solicitud finalizada |
 | GET | `/matches/:id/waitlist?page=1` | 200; solicitudes activas, sólo para el organizador |
