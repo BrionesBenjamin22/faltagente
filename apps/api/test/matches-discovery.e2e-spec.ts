@@ -84,6 +84,73 @@ describe('public multisport discovery filters', () => {
     expect(items.map(item => item.startsAt)).toEqual(items.map(item => item.startsAt).sort());
   });
 
+  it('lists every locality without a location filter in chronological order', async () => {
+    const filters = { locationId: undefined, sportId };
+    const first = await get(filters).expect(200);
+    const second = await get({ ...filters, page: 2 }).expect(200);
+    const items = [...first.body.items, ...second.body.items] as { id: string; location: { id: string }; startsAt: string }[];
+    expect(first.body).toMatchObject({ total: 16, pageSize: 9, hasMore: true });
+    expect(second.body).toMatchObject({ total: 16, hasMore: false });
+    expect(new Set(items.map(item => item.location.id))).toEqual(new Set([locationId, otherLocationId]));
+    expect(new Set(items.map(item => item.id)).size).toBe(16);
+    const expected = await db.match.findMany({
+      where: { sportId, status: { in: ['OPEN', 'CLOSED'] }, startsAt: { gt: new Date() }, location: { active: true } },
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }], select: { id: true },
+    });
+    expect(items.map(item => item.id)).toEqual(expected.map(item => item.id));
+  });
+
+  it('prioritizes a locality across pages before chronologically ordered other localities', async () => {
+    const filters = { locationId: undefined, preferredLocationId: locationId, sportId };
+    const first = await get(filters).expect(200);
+    const second = await get({ ...filters, page: 2 }).expect(200);
+    expect(first.body).toMatchObject({ total: 16, pageSize: 9, hasMore: true });
+    expect(second.body).toMatchObject({ total: 16, hasMore: false });
+    expect(first.body.items).toHaveLength(9);
+    expect(first.body.items.every((item: { location: { id: string } }) => item.location.id === locationId)).toBe(true);
+    expect(second.body.items.slice(0, 6).every((item: { location: { id: string } }) => item.location.id === locationId)).toBe(true);
+    expect(second.body.items[6].location.id).toBe(otherLocationId);
+    const items = [...first.body.items, ...second.body.items];
+    expect(new Set(items.map(item => item.id)).size).toBe(16);
+    const preferredDates = items.slice(0, 15).map(item => item.startsAt);
+    expect(preferredDates).toEqual([...preferredDates].sort());
+    // The earliest non-local match still follows the last preferred match.
+    expect(second.body.items[6].startsAt < second.body.items[5].startsAt).toBe(true);
+    expect((await get({ ...filters, page: 3 }).expect(200)).body).toMatchObject({ items: [], total: 16, hasMore: false });
+  });
+
+  it('keeps explicit locality filters strict and combines priority with sport, format and date', async () => {
+    const explicit = await get({ locationId: otherLocationId, preferredLocationId: locationId, sportId }).expect(200);
+    expect(explicit.body.total).toBe(1);
+    expect(explicit.body.items.every((item: { location: { id: string } }) => item.location.id === otherLocationId)).toBe(true);
+    const filters = { locationId: undefined, preferredLocationId: otherLocationId, sportId, sportFormatId: formatId, date: day };
+    const first = await get(filters).expect(200);
+    const second = await get({ ...filters, page: 2 }).expect(200);
+    expect(first.body.total).toBe(12);
+    expect(first.body.items[0].location.id).toBe(otherLocationId);
+    expect([...first.body.items, ...second.body.items].slice(1).map(item => item.id)).toEqual(dayFormatMatches);
+  });
+
+  it('falls back to chronological discovery when the preferred locality has no matches', async () => {
+    const filters = { locationId: undefined, sportId };
+    const plain = await get(filters).expect(200);
+    const preferred = await get({ ...filters, preferredLocationId: randomUUID() }).expect(200);
+    expect(preferred.body).toEqual(plain.body);
+  });
+
+  it('does not expose matches in inactive localities even when preferred', async () => {
+    await db.location.update({ where: { id: otherLocationId }, data: { active: false } });
+    try {
+      const filters = { locationId: undefined, preferredLocationId: otherLocationId, sportId };
+      const first = await get(filters).expect(200);
+      const second = await get({ ...filters, page: 2 }).expect(200);
+      expect(first.body.total).toBe(15);
+      expect([...first.body.items, ...second.body.items].every(item => item.location.id === locationId)).toBe(true);
+    } finally {
+      await db.location.update({ where: { id: otherLocationId }, data: { active: true } });
+    }
+  });
+
   it('filters sport and sport/format while keeping count and hasMore consistent', async () => {
     const sport = await get({ sportId }).expect(200);
     expect(sport.body.total).toBe(15);
@@ -154,7 +221,7 @@ describe('public multisport discovery filters', () => {
 
   it('validates filter UUIDs, calendar dates and pagination before querying', async () => {
     for (const filters of [
-      { locationId: 'bad' }, { sportId: 'bad' }, { sportFormatId: 'bad' },
+      { locationId: 'bad' }, { preferredLocationId: 'bad' }, { preferredLocationId: '' }, { sportId: 'bad' }, { sportFormatId: 'bad' },
       { date: '2099-02-29' }, { date: '2099-11-31' }, { date: '2099-1-03' },
       { date: '2099-11-03T00:00:00Z' }, { date: '0000-01-01' }, { date: '' },
       { page: 0 }, { page: 1.5 }, { page: 10001 },

@@ -265,8 +265,11 @@ No existe búsqueda de texto libre inicialmente.
 
 Orden principal:
 
-1. fecha más próxima;
-2. hora más próxima.
+1. sin filtro de localidad, partidos de la localidad principal del usuario autenticado primero y después los restantes;
+2. fecha y hora más próximas dentro de cada grupo;
+3. identificador como desempate.
+
+Por defecto se muestran todas las localidades. La localidad principal determina la prioridad, sin limitar los resultados ni seleccionarse automáticamente como filtro. Los visitantes ven todos los partidos en orden cronológico. Elegir una localidad limita los resultados a ella; «Todas las localidades» quita sólo ese filtro y «Limpiar filtros» quita también deporte, formato y fecha. La prioridad se aplica antes de paginar y no modifica el perfil.
 
 La interfaz debe diferenciar:
 

@@ -15,7 +15,7 @@ Revisión de reservas del 26 de noviembre de 2026 sobre el estado consolidado de
 ### Descubrimiento y partidos
 
 - Catálogos persistidos de localidades y deportes: Fútbol, Pádel, Básquet y Vóley, con formatos deportivos cuando corresponden.
-- Descubrimiento público y Home autenticado: filtros por localidad, deporte, formato y fecha local de Buenos Aires, con estado en URL y navegación atrás/adelante.
+- Descubrimiento público y Home autenticado: todas las localidades por defecto y prioridad para los partidos de la localidad principal del usuario autenticado antes de paginar. Filtros opcionales por localidad, deporte, formato y fecha local de Buenos Aires, limpieza completa, estado en URL y navegación atrás/adelante.
 - Localidad temporal independiente del perfil y carga progresiva de nueve resultados.
 - Detalle público en `/partidos/[id]`, datos mínimos del organizador y tratamiento de partidos inexistentes, cerrados o cancelados.
 - Compartir partidos futuros abiertos o cerrados mediante URL limpia, copia con fallback manual, WhatsApp, Telegram, X y Web Share cuando esté disponible. El disparador del encabezado abre un popover en escritorio y un bottom sheet modal en móvil, con foco gestionado y sin desplazar la tarjeta. Etapa aprobada manualmente el 25 de noviembre de 2026; ver [documentación del módulo](../apps/web/MATCH-SHARING.md).

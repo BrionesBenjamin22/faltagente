@@ -8,8 +8,10 @@ export const matchesService = {
   cancel: (id: string, input: CancelMatchInput) => mutate<{ id: string }>(`/matches/${encodeURIComponent(id)}/cancel`, input),
   management: (id: string) => request<MatchManagement>(`/matches/${encodeURIComponent(id)}/management`),
   detail: (id: string) => request<MatchDetail>(`/matches/${encodeURIComponent(id)}`),
-  list: (locationId: string, page: number, filters: MatchFilters = {}) => {
-  const params = new URLSearchParams({ locationId, page: String(page) });
+  list: (locationId: string, page: number, filters: MatchFilters = {}, preferredLocationId?: string) => {
+  const params = new URLSearchParams({ page: String(page) });
+  if (locationId) params.set("locationId", locationId);
+  if (preferredLocationId) params.set("preferredLocationId", preferredLocationId);
   if (filters.sportId) params.set("sportId", filters.sportId);
   if (filters.sportFormatId) params.set("sportFormatId", filters.sportFormatId);
   if (filters.date) params.set("date", filters.date);

@@ -390,18 +390,19 @@ No devolver datasets completos sin límite.
 El listado implementado en MVP-02 acepta:
 
 ```text
-locationId
+locationId?
+preferredLocationId?
 sportId?
 sportFormatId?
 date?
 page
 ```
 
-La localidad sigue siendo obligatoria; deporte y fecha son opcionales. Un formato requiere deporte y pertenencia validada en backend. Los UUID desconocidos de deporte no se confunden con errores de formato: pueden devolver un listado vacío. El catálogo público `GET /api/v1/sports` devuelve únicamente deportes y formatos activos; consultar por ID no exige estado activo del catálogo. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`. Una FK compuesta garantiza la pertenencia del formato persistido. Ver `apps/api/MULTISPORT.md`.
+La localidad, su preferencia de orden, deporte y fecha son opcionales. `locationId` filtra una localidad exacta; sin él se incluyen todas las localidades activas. `preferredLocationId` prioriza una localidad sin excluir otras y se ignora con un filtro explícito de localidad. Un formato requiere deporte y pertenencia validada en backend. Los UUID desconocidos de deporte no se confunden con errores de formato: pueden devolver un listado vacío. El catálogo público `GET /api/v1/sports` devuelve únicamente deportes y formatos activos; consultar por ID no exige estado activo del catálogo. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`. Una FK compuesta garantiza la pertenencia del formato persistido. Ver `apps/api/MULTISPORT.md` y `apps/api/DISCOVERY.md`.
 
-La carga progresiva conserva páginas de nueve, `total` y `hasMore`. La caché TanStack Query distingue localidad, deporte, formato y fecha; cambiar filtros inicia la página uno. La selección temporal no modifica el perfil. Los filtros de descubrimiento se representan en query params sin cambiar las rutas existentes.
+La carga progresiva conserva páginas de nueve, `total` y `hasMore`. La caché TanStack Query distingue localidad, deporte, formato, fecha y localidad priorizada; cambiar filtros inicia la página uno. La selección temporal se representa en la URL, no modifica el perfil y no se inicializa desde la localidad principal. Los filtros de descubrimiento se representan en query params sin cambiar las rutas existentes.
 
-El orden por defecto debe ser fecha/hora ascendente.
+El orden por defecto es fecha/hora e identificador ascendentes. Con localidad preferida y sin filtro de localidad, primero se pagina el grupo preferido y después el resto, en orden cronológico dentro de cada grupo. Los conteos y consultas acotadas comparten una transacción `RepeatableRead`; nunca se carga el listado completo para ordenarlo en memoria.
 
 ---
 

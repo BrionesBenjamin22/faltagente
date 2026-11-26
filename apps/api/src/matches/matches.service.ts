@@ -83,19 +83,37 @@ export class MatchesService {
       location: { active: true },
     };
     const [items, total] = await this.db.$transaction(
-      [
-        this.db.match.findMany({
-          where,
-          select: {
-            ...publicMatchFields,
-            location: { select: { id: true, name: true, type: true } },
-          },
-          orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
-          take: 9,
-          skip: (query.page - 1) * 9,
-        }),
-        this.db.match.count({ where }),
-      ],
+      async tx => {
+        const select = {
+          ...publicMatchFields,
+          location: { select: { id: true, name: true, type: true } },
+        } satisfies Prisma.MatchSelect;
+        const orderBy = [{ startsAt: 'asc' }, { id: 'asc' }] satisfies Prisma.MatchOrderByWithRelationInput[];
+        const skip = (query.page - 1) * 9;
+        const total = await tx.match.count({ where });
+        if (query.locationId || !query.preferredLocationId) {
+          return [await tx.match.findMany({ where, select, orderBy, take: 9, skip }), total] as const;
+        }
+
+        // Paginate the two ordered groups in the same snapshot. Never load or
+        // sort the complete discovery list in memory to prioritize a locality.
+        const preferredWhere = { ...where, locationId: query.preferredLocationId };
+        const preferredCount = await tx.match.count({ where: preferredWhere });
+        const preferred = skip < preferredCount
+          ? await tx.match.findMany({ where: preferredWhere, select, orderBy, take: 9, skip })
+          : [];
+        const remaining = 9 - preferred.length;
+        const others = remaining > 0
+          ? await tx.match.findMany({
+            where: { ...where, locationId: { not: query.preferredLocationId } },
+            select,
+            orderBy,
+            take: remaining,
+            skip: Math.max(0, skip - preferredCount),
+          })
+          : [];
+        return [[...preferred, ...others], total] as const;
+      },
       { isolationLevel: 'RepeatableRead' },
     );
     return {
