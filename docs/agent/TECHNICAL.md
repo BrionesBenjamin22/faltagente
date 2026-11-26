@@ -354,6 +354,8 @@ aceptar oferta de waitlist
 
 El contrato debe impedir duplicaciones por doble click, retry o problemas de red.
 
+Las reservas mantienen `version` y `originalPlaces`. Reducir cantidades requiere `expectedVersion`: una versión desactualizada devuelve 409 incluso si la cantidad coincide; con versión vigente, una cantidad idéntica no genera escrituras ni movimientos. Las cancelaciones totales repetidas conservan el resultado original sin liberar dos veces. Reducción, cancelación individual y cancelación del partido usan el reloj de PostgreSQL y el bloqueo de dominio compartido con la lista de espera. Los movimientos de cantidades se registran en `ReservationCancellation`, sin entidades individuales de acompañantes. Ver [contrato de reservas](../../apps/api/RESERVATIONS.md).
+
 ---
 
 ## 16. Estados

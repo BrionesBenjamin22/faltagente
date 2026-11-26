@@ -306,7 +306,7 @@ El partido puede compartirse mediante:
 
 ## 13. Reserva
 
-Un usuario puede reservar uno o varios lugares hasta la disponibilidad existente.
+Un usuario puede reservar entre uno y cien lugares, hasta la disponibilidad existente. El mismo máximo se aplica a las solicitudes de lista de espera y a la confirmación de ofertas.
 
 La confirmación es automática.
 
@@ -323,23 +323,23 @@ role = PLAYER
 
 ---
 
-## 14. Compañeros
+## 14. Reservas grupales
 
 Una reserva puede representar varios lugares.
 
-Los nombres de acompañantes son opcionales.
+La reserva representa al titular y una cantidad de lugares. No se cargan nombres ni se crean registros individuales de acompañantes.
 
-Pueden agregarse después de confirmar la reserva.
+Antes del inicio, el titular y el organizador pueden reducir la cantidad, por ejemplo de tres a dos, conservando al menos el lugar del titular. No se permite ampliar la reserva ni transferir su titularidad. Para dejarla en cero se cancela toda la reserva.
 
-La ausencia de nombres no debe impedir reservar.
+Cada reducción conserva la reserva confirmada y su participación PLAYER activa. Los lugares se liberan y pueden asignarse inmediatamente a la lista de espera dentro de la misma transacción.
 
 ---
 
 ## 15. Cancelación de reserva
 
-Una reserva puede cancelarse en cualquier momento anterior al inicio del partido.
+El titular puede cancelar su reserva y el organizador puede cancelar una reserva de su partido, siempre antes del inicio.
 
-El usuario puede indicar un motivo opcional.
+El titular no ingresa motivos al reducir lugares ni al cancelar. Sólo el organizador puede indicar un motivo opcional de hasta 500 caracteres, visible para el titular. Se conservan los motivos históricos anteriores sin permitir nuevas escrituras del titular.
 
 Al cancelar:
 
@@ -348,6 +348,8 @@ Al cancelar:
 - puede activarse el flujo de lista de espera.
 
 No existen penalizaciones en el MVP.
+
+El historial privado del titular muestra tres reservas por página y permite consultar tres movimientos por página. Cada movimiento conserva cantidad anterior y posterior, fecha, fuente USER, ORGANIZER o MATCH y motivo cuando corresponde. El organizador consulta únicamente reservas confirmadas, nueve por página; no accede a los movimientos privados del titular.
 
 ---
 
