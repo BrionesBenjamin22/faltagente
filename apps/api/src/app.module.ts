@@ -11,6 +11,7 @@ import { MatchesModule } from './matches/matches.module.js';
 import { SportsModule } from './sports/sports.module.js';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { NotificationsModule } from './notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { APP_GUARD } from '@nestjs/core';
     MatchesModule,
     ReservationsModule,
     SportsModule,
+    NotificationsModule,
     WaitlistModule,
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 100 }]),
     ConfigModule.forRoot({

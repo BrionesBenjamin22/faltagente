@@ -35,6 +35,20 @@ enum EmailTokenKind {
   VERIFY
   RESET
 }
+enum NotificationType {
+  MATCH_JOINED
+  MATCH_LEFT
+  MATCH_COMPLETED
+  MATCH_REMINDER
+  MATCH_CANCELLED
+  MATCH_UPDATED
+  RESERVATION_CONFIRMED
+  PLAYER_REMOVED
+  EMAIL_PENDING
+  EMAIL_VERIFIED
+  SESSION_SECURITY
+  APP_NEWS
+}
 model Location {
   id String @id @default(uuid()) @db.Uuid
   seedKey String? @unique
@@ -66,6 +80,8 @@ model User {
   matchChanges MatchChange[]
   waitlistEntries WaitlistEntry[]
   reservations Reservation[]
+  notifications Notification[]
+  actedNotifications Notification[] @relation("NotificationActor")
 }
 model UserProfileChange {
   id String @id @default(uuid()) @db.Uuid
@@ -155,6 +171,7 @@ model Match {
   @@index([organizerId, startsAt, id])
   waitlistEntries WaitlistEntry[]
   reservations Reservation[]
+  notifications Notification[]
   @@index([locationId, startsAt, id])
   @@index([sportId])
   @@index([sportFormatId, sportId])
@@ -200,6 +217,27 @@ model Reservation {
   @@index([matchId])
 }
 
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type NotificationType
+  title String
+  body String
+  detail String?
+  relatedMatchId String? @db.Uuid
+  relatedMatch Match? @relation(fields: [relatedMatchId], references: [id], onDelete: SetNull)
+  actorUserId String? @db.Uuid
+  actorUser User? @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  metadata Json @default("{}")
+  dedupeKey String?
+  isRead Boolean @default(false)
+  readAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([userId, dedupeKey])
+  @@index([userId, isRead, createdAt])
+  @@index([relatedMatchId])
+}
 
 enum WaitlistEntryStatus {
   WAITING

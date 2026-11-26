@@ -8,6 +8,9 @@ const state = vi.hoisted(() => ({
   expires: 0, now: 0, pending: false, feedback: "", refresh: vi.fn(), logout: vi.fn(),
 }));
 vi.mock("@/features/auth/session", () => ({ useSession: () => state }));
+vi.mock("@/features/notifications/notification-bell", () => ({
+  NotificationBell: () => null,
+}));
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 beforeEach(() => {
   state.session.authenticated = false; state.session.user = null; state.session.refreshAvailable = false;
