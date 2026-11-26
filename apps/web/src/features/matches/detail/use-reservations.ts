@@ -16,6 +16,8 @@ async function refreshReservations(client: QueryClient, userId: string, id: stri
     client.invalidateQueries({ queryKey: ["my-matches", userId] }),
     client.invalidateQueries({ queryKey: ["match-management", organizerId, id] }),
     client.invalidateQueries({ queryKey: reservationHistoryKey(userId, id) }),
+    client.invalidateQueries({ queryKey: ["reservation-cancellations", userId, id] }),
+    client.invalidateQueries({ queryKey: ["organizer-reservations", organizerId, id] }),
   ]);
 }
 
@@ -41,10 +43,18 @@ export function useCreateReservation(userId: string, id: string, organizerId: st
   });
 }
 
+export function useReservationCancellations(userId: string, id: string, reservationId: string, page: number) {
+  return useQuery({ queryKey: ["reservation-cancellations", userId, id, reservationId, page], queryFn: () => reservationsService.cancellations(id, reservationId, page), retry: false });
+}
+
+export function useOrganizerReservations(userId: string, id: string, page: number) {
+  return useQuery({ queryKey: ["organizer-reservations", userId, id, page], queryFn: () => reservationsService.organizer(id, page), retry: false, staleTime: 0 });
+}
+
 export function useCancelReservation(userId: string, id: string, organizerId: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ reservationId, reason }: { reservationId: string; reason?: string }) => reservationsService.cancel(id, reservationId, reason),
+    mutationFn: ({ reservationId }: { reservationId: string }) => reservationsService.cancel(id, reservationId),
     retry: false,
     onSuccess: async () => {
       client.setQueryData(reservationKey(userId, id), null);
@@ -58,6 +68,29 @@ export function useCancelReservation(userId: string, id: string, organizerId: st
         refreshReservations(client, userId, id, organizerId),
         client.invalidateQueries({ queryKey: reservationKey(userId, id) }),
       ]);
+    },
+  });
+}
+
+export function useOrganizerCancelReservation(userId: string, id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reservationId, ...input }: { reservationId: string; expectedVersion: number; reason?: string }) => reservationsService.cancelByOrganizer(id, reservationId, input),
+    retry: false,
+    onSuccess: async () => {
+      await Promise.all([refreshReservations(client, userId, id, userId), client.invalidateQueries({ queryKey: ["reservations"] })]);
+    },
+  });
+}
+
+export function useUpdateReservationPlaces(userId: string, id: string, organizerId: string, isOrganizer: boolean) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reservationId, ...input }: { reservationId: string; expectedVersion: number; places: number; reason?: string }) => reservationsService.updatePlaces(id, reservationId, input),
+    retry: false,
+    onSuccess: async reservation => {
+      if (!isOrganizer) client.setQueryData(reservationKey(userId, id), reservation);
+      await Promise.all([refreshReservations(client, userId, id, organizerId), client.invalidateQueries({ queryKey: ["reservations"] })]);
     },
   });
 }

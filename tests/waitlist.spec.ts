@@ -41,7 +41,7 @@ async function fixture() {
     startsAt: new Date(`${day}T19:00:00-03:00`), venueName: `Espera ${suffix.slice(0, 8)}`,
     address: 'Calle 1 y 60', pricePerPerson: 4000, totalPlaces: 2, availablePlaces: 0, status: 'CLOSED',
     participations: { create: [{ userId: organizer.id, role: 'ORGANIZER', localDate }, { userId: holder.id, role: 'PLAYER', localDate }] },
-    reservations: { create: { userId: holder.id, places: 2 } },
+    reservations: { create: { userId: holder.id, places: 2, originalPlaces: 2 } },
   }, include: { reservations: true } });
   return { db, organizer, holder, waiter, match, cleanup: async () => {
     await db.waitlistEvent.deleteMany({ where: { matchId: match.id } });

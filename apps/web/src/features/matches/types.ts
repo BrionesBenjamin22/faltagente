@@ -5,7 +5,7 @@ export interface Match { id: string; location: Location; sport: MatchSport; spor
 export type OrganizedMatchFilter = "upcoming" | "past" | "cancelled";
 export type MyMatchRole = "organizer" | "player";
 export interface MyMatch extends Match {
-  reservation?: { id: string; places: number; status: "CONFIRMED" | "CANCELLED"; cancellationSource: "USER" | "MATCH" | null; cancelledAt: string | null };
+  reservation?: { id: string; places: number; status: "CONFIRMED" | "CANCELLED"; cancellationSource: "USER" | "MATCH" | "ORGANIZER" | null; cancelledAt: string | null };
 }
 export interface MyMatchPage extends Omit<MatchPage, "items"> { items: MyMatch[] }
 export interface MatchPage { items: Match[]; total: number; page: number; pageSize: number; hasMore: boolean }

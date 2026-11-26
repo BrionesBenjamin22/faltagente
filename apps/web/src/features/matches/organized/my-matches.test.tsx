@@ -38,6 +38,7 @@ it("switches to reserved matches on page one and distinguishes voluntary and org
     return new Response(JSON.stringify({ items: reserved ? [
       { ...match, id: "voluntary", reservation: { id: "r1", places: 2, status: "CANCELLED", cancellationSource: "USER", cancelledAt: "2099-01-01" } },
       { ...match, id: "organizer", venueName: "Cancha cancelada", status: "CANCELLED", reservation: { id: "r2", places: 1, status: "CANCELLED", cancellationSource: "MATCH", cancelledAt: "2099-01-01" } },
+      { ...match, id: "organizer-reservation", venueName: "Reserva cancelada", reservation: { id: "r3", places: 3, status: "CANCELLED", cancellationSource: "ORGANIZER", cancelledAt: "2099-01-01" } },
     ] : [match], total: 10, page: Number(url.searchParams.get("page")), pageSize: 9, hasMore: true }));
   });
   vi.stubGlobal("fetch", fetch); open();
@@ -49,6 +50,8 @@ it("switches to reserved matches on page one and distinguishes voluntary and org
   expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("filter=upcoming&page=1&role=player"), expect.anything());
   expect(screen.getByText("Cancelaste tu reserva. 2 lugares.")).toBeInTheDocument();
   expect(screen.getByText("Cancelada por el organizador. 1 lugar.")).toBeInTheDocument();
+  expect(screen.getByText("Cancelada por el organizador. 3 lugares.")).toBeInTheDocument();
+  expect(screen.queryByText("Cancelaste tu reserva. 3 lugares.")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Reservados" })).toHaveAttribute("aria-pressed", "true");
   fireEvent.click(screen.getByRole("button", { name: "Cancelados" }));
   await waitFor(() => expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("filter=cancelled&page=1&role=player"), expect.anything()));
