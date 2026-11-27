@@ -1,28 +1,202 @@
-.page { max-width:760px; margin-inline:auto; min-width:0; }
-.back { display:inline-flex; align-items:center; min-height:44px; gap:8px; margin-bottom:20px; }
-.article { padding:clamp(20px,5vw,36px); border:1px solid var(--line); background:var(--surface); border-radius:12px; overflow-wrap:anywhere; }
-.heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px; min-width:0; }
-.sports { display:flex; align-items:center; flex-wrap:wrap; gap:12px; min-width:0; }
-.title { font-size:clamp(1.75rem,5vw,2.25rem); margin:0; }
-.format { border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:.95rem; }
-.date { display:block; font-size:clamp(1.1rem,4vw,1.35rem); font-weight:600; margin-bottom:12px; }
-.availability { margin-bottom:0; font-weight:600; }
-.status { margin-bottom:12px; color:var(--danger); font-weight:700; }
-.section { border-top:1px solid var(--line); padding-top:24px; margin-top:24px; }
-.section h2 { font-size:1.1rem; margin-bottom:10px; }
-.section p { margin-bottom:4px; }
-.venue { font-weight:600; }
-.facts { display:grid; gap:24px; }
-.price { font-size:1.75rem; font-weight:700; line-height:1.2; }
-.description { white-space:pre-wrap; }
-@media(min-width:600px) { .facts { grid-template-columns:1fr 1fr; } }
-
+/* Detalle deportivo de Falta Gente: tema y cancha dependientes del deporte, lógica original intacta. */
+.page { width:100%; max-width:1280px; margin-inline:auto; min-width:0; }
+.breadcrumbs { display:flex; align-items:center; gap:14px; color:var(--muted); font-size:.91rem; font-weight:650; margin:0 0 26px; }
+.back { display:inline-flex; align-items:center; min-height:44px; color:inherit; text-decoration:none; }
+.back:hover { color:var(--club); }
+.breadcrumbSeparator { font-size:1.7rem; line-height:1; font-weight:300; opacity:.68; }
+.article { --detail-surface:var(--surface); --detail-border:var(--line); --detail-soft:var(--notice); --detail-accent:var(--club); --detail-copy:var(--ink); --detail-muted:var(--muted); --pitch-main:#d5f0ca; --pitch-stroke:#b5d9ad; display:block; min-width:0; overflow-wrap:anywhere; }
+/* The light theme uses the approved luminous sport palettes. */
+.hero { background:radial-gradient(circle at 82% 28%,rgba(183,224,147,.46),transparent 46%),linear-gradient(117deg,#eaf5e7 0%,#d4eacb 64%,#e9f2da 100%); color:#183e2e; border:1px solid #b7d5b7; border-radius:26px; overflow:hidden; box-shadow:0 24px 48px rgba(33,82,48,.08); isolation:isolate; }
+.article[data-sport="basquet"] .hero { background:radial-gradient(circle at 84% 28%,#edc6a7 0%,transparent 50%),linear-gradient(117deg,#fcf2e1,#efdcc3); border-color:#e4cdb5; }
+.article[data-sport="padel"] .hero { background:radial-gradient(circle at 82% 28%,#b5e4d2 0%,transparent 50%),linear-gradient(117deg,#e8f7ee,#cde9dc); border-color:#b4dccd; }
+.article[data-sport="voley"] .hero { background:radial-gradient(circle at 82% 28%,#f4d9b4 0%,transparent 50%),linear-gradient(117deg,#f9f2e2,#eadfc9); border-color:#e5d1b4; }
+.heroTop { position:relative; display:flex; align-items:center; min-height:322px; padding:clamp(28px,4vw,52px) clamp(26px,4vw,54px); gap:12px; }
+.heroCopy { position:relative; z-index:1; width:62%; min-width:0; }
+.heroEyebrow { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin:0 0 22px; color:#35674a; text-transform:uppercase; font-size:.79rem; font-weight:850; line-height:1.3; letter-spacing:.13em; }
+.heroSportIcon { width:17px; height:17px; flex:none; }
+.liveDot { width:8px; height:8px; flex:none; border-radius:50%; background:#7dc844; box-shadow:0 0 0 5px rgba(91,164,54,.13); }
+.title { font-family:Impact,"Arial Narrow", "Segoe UI",sans-serif; text-transform:uppercase; font-size:clamp(3.7rem,7.6vw,7.4rem); line-height:.96; letter-spacing:-.045em; font-weight:900; margin:0 0 22px; overflow-wrap:normal; text-wrap:balance; }
+.heroTags { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.format,.statusBadge { display:inline-flex; align-items:center; gap:8px; padding:7px 13px; border-radius:999px; font-size:.84rem; line-height:1.4; font-weight:800; color:#23523b; background:rgba(255,255,255,.24); border:1px solid rgba(47,102,61,.22); }
+.format svg { width:16px; height:16px; }
+.statusBadge { background:rgba(63,139,52,.11); border-color:rgba(67,129,58,.22); }
+.badgeDot { background:#4ba34c; width:7px; height:7px; border-radius:50%; }
+.statusCancelled { color:#9b3737; background:rgba(159,57,57,.09); border-color:rgba(159,57,57,.25); }
+.statusCancelled .badgeDot { background:#b14e4e; }
+.heroDescription { margin:16px 0 0; font-size:1rem; color:#47725c; }
+.heroArt { position:absolute; right:2%; top:50%; width:min(41%,470px); transform:translateY(-50%) rotate(-10deg); filter:drop-shadow(0 25px 20px rgba(14,56,33,.24)); pointer-events:none; }
+.heroArt svg { display:block; width:100%; height:auto; }
+.heroStats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); background:rgba(47,111,65,.07); border-top:1px solid rgba(46,95,59,.17); }
+.heroStat { display:flex; align-items:center; gap:16px; min-width:0; padding:20px clamp(18px,3vw,48px); }
+.heroStat:not(:last-child) { border-right:1px solid rgba(46,95,59,.17); }
+.heroStat>svg { width:23px; height:23px; color:#357e47; flex:none; }
+.heroStat div { display:grid; gap:1px; min-width:0; }
+.heroStat span { font-size:.72rem; letter-spacing:.045em; text-transform:uppercase; font-weight:850; color:#597765; }
+.heroStat strong,.heroStat time { font-size:.98rem; font-weight:750; line-height:1.45; color:#244231; }
+.mainGrid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(310px,.95fr); gap:20px; margin:22px 0 0; align-items:start; }
+.leftColumn { display:grid; gap:20px; min-width:0; }
+.information,.bookingPanel,.activity,.organizerArea { border:1px solid var(--detail-border); background:var(--detail-surface); border-radius:23px; padding:clamp(22px,3vw,32px); min-width:0; box-shadow:0 16px 40px rgba(24,57,34,.045); }
+.sectionHeading,.bookingHeading { display:flex; justify-content:space-between; gap:12px; align-items:start; margin-bottom:24px; }
+.kicker { display:flex; align-items:center; gap:7px; text-transform:uppercase; letter-spacing:.15em; font-size:.72rem; font-weight:850; color:var(--detail-accent); margin:0 0 9px; }
+.kicker svg { width:17px; height:17px; }
+.sectionHeading h2,.bookingHeading h2 { font-size:clamp(1.3rem,2vw,1.7rem); line-height:1.18; font-weight:850; letter-spacing:-.04em; margin:0 0 9px; }
+.sectionIntro { margin:0; color:var(--detail-muted); font-size:.91rem; }
+.headingSport { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; flex:none; background:var(--detail-soft); color:var(--detail-accent); }
+.headingSport svg { width:24px; height:24px; }
+.placeCard { display:flex; justify-content:space-between; min-width:0; overflow:hidden; background:var(--detail-soft); border:1px solid var(--detail-border); border-radius:15px; }
+.placeCopy { min-width:0; padding:18px 20px; flex:1; }
+.smallLabel { display:block; text-transform:uppercase; letter-spacing:.09em; color:var(--detail-muted); font-size:.69rem; font-weight:800; margin-bottom:6px; }
+.venue { display:block; font-size:1.13rem; line-height:1.35; font-weight:800; margin-bottom:7px; }
+.placeCopy p { margin:0; color:var(--detail-muted); font-size:.88rem; line-height:1.55; }
+.miniCourt { flex:0 0 29%; min-width:105px; display:grid; place-items:center; background:linear-gradient(140deg,#224e30,#173a2b); overflow:hidden; }
+.miniCourt svg { width:135%; max-width:none; transform:rotate(-90deg) scale(.85); opacity:.92; }
+.detailsGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin-top:25px; }
+.detailItem { display:flex; align-items:start; gap:13px; min-width:0; }
+.detailItem+ .detailItem { border-left:1px solid var(--detail-border); padding-left:22px; }
+.detailItem>svg { width:21px; height:21px; flex:none; color:var(--detail-accent); }
+.detailItem div { min-width:0; display:grid; gap:3px; }
+.detailItem span { color:var(--detail-muted); font-size:.79rem; }
+.detailItem strong { font-size:.94rem; line-height:1.35; }
+.detailItem small { color:var(--detail-muted); font-size:.78rem; }
+.description { border-top:1px solid var(--detail-border); margin-top:26px; padding-top:20px; }
+.description h3 { font-size:.96rem; font-weight:800; margin:0 0 9px; }
+.description p { white-space:pre-wrap; overflow-wrap:anywhere; color:var(--detail-muted); font-size:.91rem; margin:0; line-height:1.75; }
+.bookingPanel { position:relative; }
+.bookingHeading { align-items:center; margin-bottom:22px; }
+.bookingHeading h2 { font-size:clamp(1.35rem,2vw,1.75rem); margin:0; }
+.bookingChip { flex:none; padding:6px 9px; border-radius:999px; background:var(--detail-soft); color:var(--detail-accent); font-size:.65rem; font-weight:850; letter-spacing:.02em; }
+.bookingPrice { display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.bookingPrice strong { font-size:clamp(2rem,3vw,2.8rem); letter-spacing:-.06em; font-weight:850; line-height:1.14; }
+.bookingPrice span { font-size:.85rem; color:var(--detail-muted); }
+.availabilityLine { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.availabilityLine strong { color:var(--detail-copy); font-weight:800; font-size:.92rem; }
+.availability { color:var(--detail-copy); }
+.availabilityLine>span { color:var(--detail-muted); font-size:.77rem; white-space:nowrap; }
+.occupancyMeter { background:var(--detail-soft); border-radius:999px; border:1px solid var(--detail-border); height:10px; overflow:hidden; }
+.occupancyMeter>span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#23845c,#b7ea70); transition:width .25s; }
+.occupancyFoot { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:.75rem; color:var(--detail-muted); margin-top:9px; }
+.reservationSection { border-top:1px solid var(--detail-border); margin-top:26px; padding-top:22px; }
 .reservation { margin:0; min-width:0; }
-.reservationControls { display:flex; align-items:flex-end; justify-content:flex-start; flex-wrap:wrap; gap:12px 20px; }
-.reservationButton { min-height:46px; }
-.reservationQuantity { display:grid; gap:6px; width:150px; max-width:100%; }
-.reservationQuantity label { font-size:.875rem; font-weight:600; }
-.reservationHint { margin:10px 0 0; font-size:.875rem; }
-.reservationFooter { border-top:1px solid var(--line); margin-top:24px; padding-top:24px; }
+.reservation>p:first-child { margin-top:0; }
+.reservation :global(.notice) { border-radius:13px; border-left:0; }
+.reservationControls { display:flex; flex-wrap:wrap; gap:14px; align-items:end; }
+.reservationQuantity { display:grid; gap:6px; width:100%; }
+.reservationQuantity label { font-size:.84rem; font-weight:750; }
+.reservationQuantity input { width:100%; background:var(--detail-surface); }
+.reservationButton,.reservationControls button { width:100%; min-height:48px; border-radius:11px; font-weight:750; }
+.reservationControls button { order:2; }
+.reservationControls .reservationQuantity { order:1; }
+.reservationHint { margin:11px 0 0; font-size:.82rem; color:var(--detail-muted); }
+.confirmedStatus { background:var(--detail-soft); border-radius:14px; padding:16px; margin-bottom:14px; }
+.confirmedStatus p { margin:0; }
+.confirmedStatus p:first-child { font-size:.94rem; font-weight:800; color:var(--detail-accent); }
+.confirmedStatus p+p { color:var(--detail-muted); font-size:.85rem; margin-top:4px; }
+.cancelButton { width:100%; margin-top:4px; border-radius:11px; }
+.sharingArea { display:flex; flex-direction:column; border-top:1px solid var(--detail-border); margin-top:18px; padding-top:18px; }
+.sharingArea>span,.sharingArea button { width:100%; }
+.sharingArea button { display:flex; justify-content:center; gap:10px; font-weight:700; border-radius:12px; }
+.sharingArea button::after { content:"Compartir partido"; font-size:.88rem; }
+.activity { padding:0; }
+.activity details { width:100%; }
+.activity summary { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:80px; cursor:pointer; padding:18px clamp(22px,3vw,32px); list-style:none; }
+.activity summary::-webkit-details-marker { display:none; }
+.activity summary strong,.activity summary small { display:block; }
+.activity summary strong { font-size:.98rem; font-weight:800; }
+.activity summary small { font-size:.8rem; color:var(--detail-muted); margin-top:3px; }
+.activity summary svg { width:19px; height:19px; flex:none; transition:transform .2s; }
+.activity details[open] summary svg { transform:rotate(180deg); }
+.activityBody { padding:0 clamp(20px,3vw,32px) 22px; }
+.activityBody .section { border-top:1px solid var(--detail-border); margin:0; padding-top:14px; }
+.activityBody .section h2 { font-size:1rem; }
+.activityBody .section>p { font-size:.82rem; }
+.organizerArea { margin-top:20px; }
+.organizerArea:empty { display:none; }
+.organizerArea .actions { margin-top:12px; }
+.section { padding-top:18px; }
 .reservationTextarea { width:100%; min-height:100px; resize:vertical; }
 .reservationReason { white-space:pre-wrap; overflow-wrap:anywhere; }
+/* Keep the brand's dark green hero distinct from the airy light palette. */
+:global(html[data-theme="dark"]) .article { --detail-soft:#213e2c; }
+:global(html[data-theme="dark"]) .hero { background:radial-gradient(circle at 84% 40%,#205b3d 0%,transparent 46%),linear-gradient(117deg,#0b3022 4%,#12452c 64%,#14422e); color:#f1ffef; border-color:#30644b; box-shadow:0 18px 50px rgba(0,12,6,.2); }
+:global(html[data-theme="dark"]) .article[data-sport="basquet"] .hero { background:radial-gradient(circle at 84% 40%,rgba(187,120,58,.27),transparent 43%),linear-gradient(117deg,#123021 4%,#1b4830 72%,#27482d); }
+:global(html[data-theme="dark"]) .article[data-sport="padel"] .hero { background:radial-gradient(circle at 84% 40%,rgba(59,156,123,.24),transparent 43%),linear-gradient(117deg,#0c3028 4%,#175443 70%,#19382e); }
+:global(html[data-theme="dark"]) .article[data-sport="voley"] .hero { background:radial-gradient(circle at 84% 40%,rgba(187,126,87,.22),transparent 43%),linear-gradient(117deg,#123021 4%,#1d4731 70%,#29432d); }
+:global(html[data-theme="dark"]) .heroEyebrow { color:#c5eab7; }
+:global(html[data-theme="dark"]) .format,:global(html[data-theme="dark"]) .statusBadge { color:#e3fbd8; border-color:rgba(200,241,175,.22); background:rgba(204,249,175,.09); }
+:global(html[data-theme="dark"]) .heroDescription { color:#bdd9c5; }
+:global(html[data-theme="dark"]) .heroStats { background:rgba(3,20,12,.18); border-color:rgba(214,255,202,.13); }
+:global(html[data-theme="dark"]) .heroStat:not(:last-child) { border-color:rgba(214,255,202,.13); }
+:global(html[data-theme="dark"]) .heroStat>svg { color:#b8f178; }
+:global(html[data-theme="dark"]) .heroStat span { color:#bbd5bd; }
+:global(html[data-theme="dark"]) .heroStat strong,:global(html[data-theme="dark"]) .heroStat time { color:#f2fff0; }
+:global(html[data-theme="dark"]) .miniCourt { background:linear-gradient(140deg,#153d28,#0b271b); }
+@media(max-width:980px) {
+  .heroTop { min-height:295px; }
+  .mainGrid { grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr); gap:16px; }
+  .information,.bookingPanel,.organizerArea { padding:23px; }
+  .heroStat { padding:18px 20px; }
+  .title { font-size:clamp(3.4rem,8vw,6rem); }
+}
+@media(max-width:750px) {
+  .mainGrid { display:flex; flex-direction:column; }
+  .leftColumn { display:contents; }
+  .information { order:1; width:100%; }
+  .bookingPanel { order:2; width:100%; }
+  .activity { order:3; width:100%; }
+  .heroTop { min-height:270px; }
+  .heroCopy { width:68%; }
+  .heroArt { width:43%; right:-2%; }
+  .heroStats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:520px) {
+  .breadcrumbs { margin-bottom:14px; gap:9px; font-size:.78rem; }
+  .hero { border-radius:19px; }
+  .heroTop { min-height:265px; padding:26px 20px; align-items:flex-start; }
+  .heroCopy { width:100%; }
+  .heroEyebrow { font-size:.64rem; margin-bottom:20px; letter-spacing:.09em; max-width:70%; }
+  .heroArt { width:60%; right:-13%; top:56%; transform:translateY(-33%) rotate(-12deg); opacity:.55; filter:drop-shadow(0 10px 10px rgba(0,0,0,.17)); }
+  .title { position:relative; font-size:clamp(3.5rem,15vw,5.4rem); max-width:90%; margin-bottom:20px; }
+  .heroTags { max-width:78%; gap:7px; }
+  .format,.statusBadge { font-size:.69rem; padding:6px 9px; }
+  .heroDescription { position:relative; font-size:.81rem; max-width:75%; }
+  .heroStats { grid-template-columns:1fr 1fr; }
+  .heroStat { padding:12px 15px; gap:9px; }
+  .heroStat:last-child { grid-column:1 / -1; border-top:1px solid rgba(46,95,59,.17); }
+  .heroStat:nth-child(2) { border-right:none; }
+  .heroStat>svg { width:19px; height:19px; }
+  .heroStat span { font-size:.63rem; }
+  .heroStat strong,.heroStat time { font-size:.81rem; }
+  .information,.bookingPanel,.organizerArea { padding:20px 18px; border-radius:18px; }
+  .activity { border-radius:18px; }
+  .sectionHeading h2,.bookingHeading h2 { font-size:1.3rem; }
+  .placeCopy { padding:16px 15px; }
+  .miniCourt { min-width:92px; flex-basis:30%; }
+  .detailsGrid { gap:12px; }
+  .detailItem { gap:8px; }
+  .detailItem+ .detailItem { padding-left:12px; }
+  .detailItem>svg { width:18px; height:18px; }
+  .detailItem strong { font-size:.83rem; }
+  .detailItem small,.detailItem span { font-size:.73rem; }
+  .bookingPrice strong { font-size:2.3rem; }
+}
+@media(max-width:355px) {
+  .heroArt { opacity:.37; right:-24%; width:70%; }
+  .title { font-size:3.3rem; }
+  .heroTags { max-width:100%; }
+  .heroDescription { max-width:85%; }
+  .heroStat { padding:11px 10px; }
+  .heroStat strong,.heroStat time { font-size:.76rem; }
+  .miniCourt { min-width:72px; flex-basis:27%; }
+  .detailsGrid { grid-template-columns:1fr; }
+  .detailItem+ .detailItem { border-left:0; padding-left:0; }
+}
+@media(prefers-reduced-motion:reduce) { .occupancyMeter>span,.activity summary svg { transition:none; } }
+
+.ownerHeading p { margin:0 0 5px; font-size:.75rem; text-transform:uppercase; color:var(--detail-accent); font-weight:850; letter-spacing:.12em; }
+.ownerHeading h2 { font-size:1.4rem; letter-spacing:-.04em; margin:0 0 16px; }
+.ownerPanel .actions { display:flex; flex-wrap:wrap; gap:10px; }
+.ownerPanel>p { color:var(--detail-muted); }
+
+.loadingHero { display:grid; gap:16px; align-content:center; padding:clamp(24px,4vw,52px); min-height:280px; border:1px solid var(--line); border-radius:24px; background:var(--notice); }
+.loadingGrid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:20px; margin-top:20px; }
+@media(max-width:750px) { .loadingGrid { grid-template-columns:1fr; } }
