@@ -1,3 +1,4 @@
+import { recordCancellation } from './reservation-cancellations.domain.js';
 import {
   BadRequestException,
   ConflictException,
@@ -5,22 +6,55 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  databaseTime,
+  lockBookingDomain,
+  settleMatch,
+  allocateOffers,
+  heldPlaces,
+  finishEntry,
+  invalidateSameDay,
+} from '../waitlist/waitlist.domain.js';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module.js';
 import type { CreateMatchDto } from './dto/match-publication.dto.js';
 import type { CancelMatchDto, UpdateMatchDto } from './dto/match-update.dto.js';
 import type { MyMatchesQueryDto } from './dto/my-matches.dto.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
 export class MatchManagementService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async ownList(userId: string, query: MyMatchesQueryDto) {
     const now = new Date();
+    const playerRole = query.role === 'player';
     const where: Prisma.MatchWhereInput = {
-      organizerId: userId,
+      ...(playerRole
+        ? {
+            reservations: {
+              some: {
+                userId,
+                status:
+                  query.filter === 'cancelled' ? 'CANCELLED' : 'CONFIRMED',
+              },
+            },
+            ...(query.filter === 'cancelled'
+              ? {
+                  NOT: {
+                    reservations: { some: { userId, status: 'CONFIRMED' } },
+                  },
+                }
+              : {}),
+          }
+        : { organizerId: userId }),
       ...(query.filter === 'cancelled'
-        ? { status: 'CANCELLED' }
+        ? playerRole
+          ? {}
+          : { status: 'CANCELLED' as const }
         : {
             status: { in: ['OPEN', 'CLOSED'] },
             startsAt: query.filter === 'past' ? { lte: now } : { gt: now },
@@ -43,6 +77,31 @@ export class MatchManagementService {
             location: { select: { id: true, name: true, type: true } },
             sport: { select: { id: true, name: true, slug: true } },
             sportFormat: { select: { id: true, name: true, slug: true } },
+            ...(playerRole
+              ? {
+                  reservations: {
+                    where: {
+                      userId,
+                      status:
+                        query.filter === 'cancelled'
+                          ? ('CANCELLED' as const)
+                          : ('CONFIRMED' as const),
+                    },
+                    select: {
+                      id: true,
+                      places: true,
+                      status: true,
+                      cancellationSource: true,
+                      cancelledAt: true,
+                    },
+                    orderBy: [
+                      { createdAt: 'desc' as const },
+                      { id: 'desc' as const },
+                    ],
+                    take: 1,
+                  },
+                }
+              : {}),
           },
           orderBy: [{ startsAt: direction }, { id: direction }],
           take: 9,
@@ -53,7 +112,12 @@ export class MatchManagementService {
       { isolationLevel: 'RepeatableRead' },
     );
     return {
-      items,
+      items: playerRole
+        ? items.map(({ reservations, ...match }) => ({
+            ...match,
+            reservation: reservations[0],
+          }))
+        : items,
       total,
       page: query.page,
       pageSize: 9,
@@ -64,6 +128,7 @@ export class MatchManagementService {
   async create(userId: string, dto: CreateMatchDto) {
     try {
       return await this.db.$transaction(async (tx) => {
+        await lockBookingDomain(tx);
         // Shared lock order: users (sorted by id when several), then match.
         // Lock the user before checking their local-day participation.
         await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
@@ -116,8 +181,8 @@ export class MatchManagementService {
               'Seleccione un formato disponible para el deporte elegido.',
           });
         const [{ localDate }] = await tx.$queryRaw<{ localDate: Date }[]>`
-          SELECT (${startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"
-        `;
+        SELECT (${startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"
+      `;
         if (
           await tx.participation.findFirst({
             where: { userId, localDate, active: true },
@@ -162,8 +227,9 @@ export class MatchManagementService {
           },
           select: { id: true },
         });
+        await invalidateSameDay(tx, userId, localDate);
         return match;
-      });
+      }, { maxWait: 10_000, timeout: 30_000 });
     } catch (error) {
       // The partial unique index also protects against future participation writers.
       if (
@@ -196,8 +262,6 @@ export class MatchManagementService {
         totalPlaces: true,
         availablePlaces: true,
         version: true,
-        createdAt: true,
-        updatedAt: true,
         status: true,
         startsAt: true,
         venueName: true,
@@ -245,29 +309,57 @@ export class MatchManagementService {
     userId: string,
     id: string,
   ) {
-    const {
-      organizerId: _organizerId,
-      venueName,
-      _count,
-      sportId: _sportId,
-      sportFormatId: _sportFormatId,
-      locationId: _locationId,
-      ...match
-    } = await this.ownMatch(userId, id, tx);
-    const occupiedPlaces = match.totalPlaces - match.availablePlaces;
-    const activePlayerCount = _count.participations;
+    const match = await this.ownMatch(userId, id, tx);
+    const held = await heldPlaces(tx, id);
+    const activeWaitlistCount = await tx.waitlistEntry.count({
+      where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
+    });
+    const occupiedPlaces = match.totalPlaces - match.availablePlaces - held;
+    const activePlayerCount = match._count.participations;
     const hasConfirmedParticipants =
       activePlayerCount > 0 || occupiedPlaces > 0;
     const canEdit = match.status !== 'CANCELLED' && match.startsAt > new Date();
     return {
-      ...match,
-      placeName: venueName,
+      id: match.id,
+      sport: {
+        id: match.sport.id,
+        name: match.sport.name,
+        slug: match.sport.slug,
+        active: match.sport.active,
+      },
+      sportFormat: match.sportFormat
+        ? {
+            id: match.sportFormat.id,
+            name: match.sportFormat.name,
+            slug: match.sportFormat.slug,
+            active: match.sportFormat.active,
+          }
+        : null,
+      location: {
+        id: match.location.id,
+        name: match.location.name,
+        type: match.location.type,
+        active: match.location.active,
+      },
+      startsAt: match.startsAt,
+      placeName: match.venueName,
+      address: match.address,
+      description: match.description,
+      status: match.status,
+      cancelledAt: match.cancelledAt,
+      cancellationReason: match.cancellationReason,
+      totalPlaces: match.totalPlaces,
+      availablePlaces: match.availablePlaces,
+      version: match.version,
       pricePerPerson: match.pricePerPerson.toString(),
       occupiedPlaces,
+      heldPlaces: held,
+      activeWaitlistCount,
+      hasActiveWaitlist: activeWaitlistCount > 0,
       activePlayerCount,
       hasConfirmedParticipants,
       canEdit,
-      canCancel: canEdit && !hasConfirmedParticipants,
+      canCancel: canEdit,
       canAdjustCapacity:
         canEdit && this.capacityConsistent(occupiedPlaces, activePlayerCount),
     };
@@ -286,6 +378,8 @@ export class MatchManagementService {
     userId: string,
     id: string,
   ) {
+    await lockBookingDomain(tx);
+    await settleMatch(tx, id);
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
     await tx.$queryRaw`SELECT "id" FROM "Match" WHERE "id" = ${id}::uuid FOR UPDATE`;
     const match = await tx.match.findUnique({
@@ -329,8 +423,9 @@ export class MatchManagementService {
   }
 
   async update(userId: string, id: string, dto: UpdateMatchDto) {
+    let hasChanged = false;
     try {
-      return await this.db.$transaction(async (tx) => {
+      const result = await this.db.$transaction(async (tx) => {
         const match = await this.lockedMatch(tx, userId, id);
         this.checkVersion(match.version, dto.expectedVersion);
         this.checkFuture(match);
@@ -352,24 +447,33 @@ export class MatchManagementService {
         if (dto.locationId !== undefined) after.locationId = dto.locationId;
         if (dto.startsAt !== undefined)
           after.startsAt = new Date(dto.startsAt).toISOString();
-        if (dto.placeName !== undefined) after.placeName = dto.placeName.trim();
+        if (dto.placeName !== undefined)
+          after.placeName = dto.placeName.trim();
         if (dto.address !== undefined) after.address = dto.address.trim();
         if (dto.pricePerPerson !== undefined)
           after.pricePerPerson = new Prisma.Decimal(
             dto.pricePerPerson,
           ).toString();
-        if (dto.totalPlaces !== undefined) after.totalPlaces = dto.totalPlaces;
+        if (dto.totalPlaces !== undefined)
+          after.totalPlaces = dto.totalPlaces;
         if (dto.description !== undefined)
           after.description = dto.description?.trim() || null;
-        const changed = (Object.keys(before) as (keyof typeof before)[]).filter(
-          (key) => before[key] !== after[key],
-        );
+        const changed = (
+          Object.keys(before) as (keyof typeof before)[]
+        ).filter((key) => before[key] !== after[key]);
         if (!changed.length) return { id };
-        const occupied = match.totalPlaces - match.availablePlaces;
+        hasChanged = true;
+        const held = await heldPlaces(tx, id);
+        const activeWaitlistCount = await tx.waitlistEntry.count({
+          where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
+        });
+        const occupied = match.totalPlaces - match.availablePlaces - held;
         const players = match._count.participations;
         if (
-          (players > 0 || occupied > 0) &&
-          changed.some((key) => key !== 'description' && key !== 'totalPlaces')
+          (players > 0 || occupied > 0 || activeWaitlistCount > 0) &&
+          changed.some(
+            (key) => key !== 'description' && key !== 'totalPlaces',
+          )
         ) {
           throw new ConflictException({
             code: 'MATCH_FIELDS_RESTRICTED',
@@ -384,7 +488,7 @@ export class MatchManagementService {
               message:
                 'Los jugadores y lugares ocupados no coinciden. Revise las reservas antes de ajustar la capacidad.',
             });
-          if (after.totalPlaces < occupied)
+          if (after.totalPlaces < occupied + held)
             throw new ConflictException({
               code: 'MATCH_CAPACITY_INSUFFICIENT',
               message:
@@ -451,10 +555,16 @@ export class MatchManagementService {
           >`SELECT (${startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"`;
           if (
             await tx.participation.findFirst({
-              where: { userId, localDate, active: true, matchId: { not: id } },
+              where: {
+                userId,
+                localDate,
+                active: true,
+                matchId: { not: id },
+              },
             })
           )
             throw this.dateConflict();
+          await invalidateSameDay(tx, userId, localDate);
           await tx.participation.updateMany({
             where: { matchId: id, userId, role: 'ORGANIZER', active: true },
             data: { localDate },
@@ -495,14 +605,18 @@ export class MatchManagementService {
               before: match.availablePlaces,
               after: Number(data.availablePlaces),
             };
-            data.status = Number(data.availablePlaces) > 0 ? 'OPEN' : 'CLOSED';
+            data.status =
+              Number(data.availablePlaces) > 0 ? 'OPEN' : 'CLOSED';
             if (data.status !== match.status)
               changes.status = { before: match.status, after: data.status };
           } else Object.assign(data, { [key]: after[key] });
         }
         await tx.match.update({ where: { id }, data });
+        await allocateOffers(tx, id);
         return { id };
-      });
+      }, { maxWait: 10_000, timeout: 30_000 });
+      if (hasChanged) await this.notifyMatchUpdated(userId, id);
+      return result;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -514,25 +628,83 @@ export class MatchManagementService {
   }
 
   async cancel(userId: string, id: string, dto: CancelMatchDto) {
-    return this.db.$transaction(async (tx) => {
+    const result = await this.db.$transaction(async (tx) => {
       const match = await this.lockedMatch(tx, userId, id);
       // Ownership is always checked; a repeated cancellation cannot rewrite audit.
       if (match.status === 'CANCELLED') return { id };
       this.checkVersion(match.version, dto.expectedVersion);
-      this.checkFuture(match);
-      if (
-        match._count.participations > 0 ||
-        match.totalPlaces - match.availablePlaces > 0
-      )
+      const cancellationTime = await databaseTime(tx);
+      if (match.startsAt <= cancellationTime)
         throw new ConflictException({
-          code: 'MATCH_CANCELLATION_REQUIRES_RESERVATIONS_INTEGRATION',
-          message:
-            'Este partido tiene jugadores o lugares ocupados. La cancelación requiere la gestión de reservas.',
+          code: 'MATCH_NOT_EDITABLE',
+          message: 'Sólo puede cancelar partidos futuros. Vuelva al detalle.',
         });
-      const cancelledAt = new Date();
+      const [reservations, participations] = await Promise.all([
+        tx.reservation.findMany({
+          where: { matchId: id, status: 'CONFIRMED' },
+          select: { id: true, userId: true, places: true },
+        }),
+        tx.participation.findMany({
+          where: { matchId: id, active: true },
+          select: { userId: true, role: true, localDate: true },
+        }),
+      ]);
+      const [{ localDate }] = await tx.$queryRaw<
+        { localDate: Date }[]
+      >`SELECT (${match.startsAt}::timestamptz AT TIME ZONE 'America/Argentina/Buenos_Aires')::date AS "localDate"`;
+      const players = participations.filter((p) => p.role === 'PLAYER');
+      const playerIds = new Set(players.map((p) => p.userId));
+      const organizers = participations.filter((p) => p.role === 'ORGANIZER');
+      const occupiedPlaces = reservations.reduce(
+        (sum, row) => sum + row.places,
+        0,
+      );
+      if (
+        match.availablePlaces < 0 ||
+        match.availablePlaces > match.totalPlaces ||
+        occupiedPlaces + (await heldPlaces(tx, id)) !==
+          match.totalPlaces - match.availablePlaces ||
+        (match.status === 'CLOSED') !== (match.availablePlaces === 0) ||
+        organizers.length !== 1 ||
+        organizers[0].userId !== userId ||
+        participations.some(
+          (p) => p.localDate.getTime() !== localDate.getTime(),
+        ) ||
+        players.length !== reservations.length ||
+        reservations.some(
+          (row) => row.userId === userId || !playerIds.has(row.userId),
+        )
+      ) {
+        throw new ConflictException({
+          code: 'MATCH_CANCELLATION_INCONSISTENT',
+          message:
+            'No pudimos cancelar el partido porque sus reservas y lugares no coinciden. Recargue e intente nuevamente.',
+        });
+      }
+      const waitlistEntries = await tx.waitlistEntry.findMany({
+        where: { matchId: id, status: { in: ['WAITING', 'OFFERED'] } },
+        select: { id: true },
+      });
+      for (const entry of waitlistEntries)
+        await finishEntry(tx, entry.id, 'INVALIDATED', 'MATCH_CANCELLED');
+      const cancelledAt = cancellationTime;
       const cancellationReason = dto.reason?.trim() || null;
+      // The match lock serializes every writer of these relations. Releasing a
+      // daily participation needs no player User lock; never acquire one here.
+      for (const reservation of reservations)
+        await recordCancellation(tx, reservation, 0, cancelledAt, 'MATCH', null);
+      await tx.reservation.updateMany({
+        where: { matchId: id, status: 'CONFIRMED' },
+        data: {
+          status: 'CANCELLED',
+          version: { increment: 1 },
+          cancelledAt,
+          cancellationSource: 'MATCH',
+          cancellationReason: null,
+        },
+      });
       await tx.participation.updateMany({
-        where: { userId, matchId: id, role: 'ORGANIZER', active: true },
+        where: { matchId: id, active: true },
         data: { active: false },
       });
       await tx.match.update({
@@ -541,6 +713,7 @@ export class MatchManagementService {
           status: 'CANCELLED',
           cancelledAt,
           cancellationReason,
+          availablePlaces: match.totalPlaces,
           version: { increment: 1 },
           changes: {
             create: {
@@ -548,15 +721,107 @@ export class MatchManagementService {
               event: 'CANCELLED',
               changes: {
                 status: { before: match.status, after: 'CANCELLED' },
-                cancelledAt: { before: null, after: cancelledAt.toISOString() },
-                cancellationReason: { before: null, after: cancellationReason },
+                cancelledAt: {
+                  before: null,
+                  after: cancelledAt.toISOString(),
+                },
+                cancellationReason: {
+                  before: null,
+                  after: cancellationReason,
+                },
+                availablePlaces: {
+                  before: match.availablePlaces,
+                  after: match.totalPlaces,
+                },
               },
             },
           },
         },
       });
       return { id };
+    }, { maxWait: 10_000, timeout: 30_000 });
+    await this.notifyMatchCancelled(userId, id);
+    return result;
+  }
+
+  private async notifyMatchUpdated(userId: string, matchId: string) {
+    const match = await this.db.match.findUnique({
+      where: { id: matchId },
+      select: {
+        id: true,
+        version: true,
+        venueName: true,
+        organizerId: true,
+        sport: { select: { name: true } },
+        reservations: {
+          where: { status: 'CONFIRMED' },
+          select: { userId: true },
+        },
+      },
     });
+    if (!match) return;
+    await this.notifications.safeCreate({
+      userId,
+      type: 'MATCH_UPDATED',
+      title: 'Actualizaste tu partido',
+      body: `Modificaste ${match.sport.name} en ${match.venueName}.`,
+      detail: 'La modificación quedó registrada.',
+      relatedMatchId: match.id,
+      actorUserId: userId,
+      dedupeKey: `MATCH_UPDATED_CONFIRMATION:${match.id}:${match.version}`,
+    });
+    for (const reservation of match.reservations) {
+      if (reservation.userId === match.organizerId || reservation.userId === userId) continue;
+      await this.notifications.safeCreate({
+        userId: reservation.userId,
+        type: 'MATCH_UPDATED',
+        title: 'Se modificó tu partido',
+        body: `El organizador modificó ${match.sport.name} en ${match.venueName}.`,
+        detail: 'Revisá la información actualizada antes de participar.',
+        relatedMatchId: match.id,
+        actorUserId: userId,
+        dedupeKey: `MATCH_UPDATED_PARTICIPANT:${match.id}:${reservation.userId}:${match.version}`,
+      });
+    }
+  }
+
+  private async notifyMatchCancelled(userId: string, matchId: string) {
+    const match = await this.db.match.findUnique({
+      where: { id: matchId },
+      select: {
+        id: true,
+        venueName: true,
+        sport: { select: { name: true } },
+      },
+    });
+    if (!match) return;
+    await this.notifications.safeCreate({
+      userId,
+      type: 'MATCH_CANCELLED',
+      title: 'Cancelaste tu partido',
+      body: `Cancelaste ${match.sport.name} en ${match.venueName}.`,
+      detail: 'La cancelación quedó registrada.',
+      relatedMatchId: match.id,
+      actorUserId: userId,
+      dedupeKey: `MATCH_CANCELLED_CONFIRMATION:${match.id}`,
+    });
+    const reservations = await this.db.reservation.findMany({
+      where: { matchId: match.id, status: 'CANCELLED', cancellationSource: 'MATCH' },
+      select: { userId: true, id: true },
+    });
+    for (const reservation of reservations) {
+      if (reservation.userId === userId) continue;
+      await this.notifications.safeCreate({
+        userId: reservation.userId,
+        type: 'MATCH_CANCELLED',
+        title: 'Se canceló tu partido',
+        body: `El organizador canceló ${match.sport.name} en ${match.venueName}.`,
+        detail: 'La cancelación quedó registrada.',
+        relatedMatchId: match.id,
+        actorUserId: userId,
+        dedupeKey: `MATCH_CANCELLED_PARTICIPANT:${match.id}:${reservation.id}`,
+      });
+    }
   }
 
   async history(userId: string, id: string, page: number) {

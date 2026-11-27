@@ -9,8 +9,6 @@ export const userSelect = {
   email: true,
   emailVerifiedAt: true,
   passwordHash: true,
-  createdAt: true,
-  updatedAt: true,
   primaryLocation: { select: { id: true, name: true, type: true } },
 } satisfies Prisma.UserSelect;
 export const userDto = (
@@ -21,9 +19,13 @@ export const userDto = (
   email: user.email,
   emailVerified: Boolean(user.emailVerifiedAt),
   hasLocalPassword: Boolean(user.passwordHash),
-  createdAt: user.createdAt,
-  updatedAt: user.updatedAt,
-  primaryLocation: user.primaryLocation,
+  primaryLocation: user.primaryLocation
+    ? {
+        id: user.primaryLocation.id,
+        name: user.primaryLocation.name,
+        type: user.primaryLocation.type,
+      }
+    : null,
 });
 @Injectable()
 export class UsersService {
@@ -85,22 +87,6 @@ export class UsersService {
       await tx.userProfileChange.create({ data: { userId, changes } });
       return userDto(user);
     });
-  }
-  async history(userId: string, page: number) {
-    const [items, total] = await this.db.$transaction(
-      [
-        this.db.userProfileChange.findMany({
-          where: { userId },
-          select: { id: true, occurredAt: true, changes: true },
-          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
-          take: 3,
-          skip: (page - 1) * 3,
-        }),
-        this.db.userProfileChange.count({ where: { userId } }),
-      ],
-      { isolationLevel: 'RepeatableRead' },
-    );
-    return { items, total, page, pageSize: 3, hasMore: page * 3 < total };
   }
   async validateLocation(id: string) {
     if (

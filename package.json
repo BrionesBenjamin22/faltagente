@@ -10,6 +10,13 @@
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api start:dev",
+    "neon:pull": "neon env pull --file .env.neon.local --service postgres",
+    "neon:start": "node scripts/neon/run.mjs start",
+    "neon:status": "node scripts/neon/run.mjs status",
+    "neon:check": "node scripts/neon/run.mjs check",
+    "neon:migrate": "node scripts/neon/run.mjs migrate",
+    "neon:seed": "node scripts/neon/run.mjs seed",
+    "test:neon": "node --test scripts/neon/*.test.mjs",
     "lint": "pnpm --recursive run lint",
     "typecheck": "pnpm --recursive run typecheck",
     "test": "pnpm --recursive run test",
@@ -21,5 +28,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.8",
+    "@neon/env": "^2.1.11"
   }
 }

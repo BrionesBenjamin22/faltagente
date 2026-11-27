@@ -18,7 +18,7 @@ describe('environment configuration', () => {
       validateEnvironment({ ...runtime, CSRF_SECRET: runtime.JWT_SECRET }),
     ).toThrow('diferentes');
   });
-  it('rejects HTTP origins and missing email configuration in production', () => {
+  it('requires Brevo email configuration in production', () => {
     expect(() =>
       validateEnvironment({ ...runtime, NODE_ENV: 'production' }),
     ).toThrow('HTTPS');
@@ -30,6 +30,28 @@ describe('environment configuration', () => {
         CORS_ORIGINS: 'https://app.falta-gente.test',
       }),
     ).toThrow('email');
+
+    expect(() =>
+      validateEnvironment({
+        ...runtime,
+        NODE_ENV: 'production',
+        FRONTEND_URL: 'https://app.falta-gente.test',
+        CORS_ORIGINS: 'https://app.falta-gente.test',
+        RESEND_API_KEY: 'legacy-key-must-not-satisfy-production',
+        EMAIL_FROM: 'noreply@example.test',
+      }),
+    ).toThrow('email');
+
+    expect(
+      validateEnvironment({
+        ...runtime,
+        NODE_ENV: 'production',
+        FRONTEND_URL: 'https://app.falta-gente.test',
+        CORS_ORIGINS: 'https://app.falta-gente.test',
+        BREVO_API_KEY: 'brevo-test-key',
+        EMAIL_FROM: 'Falta Gente <noreply@example.test>',
+      }).BREVO_API_KEY,
+    ).toBe('brevo-test-key');
   });
   it('validates frontend origin membership', () => {
     expect(() =>

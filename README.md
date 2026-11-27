@@ -118,7 +118,7 @@ El alcance objetivo contempla las siguientes funciones. El apartado «Estado act
 - asociación de cada partido a un deporte;
 - formatos deportivos opcionales;
 - reserva de uno o más lugares;
-- acompañantes opcionales;
+- reservas grupales por cantidad de lugares;
 - cancelación de reservas;
 - cancelación de partidos;
 - lista de espera para partidos completos;
@@ -175,13 +175,23 @@ MVP-04 agrega publicación autenticada en `/partidos/nuevo`, creación atómica 
 Google OAuth y reservas también continúan pendientes.
 
 - [Backend: configuración, persistencia y contratos](apps/api/VERTICAL-SLICE.md).
-- [Backend: perfil e historial privado](apps/api/PROFILE.md).
+- [Backend: perfil y trazabilidad interna](apps/api/PROFILE.md).
 - [Frontend: vistas, sesión y filtros](apps/web/FRONTEND.md).
 - [Pruebas de la vertical slice](tests/README.md).
 
 ### Inscripción a partidos
 
-El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md). Cancelación y lista de espera siguen pendientes.
+El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md).
+
+El titular puede cancelar toda su reserva antes del inicio sin ingresar motivo. Se liberan sus lugares y participación de forma atómica, se conserva el historial paginado y puede volver a reservar sujeto a disponibilidad. La [cancelación de reservas](docs/tasks/RESERVATIONS-02.md) registra el antecedente de esta funcionalidad.
+El organizador puede cancelar partidos futuros con reservas activas: cancela sus reservas y libera cupos y participaciones de forma atómica. El motivo es privado a los titulares afectados. Mis partidos incluye Organizados y Reservados con próximos, pasados y cancelados; diferencia bajas voluntarias y del organizador. Etapa validada manualmente y aprobada para commits: [cancelación de partidos con reservas](docs/tasks/RESERVATIONS-03.md).
+
+Titular y organizador pueden reducir una reserva de tres a dos lugares antes del inicio, con confirmación y control de versión. Sólo el organizador puede indicar un motivo opcional al reducir o cancelar una reserva. Se trabaja por cantidades, sin nombres ni registros individuales de acompañantes. El listado privado del organizador usa nueve reservas por página y el titular consulta tres movimientos por página. Los lugares liberados se reasignan atómicamente a la lista de espera. El máximo es de cien lugares por reserva o solicitud de espera. Ver [entrega aprobada](docs/tasks/finished/RESERVATIONS-04-quantity-reduction.md), [contrato API](apps/api/RESERVATIONS.md) y [frontend](apps/web/docs/matches.md).
+
+### Restricción de auditoría e historial de cambios
+
+Perfil y partidos ya no muestran auditoría ni historial de campos. Las rutas de lectura devuelven 404 y las respuestas afectadas excluyen fechas técnicas. Se conservan las escrituras históricas, el control de versión y el historial de reservas. El usuario validó manualmente el ajuste; ver [AUDIT-01](docs/tasks/AUDIT-01.md) para evidencia y la corrección autorizada de la carrera preexistente de refresh.
+
 ## Operación local con Docker Compose
 
 Con Docker Desktop iniciado y `.env` configurado, ejecutar desde la raíz:
@@ -258,7 +268,7 @@ DATABASE_URL=postgresql://hyt:<contraseña-local>@localhost:5432/falta-gente?sch
 JWT_SECRET=<secreto-aleatorio>
 CSRF_SECRET=<otro-secreto-aleatorio>
 
-RESEND_API_KEY=
+BREVO_API_KEY=
 EMAIL_FROM=
 ```
 
@@ -285,7 +295,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
 ```
 
-Para recibir emails reales de verificación y recuperación, completar `RESEND_API_KEY` y `EMAIL_FROM` con la configuración de Resend. Sin esos valores, el desarrollo permite registro/login y explorar partidos, pero no entrega los emails. Las pruebas cubren esos flujos con un transporte de email fake; no existe una bandeja de prueba en la aplicación.
+Para recibir emails reales de verificación y recuperación, completar `BREVO_API_KEY` y `EMAIL_FROM` con la configuración de Brevo. Sin esos valores, el desarrollo permite registro/login y explorar partidos, pero no entrega los emails. Las pruebas cubren esos flujos con un transporte de email fake; no existe una bandeja de prueba en la aplicación.
 
 Los archivos `.env` y `.env.local` están ignorados por Git. No versionar sus valores.
 

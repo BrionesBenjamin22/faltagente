@@ -3,10 +3,16 @@ export interface MatchSport { id: string; name: string; slug: string }
 export interface MatchSportFormat { id: string; name: string; slug: string }
 export interface Match { id: string; location: Location; sport: MatchSport; sportFormat: MatchSportFormat | null; startsAt: string; venueName: string; address: string; pricePerPerson: string; availablePlaces: number; status: "OPEN" | "CLOSED" | "CANCELLED"; description: string | null }
 export type OrganizedMatchFilter = "upcoming" | "past" | "cancelled";
+export type MyMatchRole = "organizer" | "player";
+export interface MyMatch extends Match {
+  reservation?: { id: string; places: number; status: "CONFIRMED" | "CANCELLED"; cancellationSource: "USER" | "MATCH" | "ORGANIZER" | null; cancelledAt: string | null };
+}
+export interface MyMatchPage extends Omit<MatchPage, "items"> { items: MyMatch[] }
 export interface MatchPage { items: Match[]; total: number; page: number; pageSize: number; hasMore: boolean }
 export interface MatchFilters { sportId?: string; sportFormatId?: string; date?: string }
 export interface MatchDetail {
   id: string;
+  totalPlaces?: number;
   sport: MatchSport;
   sportFormat: MatchSportFormat | null;
   startsAt: string;
@@ -35,8 +41,6 @@ export interface MatchManagement {
   totalPlaces: number;
   availablePlaces: number;
   version: number;
-  createdAt: string;
-  updatedAt: string;
   sport: MatchSport & { active: boolean };
   sportFormat: (MatchSportFormat & { active: boolean }) | null;
   location: { id: string; name: string; type: string; active: boolean };
@@ -49,6 +53,9 @@ export interface MatchManagement {
   cancelledAt: string | null;
   cancellationReason: string | null;
   hasConfirmedParticipants: boolean;
+  hasActiveWaitlist?: boolean;
+  heldPlaces?: number;
+  activeWaitlistCount?: number;
   canEdit: boolean;
   canCancel: boolean;
   canAdjustCapacity: boolean;
@@ -57,10 +64,3 @@ export interface MatchManagement {
 }
 export type UpdateMatchInput = Partial<CreateMatchInput> & { expectedVersion: number };
 export interface CancelMatchInput { expectedVersion: number; reason?: string }
-export interface MatchHistoryPage {
-  items: { id: string; actor: { id: string; name: string }; occurredAt: string; event: "PUBLISHED" | "UPDATED" | "CANCELLED"; changes: Record<string, { before: unknown; after: unknown }> }[];
-  total: number;
-  page: number;
-  pageSize: number;
-  hasMore: boolean;
-}

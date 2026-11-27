@@ -7,8 +7,6 @@ export class UserResponse {
   @ApiProperty({ format: 'email' }) email: string;
   @ApiProperty() emailVerified: boolean;
   @ApiProperty() hasLocalPassword: boolean;
-  @ApiProperty({ format: 'date-time' }) createdAt: string;
-  @ApiProperty({ format: 'date-time' }) updatedAt: string;
   @ApiProperty({ type: PublicLocationResponse, nullable: true })
   primaryLocation: PublicLocationResponse | null;
 }

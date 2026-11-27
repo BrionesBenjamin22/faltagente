@@ -31,6 +31,10 @@ La URL individual conserva acceso público para `OPEN`, `CLOSED` y `CANCELLED`, 
 
 La proyección Prisma selecciona exclusivamente los campos del contrato. El organizador expone únicamente `id` y `name`: nunca email, contraseña/hash, sesiones, tokens, historial o localidad privada. Las relaciones deportivas contienen solamente identidad pública. No cambia autenticación, cookies, CORS ni CSRF; permanece la protección HTTP global existente.
 
+## Uso desde compartir partidos
+
+El frontend comparte la URL pública estable `/partidos/{id}` y datos ya disponibles en este contrato. No se agregan endpoints, payloads, modelos, auditorías ni permisos específicos para compartir. Abrir un enlace compartido consulta el estado actual mediante el detalle existente, incluso si el partido se canceló o inició desde que se envió. La elegibilidad del disparador no restringe el acceso público al recurso. Ver [implementación frontend](../web/MATCH-SHARING.md).
+
 ## Errores y pruebas
 
 - UUID inválido: `400`, código `VALIDATION_ERROR`.

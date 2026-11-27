@@ -10,6 +10,16 @@ const sports = [
 
 export function SportsVisual() {
   return <div className={styles.sportsVisual}>
+    <div className={styles.court} aria-hidden="true">
+      <div className={styles.courtCircle} />
+      <div className={styles.goalLeft} /><div className={styles.goalRight} />
+      <span className={styles.player} data-position="one" />
+      <span className={styles.player} data-position="two" />
+      <span className={styles.player} data-position="three" />
+      <span className={styles.player} data-position="four" />
+      <span className={styles.player} data-position="five" />
+      <span className={styles.freePlace}>Tu lugar</span>
+    </div>
     <ul className={styles.sportsGrid} aria-label="Deportes disponibles">
       {sports.map(({ name, symbol }) => <li key={name} className={styles.sport}>{symbol}<span>{name}</span></li>)}
     </ul>

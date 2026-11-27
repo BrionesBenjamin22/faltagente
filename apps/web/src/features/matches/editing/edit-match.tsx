@@ -78,9 +78,9 @@ function EditMatchForm({ initial, ownerId, reload }: { initial: MatchManagement;
   }
   return <div className={styles.page}>
     <header className={styles.header}><h1>Editar partido</h1><p className="muted">Actualizá la información de tu partido.</p></header>
-    {baseline.hasConfirmedParticipants ? <p id="edit-restrictions" className="notice">Hay participantes confirmados o lugares ocupados. Sólo podés editar la descripción y la capacidad; los demás datos deben conservarse.</p> : null}
+    {(baseline.hasConfirmedParticipants || baseline.hasActiveWaitlist) ? <p id="edit-restrictions" className="notice">Hay participantes confirmados, solicitudes en espera u ofertas pendientes. Sólo podés editar la descripción y la capacidad; los demás datos deben conservarse.</p> : null}
     {!baseline.canAdjustCapacity ? <p className="notice">No pudimos verificar la consistencia de los cupos. Podés editar la descripción. Recargá el partido antes de ajustar la capacidad.</p> : null}
-    <form className={styles.form} noValidate onSubmit={form.handleSubmit(submit)} onChange={() => { if (feedback === "No hay cambios para guardar") setFeedback(""); }} aria-busy={busy} aria-describedby={baseline.hasConfirmedParticipants ? "edit-restrictions" : undefined}>
+    <form className={styles.form} noValidate onSubmit={form.handleSubmit(submit)} onChange={() => { if (feedback === "No hay cambios para guardar") setFeedback(""); }} aria-busy={busy} aria-describedby={(baseline.hasConfirmedParticipants || baseline.hasActiveWaitlist) ? "edit-restrictions" : undefined}>
       <MatchFormFields form={form} busy={busy} initial={baseline} />
       {feedback ? <p className={feedback === "No hay cambios para guardar" ? "notice" : "error"} role={feedback === "No hay cambios para guardar" ? "status" : "alert"}>{feedback}</p> : null}
       {conflict ? <div className="notice"><p>El partido cambió mientras lo editabas. Tus datos siguen en el formulario. Recargá la versión actual para revisarlos antes de guardar; se descartarán los cambios sin guardar.</p><button type="button" className="button secondary" disabled={busy} onClick={async () => { setReloading(true); try { await reload(); } finally { setReloading(false); } }}>Recargar versión actual</button></div> : null}

@@ -46,10 +46,13 @@ test('real multideporte discovery preserves filters, pagination, URL history and
     await expect(formats).toHaveCount(0);
     await expect(page.getByText(`${fixture.prefix} Vóley`, { exact: true })).toBeVisible();
 
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({ path: '.runtime/mvp02-discovery-mobile.png', fullPage: true, animations: 'disabled' });
-    await expect(page.locator('article.match').first()).toBeInViewport();
-    await expect(page.locator('article.match time').first()).toBeInViewport();
+    const firstMatch = page.locator('article.match').first();
+
+    await firstMatch.scrollIntoViewIfNeeded();
+
+    await expect(firstMatch).toBeInViewport();
+    await expect(firstMatch.locator('time').first()).toBeInViewport();
+
     const metrics = await sports.evaluate(element => {
       const buttons = [...element.querySelectorAll('button')];
       return { heights: buttons.map(button => button.getBoundingClientRect().height), documentWidth: document.documentElement.scrollWidth, viewportWidth: window.innerWidth, groupHeight: element.getBoundingClientRect().height };
@@ -69,6 +72,8 @@ test('real multideporte discovery preserves filters, pagination, URL history and
     await expect(dates.getByRole('button', { name: 'Todas las fechas', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('article.match')).toHaveCount(9);
     expect(new URL(page.url()).searchParams.has('date')).toBe(false);
+    expect(new URL(page.url()).searchParams.has('location')).toBe(false);
+    await expect(page.getByRole('button', { name: 'Todas las localidades', exact: true })).toHaveAttribute('aria-pressed', 'true');
     const catalog = await page.request.get(`${api}/sports`);
     expect((await catalog.json()).items.map((sport: { name: string }) => sport.name)).toContain('Pádel');
   } finally {

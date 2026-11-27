@@ -1,0 +1,15 @@
+export const notificationCopy = {
+  bellLabel: "Abrir centro de notificaciones",
+  unreadBadge: "notificaciones no leídas",
+  emptyTitle: "Todavía no tenés notificaciones",
+  emptyDescription: "Cuando haya novedades sobre tus partidos, las vas a encontrar acá.",
+  loadError: "No pudimos cargar las notificaciones.",
+  retry: "Reintentar",
+  markAll: "Marcar todas como leídas",
+  back: "Volver",
+  all: "Todas",
+  unread: "No leídas",
+  deleteLabel: "Eliminar notificación",
+  loading: "Cargando notificaciones…",
+  matchAction: "Ver partido",
+};

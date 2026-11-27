@@ -1,0 +1,8 @@
+.trigger { min-width:44px; padding:10px; }
+.trigger > svg:last-child { display:none; }
+.name { display:none; }
+@media (min-width:640px) {
+  .name { display:inline; }
+  .trigger { padding:8px 12px; }
+  .trigger > svg:last-child { display:block; }
+}

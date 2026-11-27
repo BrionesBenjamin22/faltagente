@@ -74,7 +74,7 @@ describe('public match detail', () => {
       startsAt,
       location: { id: locationId, name: expect.any(String) },
       placeName: 'El Galpón', address: '1 y 63', pricePerPerson: '7000.5',
-      availablePlaces: 2, description: 'Nivel intermedio.', status: 'OPEN',
+      totalPlaces: 2, availablePlaces: 2, description: 'Nivel intermedio.', status: 'OPEN',
       organizer: { id: organizerId, name: 'Martín R.' },
     });
     // Exact shape assertions prevent exposing new private model fields by accident.

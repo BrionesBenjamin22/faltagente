@@ -1,12 +1,12 @@
 # Authentication and location vertical slice
 
-Profile editing, audit history and authenticated password change extend these contracts in [PROFILE.md](PROFILE.md). The current public user DTO additionally includes `hasLocalPassword`, `createdAt` and `updatedAt`.
+Profile editing and authenticated password change extend these contracts in [PROFILE.md](PROFILE.md). The user DTO includes `hasLocalPassword` and excludes `createdAt` and `updatedAt`. Profile changes remain recorded internally; their read endpoint is no longer exposed.
 
 The API is a NestJS modular monolith. Auth manages credentials, sessions and email tokens; users manages profile locality; locations exposes selectable active locations; matches exposes discovery. Prisma stores all state in PostgreSQL. PostGIS is available through the documented Compose image; this slice performs no spatial queries.
 
 ## Runtime and database
 
-Copy the root `.env.example` to a local untracked environment file. Supply `DATABASE_URL`, separate random `JWT_SECRET` and `CSRF_SECRET` (at least 32 characters), `FRONTEND_URL` and exact `CORS_ORIGINS`. Resend needs `RESEND_API_KEY` and `EMAIL_FROM`; production refuses missing email configuration and HTTP frontend origins. Local development without Resend can use authentication but cannot receive verification or recovery emails; the API records only a safe delivery failure event. No tokens or email addresses are logged.
+Copy the root `.env.example` to a local untracked environment file. Supply `DATABASE_URL`, separate random `JWT_SECRET` and `CSRF_SECRET` (at least 32 characters), `FRONTEND_URL` and exact `CORS_ORIGINS`. Brevo needs `BREVO_API_KEY` and `EMAIL_FROM`; production refuses missing email configuration and HTTP frontend origins. Local development without Brevo can use authentication but cannot receive verification or recovery emails; the API records only a safe delivery failure event. No tokens or email addresses are logged.
 
 Run `docker compose up -d db`, `pnpm --filter api db:generate`, `pnpm --filter api db:migrate`, then `pnpm --filter api db:seed`. Commands require the environment to be loaded by the shell (Nest loads environment files at application startup). Development fixtures are an explicit separate command: `NODE_ENV=development pnpm --filter api db:seed:dev` (set environment variables using the appropriate shell). Fictional matches and an organizer with no usable password are never seeded automatically. Location seed keys map to stable UUIDs, with province/city hierarchy and the existing `localidades.json` entries. Both seeds are idempotent. All four demo matches occur on separate local days; creation and organizer participation are atomic. The timezone is `America/Argentina/Buenos_Aires`.
 

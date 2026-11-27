@@ -13,3 +13,4 @@ coverage/
 /.runtime/
 /test-results/
 /playwright-report/
+.neon

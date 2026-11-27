@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsInt,
@@ -11,7 +11,14 @@ import {
 import { Type } from 'class-transformer';
 
 export class MatchesQueryDto {
-  @ApiProperty({ format: 'uuid' }) @IsUUID() locationId: string;
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Prioritizes this locality without excluding other localities. Ignored when locationId is provided.' })
+  @IsOptional()
+  @IsUUID()
+  preferredLocationId?: string;
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()
   @IsUUID()

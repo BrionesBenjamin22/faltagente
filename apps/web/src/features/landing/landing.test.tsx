@@ -6,7 +6,7 @@ it("presents all four sports equally while preserving the hero and navigation", 
   render(<Landing />);
   expect(screen.getByText("Partidos en Argentina")).toBeInTheDocument();
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Te falta uno.A alguien le falta partido.");
-  expect(screen.getByText(/Encontrá el deporte que quieras cerca tuyo, sin conocer al organizador ni depender de un grupo/)).toBeInTheDocument();
+  expect(screen.getByText(/Encontrá partidos cerca tuyo, completá equipos y sumate a jugar/)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Buscar un partido" })).toHaveAttribute("href", "/partidos");
   expect(screen.getByRole("link", { name: "Ingresar" })).toHaveAttribute("href", "/auth/login");
   expect(screen.getByText("Explorá los partidos sin crear una cuenta.")).toBeInTheDocument();

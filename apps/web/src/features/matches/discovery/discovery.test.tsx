@@ -4,6 +4,7 @@ import { Providers } from "@/features/auth/session";
 import { Home } from "./home";
 import { parseDiscovery } from "./discovery-state";
 import { localDate, validLocalDate } from "../local-date";
+import { authService } from "@/features/auth/service";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 const location = { id: "10000000-0000-4000-8000-000000000001", name: "Tolosa", type: "LOCALIDAD" };
@@ -14,12 +15,14 @@ const volley = { id: "20000000-0000-4000-8000-000000000003", name: "Vóley", slu
 let queries: URLSearchParams[];
 let emptyFiltered: boolean; let emptyZone: boolean; let failSports: boolean; let failMatches: boolean;
 let gate: Promise<void> | undefined;
+let emailVerified: boolean; let authenticated: boolean;
 beforeEach(() => {
   window.history.replaceState({}, "", "/partidos?success=login");
   queries = []; emptyFiltered = false; emptyZone = false; failSports = false; failMatches = false; gate = undefined;
+  emailVerified = true; authenticated = true;
   vi.stubGlobal("fetch", vi.fn(async (input: string) => {
     const url = new URL(input); let body: unknown;
-    if (url.pathname.endsWith("/auth/session")) body = { authenticated: true, user: { id: "user", name: "Persona", emailVerified: true, primaryLocation: location } };
+    if (url.pathname.endsWith("/auth/session")) body = { authenticated, user: { id: "user", name: "Persona", emailVerified, primaryLocation: location } };
     else if (url.pathname.endsWith("/locations")) body = { items: [location, otherLocation] };
     else if (url.pathname.endsWith("/sports")) {
       if (failSports) return new Response("{}", { status: 500 });
@@ -36,12 +39,29 @@ beforeEach(() => {
     return new Response(JSON.stringify(body));
   }));
 });
-afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); });
 function open() { return render(<Providers><Home discovery /></Providers>); }
 async function chip(name: string) { fireEvent.click(await screen.findByRole("button", { name })); }
 async function latest(filters: Record<string, string | null>) {
   await waitFor(() => { const query = queries.at(-1)!; for (const [key, value] of Object.entries(filters)) expect(query?.get(key)).toBe(value); });
 }
+
+it("keeps verification feedback inside its notice and prevents repeated resends while pending", async () => {
+  emailVerified = false;
+  let finish!: () => void;
+  const resend = vi.spyOn(authService, "resendVerification").mockImplementation(() => new Promise(resolve => { finish = () => resolve({ message: "OK" }); }));
+  open();
+  const notice = await screen.findByRole("region", { name: "Verificá tu email" });
+  expect(within(notice).getByRole("heading", { level: 2 })).toBeInTheDocument();
+  fireEvent.click(within(notice).getByRole("button", { name: "Reenviar enlace" }));
+  const pending = within(notice).getByRole("button", { name: "Enviando…" });
+  expect(pending).toBeDisabled();
+  fireEvent.click(pending);
+  expect(resend).toHaveBeenCalledTimes(1);
+  await act(async () => finish());
+  expect(within(notice).getByRole("status")).toHaveTextContent("Si corresponde, recibirá un nuevo enlace de verificación.");
+  expect(within(notice).getByRole("button", { name: "Reenviar enlace" })).toBeEnabled();
+});
 
 it("uses the real catalog, clears incompatible formats, and returns to every sport", async () => {
   open(); await chip("Fútbol"); await chip("Fútbol 5");
@@ -94,9 +114,9 @@ it("differentiates an empty filter and safely clears it back to cached unfiltere
   expect(await screen.findByText("Fútbol página 1")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Todos los deportes" })).toHaveAttribute("aria-pressed", "true");
 });
-it("identifies a genuinely empty zone even when a sport filter is applied", async () => {
+it("identifies an empty global list even when a sport filter is applied", async () => {
   emptyZone = true; open(); await chip("Pádel");
-  expect(await screen.findByText("No hay partidos disponibles en esta zona.")).toBeInTheDocument();
+  expect(await screen.findByText("No hay partidos disponibles.")).toBeInTheDocument();
   expect(screen.queryByText("No encontramos partidos con estos filtros.")).not.toBeInTheDocument();
 });
 it("clears the custom date picker when an empty result resets filters", async () => {
@@ -144,4 +164,44 @@ it("calculates today and tomorrow in Buenos Aires independently of the browser z
   expect(localDate(1, new Date("2026-12-31T23:00:00Z"))).toBe("2027-01-01");
   expect(validLocalDate("2028-02-29")).toBe(true);
   expect(parseDiscovery(`?sport=bad&format=${football.formats[0].id}`).sportFormatId).toBeUndefined();
+});
+
+it("loads every locality by default and sends profile locality only as an ordering preference", async () => {
+  open(); await screen.findByText("Fútbol página 1");
+  await latest({ locationId: null, preferredLocationId: location.id });
+  expect(queries.every(query => !query.has("locationId"))).toBe(true);
+  expect(new URLSearchParams(window.location.search).has("location")).toBe(false);
+  expect(screen.getByRole("button", { name: "Todas las localidades" })).toHaveAttribute("aria-pressed", "true");
+});
+it("loads global discovery for visitors without an ordering preference", async () => {
+  authenticated = false; open(); await screen.findByText("Fútbol página 1");
+  await latest({ locationId: null, preferredLocationId: null });
+});
+it("removes only locality with All localities and clears all filters explicitly", async () => {
+  window.history.replaceState({}, "", `/partidos?location=${otherLocation.id}&sport=${football.id}`);
+  open(); await screen.findByText("Fútbol página 1");
+  await latest({ locationId: otherLocation.id, preferredLocationId: location.id, sportId: football.id });
+  await chip("Todas las localidades");
+  expect(parseDiscovery(window.location.search)).toMatchObject({ locationId: undefined, sportId: football.id });
+  fireEvent.click(screen.getByRole("combobox", { name: "Localidad seleccionada" }));
+  fireEvent.click(await screen.findByRole("option", { name: "City Bell" }));
+  expect(parseDiscovery(window.location.search).locationId).toBe(otherLocation.id);
+  await chip("Limpiar filtros");
+  await latest({ locationId: null, sportId: null, preferredLocationId: location.id });
+  expect(parseDiscovery(window.location.search)).toMatchObject({ locationId: undefined, sportId: undefined });
+});
+it("clears locality from an empty result without requiring another location", async () => {
+  window.history.replaceState({}, "", `/partidos?location=${otherLocation.id}`);
+  emptyZone = true; open(); await screen.findByText("No hay partidos disponibles.");
+  await chip("Limpiar filtros");
+  await latest({ locationId: null });
+});
+it("returns to all localities through history without injecting the primary locality", async () => {
+  open(); await screen.findByText("Fútbol página 1");
+  fireEvent.click(screen.getByRole("combobox", { name: "Localidad seleccionada" }));
+  fireEvent.click(await screen.findByRole("option", { name: "City Bell" }));
+  await latest({ locationId: otherLocation.id });
+  act(() => { window.history.replaceState({}, "", "/partidos"); window.dispatchEvent(new PopStateEvent("popstate")); });
+  expect(screen.getByRole("button", { name: "Todas las localidades" })).toHaveAttribute("aria-pressed", "true");
+  expect(window.location.search).toBe("");
 });

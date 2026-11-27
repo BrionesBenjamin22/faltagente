@@ -11,6 +11,7 @@ export function useCreateMatch() {
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["matches"] }),
+    client.invalidateQueries({ queryKey: ["waitlist"] }),
         client.invalidateQueries({ queryKey: ["matches-baseline"] }),
         client.invalidateQueries({ queryKey: ["organized-matches"] }),
       ]);

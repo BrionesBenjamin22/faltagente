@@ -341,6 +341,8 @@ si puede producir sobre-reserva.
 
 ## 15. Idempotencia
 
+La lista de espera implementada utiliza un advisory lock transaccional de dominio compartido con publicación, edición y reservas antes de bloquear filas. Protege cupos retenidos, participación diaria y orden de commits de eventos internos. El proceso de vencimiento usa reloj de PostgreSQL y transacciones acotadas por partido. Ver [contrato de lista de espera](../../apps/api/WAITLIST.md) para estados, endpoints, límites y cursor del futuro consumidor de notificaciones. No se incorporan colas externas ni WebSockets.
+
 Las operaciones sensibles susceptibles de repetición accidental deben ser idempotentes cuando corresponda.
 
 Prioridad inicial:
@@ -351,6 +353,8 @@ aceptar oferta de waitlist
 ```
 
 El contrato debe impedir duplicaciones por doble click, retry o problemas de red.
+
+Las reservas mantienen `version` y `originalPlaces`. Reducir cantidades requiere `expectedVersion`: una versión desactualizada devuelve 409 incluso si la cantidad coincide; con versión vigente, una cantidad idéntica no genera escrituras ni movimientos. Las cancelaciones totales repetidas conservan el resultado original sin liberar dos veces. Reducción, cancelación individual y cancelación del partido usan el reloj de PostgreSQL y el bloqueo de dominio compartido con la lista de espera. Los movimientos de cantidades se registran en `ReservationCancellation`, sin entidades individuales de acompañantes. Ver [contrato de reservas](../../apps/api/RESERVATIONS.md).
 
 ---
 
@@ -386,18 +390,19 @@ No devolver datasets completos sin límite.
 El listado implementado en MVP-02 acepta:
 
 ```text
-locationId
+locationId?
+preferredLocationId?
 sportId?
 sportFormatId?
 date?
 page
 ```
 
-La localidad sigue siendo obligatoria; deporte y fecha son opcionales. Un formato requiere deporte y pertenencia validada en backend. Los UUID desconocidos de deporte no se confunden con errores de formato: pueden devolver un listado vacío. El catálogo público `GET /api/v1/sports` devuelve únicamente deportes y formatos activos; consultar por ID no exige estado activo del catálogo. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`. Una FK compuesta garantiza la pertenencia del formato persistido. Ver `apps/api/MULTISPORT.md`.
+La localidad, su preferencia de orden, deporte y fecha son opcionales. `locationId` filtra una localidad exacta; sin él se incluyen todas las localidades activas. `preferredLocationId` prioriza una localidad sin excluir otras y se ignora con un filtro explícito de localidad. Un formato requiere deporte y pertenencia validada en backend. Los UUID desconocidos de deporte no se confunden con errores de formato: pueden devolver un listado vacío. El catálogo público `GET /api/v1/sports` devuelve únicamente deportes y formatos activos; consultar por ID no exige estado activo del catálogo. Cada partido devuelve `sport:{id,name,slug}` y `sportFormat:{id,name,slug}|null`. Una FK compuesta garantiza la pertenencia del formato persistido. Ver `apps/api/MULTISPORT.md` y `apps/api/DISCOVERY.md`.
 
-La carga progresiva conserva páginas de nueve, `total` y `hasMore`. La caché TanStack Query distingue localidad, deporte, formato y fecha; cambiar filtros inicia la página uno. La selección temporal no modifica el perfil. Los filtros de descubrimiento se representan en query params sin cambiar las rutas existentes.
+La carga progresiva conserva páginas de nueve, `total` y `hasMore`. La caché TanStack Query distingue localidad, deporte, formato, fecha y localidad priorizada; cambiar filtros inicia la página uno. La selección temporal se representa en la URL, no modifica el perfil y no se inicializa desde la localidad principal. Los filtros de descubrimiento se representan en query params sin cambiar las rutas existentes.
 
-El orden por defecto debe ser fecha/hora ascendente.
+El orden por defecto es fecha/hora e identificador ascendentes. Con localidad preferida y sin filtro de localidad, primero se pagina el grupo preferido y después el resto, en orden cronológico dentro de cada grupo. Los conteos y consultas acotadas comparten una transacción `RepeatableRead`; nunca se carga el listado completo para ordenarlo en memoria.
 
 ---
 
@@ -637,7 +642,7 @@ Azure es el destino acordado. Los servicios concretos y el mecanismo de CD se de
 
 ### Database
 
-PostgreSQL administrado; servicio concreto por definir en la etapa Azure.
+Neon es el servicio elegido para PostgreSQL en la preparación de despliegue. Se conserva Prisma y se separan conexiones pooled para runtime y directas para migraciones. La base inicial está preparada; la validación E2E remota sigue pendiente por conectividad. Consultar [la integración Neon](../../apps/api/NEON.md). Esta decisión de base no publica ni fija los servicios de frontend y API.
 
 El deploy de aplicación puede integrarse con Git.
 
@@ -659,7 +664,7 @@ Una tarea puede marcarse terminada cuando:
 - tests pasan;
 - build pasa cuando corresponde;
 - no contiene cambios fuera del alcance;
-- documentación fue actualizada si cambió un contrato;
+- documentación y contratos descriptivos se actualizaron, cuando corresponda, únicamente tras la aprobación formal del usuario después de la validación manual y su solicitud de preparar o ejecutar los commits; durante la revisión quedan pendientes según `AGENTS.md`;
 - el diff fue revisado;
 - el commit se realizó siguiendo el flujo definido.
 

@@ -6,7 +6,7 @@ export type Environment = {
   JWT_SECRET: string;
   CSRF_SECRET: string;
   FRONTEND_URL: string;
-  RESEND_API_KEY?: string;
+  BREVO_API_KEY?: string;
   EMAIL_FROM?: string;
 };
 
@@ -94,7 +94,7 @@ export function validateEnvironment(
       )
     )
       throw new Error('Producción requiere orígenes HTTPS.');
-    if (!rawConfig.RESEND_API_KEY || !rawConfig.EMAIL_FROM)
+    if (!rawConfig.BREVO_API_KEY || !rawConfig.EMAIL_FROM)
       throw new Error('Producción requiere configuración de email.');
   }
 

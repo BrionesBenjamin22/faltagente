@@ -1,6 +1,12 @@
 .navigation { display:none; }
+.navigation.authenticated { display:flex; }
+.matchesLink { display:none; }
 
 /* Match Tailwind's sm breakpoint; unlayered styles override the base nav rule. */
 @media (min-width:640px) {
   .navigation { display:flex; }
+  .matchesLink { display:inline; }
 }
+
+.brandMark { flex-shrink:0; padding:5px; width:34px; height:34px; color:var(--solid); background:var(--club); border-radius:8px; }
+@media(max-width:380px) { .brandMark { display:none; } }

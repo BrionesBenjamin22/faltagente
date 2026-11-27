@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 import { chooseLocation } from './support/ui';
 
 // Public, read-only suite: deliberately uses no auth/Prisma/email harness.
-const titles = ['Elegí dónde jugar', 'Encontrá un partido', 'Sumá a tus compañeros'];
+const titles = ['Elegí dónde jugar', 'Encontrá tu partido', 'Sumate a jugar'];
 const descriptions = [
-  'Explorá partidos por localidad y deporte. Consultá el lugar, la fecha, el horario, el formato, el precio y los lugares libres.',
-  'Tenés ganas de jugar. Elegí un partido y reservá tu lugar. No necesitás conocer al resto de los jugadores.',
-  'Si vas con amigos, podrás reservar también sus lugares en el mismo partido. Vos te anotás y sumás a los que se prenden.',
+  'Explorá partidos por localidad y deporte. Filtrá por fecha, horario, formato, precio y lugares disponibles.',
+  '¿Tenés ganas de jugar? Revisá los encuentros disponibles y elegí el que mejor se adapte a vos.',
+  'Reservá tu lugar y, si querés, anotá a tus compañeros. Ya estás más cerca de entrar a la cancha.',
 ];
 
 test('visitor pages preserve hero and CTAs with the shared public navigation', async ({ page }) => {
@@ -87,9 +87,9 @@ test('discovery renders a loading skeleton and a real empty locality with an act
   expect(response.ok()).toBe(true);
   const payload = await response.json() as { total: number };
   expect(payload.total, 'Development seed Abasto has no matches').toBe(0);
-  await expect(page.getByRole('heading', { name: 'No hay partidos disponibles en esta zona.', exact: true })).toBeVisible();
-  await expect(page.getByText('No hay partidos disponibles en esta zona.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Cambiar localidad', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'No encontramos partidos con estos filtros.', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Limpiar filtros', exact: true })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Localidad seleccionada', exact: true }).click();
   await expect(page.getByPlaceholder('Buscar localidad…')).toBeVisible();
   await expect(page.getByPlaceholder('Buscar localidad…')).toBeFocused();
   await page.keyboard.press('Escape');
@@ -98,10 +98,10 @@ test('discovery renders a loading skeleton and a real empty locality with an act
 
 test('manual carousel exposes three benefits and accessible indicators with keyboard navigation', async ({ page }) => {
   await page.goto('/');
-  const carousel = page.getByRole('region', { name: 'Más fácil juntarse a jugar', exact: true });
-  const track = page.getByLabel('Beneficios de Falta Gente', { exact: true });
-  await expect(carousel.getByRole('button', { name: 'Anterior', exact: true })).toHaveCount(0);
-  await expect(carousel.getByRole('button', { name: 'Siguiente', exact: true })).toHaveCount(0);
+  const carousel = page.getByRole('region', { name: 'Jugar juntos es más fácil.', exact: true });
+  const track = page.getByLabel('Cómo funciona Falta Gente', { exact: true });
+  await expect(carousel.getByRole('button', { name: 'Paso anterior', exact: true })).toBeVisible();
+  await expect(carousel.getByRole('button', { name: 'Paso siguiente', exact: true })).toBeVisible();
   async function current(index: number) {
     await expect(carousel.getByRole('group', { name: /^[123] de 3$/ })).toHaveCount(1);
     await expect(carousel.getByRole('group', { name: `${index + 1} de 3`, exact: true })).toBeVisible();
@@ -128,9 +128,9 @@ test('manual carousel exposes three benefits and accessible indicators with keyb
   await page.keyboard.press('End');
   await current(2);
   await page.keyboard.press('ArrowRight');
-  await current(2);
+  await current(0);
   await page.keyboard.press('ArrowLeft');
-  await current(1);
+  await current(2);
   const first = carousel.getByRole('button', { name: `Ir a ${titles[0]}`, exact: true });
   await first.focus();
   await page.keyboard.press('Enter');
@@ -145,13 +145,13 @@ test('manual carousel exposes three benefits and accessible indicators with keyb
   await page.keyboard.press('Home');
   await current(0);
   await page.keyboard.press('ArrowLeft');
-  await current(0);
+  await current(2);
 });
 
 test('a real mobile swipe updates the selected slide without rotating automatically', async ({ page, context }) => {
   await page.goto('/');
-  const carousel = page.getByRole('region', { name: 'Más fácil juntarse a jugar', exact: true });
-  const track = page.getByLabel('Beneficios de Falta Gente', { exact: true });
+  const carousel = page.getByRole('region', { name: 'Jugar juntos es más fácil.', exact: true });
+  const track = page.getByLabel('Cómo funciona Falta Gente', { exact: true });
   await track.scrollIntoViewIfNeeded();
   await expect.poll(() => track.evaluate(element => {
     const rect = element.getBoundingClientRect();
@@ -179,6 +179,24 @@ test('a real mobile swipe updates the selected slide without rotating automatica
   await swipe(endX, startX);
   await expect(carousel.getByRole('button', { name: `Ir a ${titles[0]}`, exact: true })).toHaveAttribute('aria-current', 'true');
   await swipe(endX, startX);
-  await expect(carousel.getByRole('button', { name: `Ir a ${titles[0]}`, exact: true })).toHaveAttribute('aria-current', 'true');
+  await expect(carousel.getByRole('button', { name: `Ir a ${titles[2]}`, exact: true })).toHaveAttribute('aria-current', 'true');
   await client.detach();
+});
+
+test('sports landing fits a narrow phone without clipping the active benefit', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 812 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Buscar un partido', exact: true })).toBeVisible();
+  const benefit = page.getByRole('group', { name: '1 de 3', exact: true });
+  await expect(benefit).toBeVisible();
+  const layout = await benefit.evaluate(element => ({
+    cardBottom: element.getBoundingClientRect().bottom,
+    textBottom: element.querySelector('p')!.getBoundingClientRect().bottom,
+    pageWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+  }));
+  expect(layout.textBottom).toBeLessThanOrEqual(layout.cardBottom);
+  expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  await expect(page.getByRole('list', { name: 'Deportes disponibles' }).getByRole('listitem')).toHaveCount(4);
 });
