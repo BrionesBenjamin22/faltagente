@@ -642,7 +642,7 @@ Azure es el destino acordado. Los servicios concretos y el mecanismo de CD se de
 
 ### Database
 
-PostgreSQL administrado; servicio concreto por definir en la etapa Azure.
+Neon es el servicio elegido para PostgreSQL en la preparación de despliegue. Se conserva Prisma y se separan conexiones pooled para runtime y directas para migraciones. La base inicial está preparada; la validación E2E remota sigue pendiente por conectividad. Consultar [la integración Neon](../../apps/api/NEON.md). Esta decisión de base no publica ni fija los servicios de frontend y API.
 
 El deploy de aplicación puede integrarse con Git.
 

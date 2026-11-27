@@ -142,3 +142,9 @@ Los errores de logout y el feedback de renovación conservan su presentación in
 ## Compartir partidos
 
 El detalle integra `features/matches/sharing/` en el encabezado. Reutiliza Radix Popover para el popover de escritorio y el bottom sheet modal responsive, con acciones comunes y sin nuevos servicios HTTP. Consultar [MATCH-SHARING.md](MATCH-SHARING.md) para enlaces, disponibilidad, permisos, feedback, accesibilidad y pruebas de la etapa aprobada.
+
+## Base remota Neon
+
+El frontend continúa consumiendo la API NestJS mediante `NEXT_PUBLIC_API_URL`; no recibe credenciales PostgreSQL ni consulta Neon directamente. Para una prueba local separada, la web puede ejecutarse en `http://localhost:3100` y apuntar a `http://localhost:3101/api/v1`, con la API iniciada mediante `pnpm neon:start`. Las variables de origen y puerto de la API deben coincidir con esas direcciones. `API_INTERNAL_URL` permite configurar el acceso desde el servidor Next.js cuando corresponda. `NEXT_PUBLIC_API_URL` debe estar configurada antes de compilar la web o iniciar desarrollo.
+
+La etapa no cambia vistas, services, hooks, permisos ni validaciones frontend. El recorrido pendiente consiste en cargar deportes y localidades, seleccionar una localidad y un deporte y verificar la respuesta de partidos desde Neon. La prueba en navegador quedó bloqueada por el handshake PostgreSQL; el usuario autorizó el commit de la preparación con esa validación pendiente. Consultar [configuración, comandos y evidencia backend](../api/NEON.md).

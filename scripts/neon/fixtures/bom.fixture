@@ -1,0 +1,2 @@
+﻿DATABASE_URL=postgresql://owner:secret%21@ep-example-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL_UNPOOLED=postgresql://owner:secret%21@ep-example.us-east-2.aws.neon.tech/neondb?sslmode=require
