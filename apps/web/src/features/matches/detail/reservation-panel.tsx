@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/features/auth/session";
 import { ApiError, errorMessage } from "@/lib/http";
 import { reservationsService } from "./reservations-service";
-import { reservationKey, useCreateReservation } from "./use-reservations";
+import { reservationKey, useCreateReservation, useReservationHistory } from "./use-reservations";
 import { CancelReservation } from "./cancel-reservation";
 import { ReservationHistory } from "./reservation-history";
 import { QuantityManagement } from "./quantity-management";
@@ -14,6 +14,7 @@ import { WaitlistPanel } from "@/features/waitlist/waitlist-panel";
 import type { MatchDetail } from "../types";
 import { MAX_RESERVATION_PLACES } from "../reservation-limits";
 import styles from "./match-detail.module.css";
+import { ChevronDown } from "lucide-react";
 const messages: Record<string, string> = {
   MATCH_FULL: "Ya no quedan suficientes lugares. Revisá la disponibilidad e intentá nuevamente.",
   MATCH_UNAVAILABLE: "Este partido ya no admite inscripciones.",
@@ -21,20 +22,20 @@ const messages: Record<string, string> = {
   DAILY_PARTICIPATION_CONFLICT: "Ya tenés una participación confirmada para esa fecha.",
   RESERVATION_ALREADY_EXISTS: "Ya tenés una inscripción en este partido.",
 };
-export function ReservationPanel({ match }: { match: MatchDetail }) {
+export function ReservationPanel({ match, showHistory = true }: { match: MatchDetail; showHistory?: boolean }) {
   const { session, isPending, isError, synchronize } = useSession();
   const userId = session?.authenticated ? session.user?.id : undefined;
   return <section className={styles.reservation} aria-label="Inscripción al partido">
     {isPending ? <p role="status">Consultando sesión…</p> : isError ? <>
       <p role="alert">No pudimos consultar tu sesión.</p>
       <button className="button secondary" onClick={() => void synchronize()}>Reintentar</button>
-    </> : userId ? <UserReservation key={`${userId}:${match.id}`} match={match} userId={userId} /> : <>
+    </> : userId ? <UserReservation key={`${userId}:${match.id}`} match={match} userId={userId} showHistory={showHistory} /> : <>
       <p>Ingresá para reservar uno o varios lugares.</p>
       <Link className="button" href="/auth/login">Ingresar para inscribirme</Link>
     </>}
   </section>;
 }
-function UserReservation({ match, userId }: { match: MatchDetail; userId: string }) {
+function UserReservation({ match, userId, showHistory }: { match: MatchDetail; userId: string; showHistory: boolean }) {
   const [cancelled, setCancelled] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -44,7 +45,7 @@ function UserReservation({ match, userId }: { match: MatchDetail; userId: string
   return <>
     {cancelled ? <p className="notice" role="status" ref={result} tabIndex={-1}>Reserva cancelada correctamente</p> : null}
     <ReservationControls match={match} userId={userId} onCancelled={() => { setCancelled(true); setHistoryVersion(current => current + 1); }} onBooked={() => { setCancelled(false); setHistoryVersion(current => current + 1); }} />
-    <ReservationHistory key={historyVersion} userId={userId} matchId={match.id} />
+    {showHistory ? <ReservationHistory key={historyVersion} userId={userId} matchId={match.id} /> : null}
     {match.organizer.id === userId ? <OrganizerReservations userId={userId} matchId={match.id} canCancel={match.status !== "CANCELLED" && Date.parse(match.startsAt) > now} /> : null}
   </>;
 }
@@ -72,13 +73,13 @@ function ReservationControls({ match, userId, onCancelled, onBooked }: { match: 
   if (mine.isPending) return <p role="status">Consultando inscripción…</p>;
   if (mine.isError) return <><p role="alert">{errorMessage(mine.error)}</p><button className="button secondary" disabled={mine.isFetching} onClick={() => void mine.refetch()}>Reintentar</button></>;
   if (mine.data) return <>
-    <div role="status"><p>Inscripción confirmada</p><p>{mine.data.places} {mine.data.places === 1 ? "lugar reservado" : "lugares reservados"}.</p></div>
+    <div role="status" className={styles.confirmedStatus}><p>Inscripción confirmada</p><p>{mine.data.places} {mine.data.places === 1 ? "lugar reservado" : "lugares reservados"}.</p></div>
     <p><strong>Titular:</strong> Vos</p>
     {quantityFeedback ? <p className="notice" role="status" ref={quantityResult} tabIndex={-1}>{quantityFeedback}</p> : null}
     {match.status !== "CANCELLED" && Date.parse(match.startsAt) > now ? <>
       <div className="actions">
       {mine.data.places > 1 ? <button type="button" className="button secondary" ref={releaseButton} disabled={cancelling || reducing} onClick={() => { setQuantityFeedback(""); setReducing(true); }}>Reducir lugares</button> : null}
-      <button type="button" className="button secondary" ref={cancelButton} disabled={cancelling || reducing} onClick={() => setCancelling(true)}>Cancelar toda la reserva</button>
+      <button type="button" className={`button secondary ${styles.cancelButton}`} ref={cancelButton} disabled={cancelling || reducing} onClick={() => setCancelling(true)}>Cancelar toda la reserva</button>
       </div>
       {reducing ? <QuantityManagement reservation={mine.data} userId={userId} organizerId={match.organizer.id} onReload={async () => { const result = await mine.refetch(); if (result.isError) throw result.error; }} onClose={() => { setReducing(false); requestAnimationFrame(() => releaseButton.current?.focus()); }} onSuccess={message => { setReducing(false); setQuantityFeedback(message); }} /> : null}
       {cancelling ? <CancelReservation key={mine.data.id} reservation={mine.data} userId={userId} organizerId={match.organizer.id} onClose={() => { restoreFocus.current = true; setCancelling(false); }} onCancelled={() => { setCancelling(false); onCancelled(); }} /> : null}
@@ -102,4 +103,57 @@ function ReservationControls({ match, userId, onCancelled, onBooked }: { match: 
     {booking.isError ? <p className="error" role="alert">{booking.error instanceof ApiError ? messages[booking.error.code] ?? errorMessage(booking.error) : errorMessage(booking.error)}</p> : null}
 
   </form>{waitlist}</>;
+}
+
+/** Private reservation history remains independent of public match information and is visible only to signed-in users. */
+export function ReservationActivity({ matchId }: { matchId: string }) {
+  const { session } = useSession();
+  const userId = session?.authenticated ? session.user?.id : undefined;
+  if (!userId) return null;
+  return <UserReservationActivity key={`${userId}:${matchId}`} matchId={matchId} userId={userId} />;
+}
+
+function UserReservationActivity({
+  matchId,
+  userId,
+}: {
+  matchId: string;
+  userId: string;
+}) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const history = useReservationHistory(userId, matchId, 1);
+
+  const hasActivity = !!(
+    history.data?.items.length ||
+    history.data?.matchCancellation
+  );
+
+  useEffect(() => {
+    if (hasActivity && detailsRef.current) {
+      detailsRef.current.open = true;
+    }
+  }, [hasActivity]);
+
+  return (
+    <section
+      className={styles.activity}
+      aria-label="Tu actividad en este partido"
+    >
+      <details ref={detailsRef}>
+        <summary>
+          <span>
+            <strong>Tu actividad en este partido</strong>
+            <small>
+              Reservas y movimientos anteriores · Solo para vos
+            </small>
+          </span>
+          <ChevronDown aria-hidden="true" />
+        </summary>
+
+        <div className={styles.activityBody}>
+          <ReservationHistory userId={userId} matchId={matchId} />
+        </div>
+      </details>
+    </section>
+  );
 }

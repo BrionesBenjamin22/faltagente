@@ -98,15 +98,9 @@
 }
 
 .heroCopy h1 {
-  font-family: Impact, "Arial Narrow", "Segoe UI", sans-serif;
-  font-size: clamp(3.35rem, 5vw, 5.1rem);
-  line-height: 0.96;
-  letter-spacing: -0.015em;
-  font-weight: 500;
-  margin: 0 0 24px;
-  max-width: 11ch;
-  text-wrap: balance;
-  color: #f6f9f0;
+  font-size: clamp(2.8rem, 11vw, 3.8rem);
+  line-height: .98;
+  letter-spacing: 0.025em;
 }
 
 .description {
@@ -301,3 +295,10 @@
   );
 }
 
+
+@media (max-width: 480px) {
+  .heroCopy h1 {
+    font-family: Impact, "Arial Narrow", "Segoe UI", sans-serif;
+    letter-spacing: 0.06em;
+  }
+}

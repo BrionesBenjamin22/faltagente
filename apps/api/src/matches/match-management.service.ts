@@ -148,7 +148,7 @@ export class MatchManagementService {
             where: {
               id: dto.locationId,
               active: true,
-              type: { in: ['LOCALIDAD', 'BARRIO', 'ZONA'] },
+              type: { in: ['CIUDAD', 'LOCALIDAD', 'BARRIO', 'ZONA'] },
             },
             select: { id: true },
           }),
@@ -513,7 +513,7 @@ export class MatchManagementService {
                 where: {
                   id: after.locationId,
                   active: true,
-                  type: { in: ['LOCALIDAD', 'BARRIO', 'ZONA'] },
+                  type: { in: ['CIUDAD', 'LOCALIDAD', 'BARRIO', 'ZONA'] },
                 },
               }),
           after.sportFormatId === null

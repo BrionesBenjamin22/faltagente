@@ -8,3 +8,42 @@
 .list li { border-bottom:1px solid var(--line); padding-block:16px; }
 .list li:first-child { border-top:1px solid var(--line); }
 .list h3 { margin-bottom:8px; }
+/* Lista de espera integrada al detalle deportivo */
+.panel {
+  padding: 15px 0 2px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.panel h2 {
+  margin-bottom: 10px;
+  color: var(--club);
+  font-weight: 800;
+}
+
+.panel h3 {
+  margin-bottom: 8px;
+}
+
+.panel p {
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.panel .quantity {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.panel .actions {
+  gap: 8px;
+}
+
+.panel button {
+  border-radius: 11px;
+}
+
+.panel form > button {
+  width: 100%;
+  min-height: 46px;
+}

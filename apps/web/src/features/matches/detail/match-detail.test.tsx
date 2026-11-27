@@ -8,7 +8,7 @@ import type { MatchDetail } from "../types";
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NEXT_NOT_FOUND"); } }));
 vi.mock("@/features/auth/session", () => ({ useSession: () => ({ session: { authenticated: false } }) }));
 
-vi.mock("./reservation-panel", () => ({ ReservationPanel: () => null }));
+vi.mock("./reservation-panel", () => ({ ReservationPanel: () => null, ReservationActivity: () => null }));
 
 const match: MatchDetail = {
   id: "10000000-0000-4000-8000-000000000001",
@@ -29,9 +29,14 @@ function open(initialData?: MatchDetail) {
 it("shows the API sport, format, local date, place, price, organizer and description", () => {
   open(match);
   expect(screen.getByRole("heading", { name: "Fútbol", level: 1 })).toBeInTheDocument();
-  expect(screen.getByText("Fútbol 5")).toBeInTheDocument();
-  expect(screen.getByText(/2 nov 2026, (21:30|9:30 p\. m\.)/)).toHaveAttribute("dateTime", match.startsAt);
-  for (const value of ["El Galpón", "1 y 63", "Tolosa", "Martín R.", match.description!]) expect(screen.getByText(value)).toBeInTheDocument();
+  expect(screen.getAllByText("Fútbol 5")).toHaveLength(2);
+  expect(screen.getByText(/2 nov/i)).toHaveAttribute("dateTime", match.startsAt);
+  expect(screen.getAllByText("El Galpón")).toHaveLength(2);
+
+  for (const value of ["1 y 63", "Martín R.", match.description!]) {
+    expect(screen.getByText(value)).toBeInTheDocument();
+  }
+  expect(screen.getAllByText("Tolosa").length).toBeGreaterThan(0);
   expect(screen.getByText(/7\.000/)).toBeInTheDocument();
   expect(screen.getByText("2 lugares disponibles")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Volver a partidos" })).toHaveAttribute("href", "/partidos");
@@ -100,12 +105,22 @@ it("uses server data immediately without a duplicate fetch", () => {
   expect(fetch).not.toHaveBeenCalled();
 });
 
-it("places the reservation action in the match footer after its description", () => {
+it("places the reservation in its own side panel, separate from public information", () => {
   render(<MatchDetailContent match={match} reservation={<button>Inscribirme</button>} />);
   const action = screen.getByRole("button", { name: "Inscribirme" });
-  const article = screen.getByRole("article");
-  expect(article).toContainElement(action);
-  expect(action.closest("footer")).toBe(article.lastElementChild);
-  const description = screen.getByRole("heading", { name: "Sobre el partido" });
-  expect(description.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole("article")).toContainElement(action);
+  expect(action.closest("aside")).toHaveAccessibleName("Reserva de lugares");
+  expect(screen.getByRole("heading", { name: "Todo sobre el partido." })).toBeInTheDocument();
+});
+it.each(["futbol", "basquet", "padel", "voley"])("renders %s-specific court and icons", slug => {
+  const names: Record<string, string> = { futbol: "Fútbol", basquet: "Básquet", padel: "Pádel", voley: "Vóley" };
+  render(<MatchDetailContent match={{ ...match, sport: { id: slug, slug, name: names[slug] }, sportFormat: null }} />);
+  expect(screen.getByRole("article")).toHaveAttribute("data-sport", slug);
+  expect(screen.getByRole("heading", { name: names[slug], level: 1 })).toBeInTheDocument();
+});
+it("represents capacity only when the API provides a total", () => {
+  const { rerender } = render(<MatchDetailContent match={{ ...match, totalPlaces: 10 }} />);
+  expect(screen.getByRole("progressbar", { name: "Ocupación del partido" })).toHaveAttribute("aria-valuenow", "8");
+  rerender(<MatchDetailContent match={match} />);
+  expect(screen.queryByRole("progressbar", { name: "Ocupación del partido" })).not.toBeInTheDocument();
 });

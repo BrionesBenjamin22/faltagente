@@ -10,3 +10,19 @@
 
 .brandMark { flex-shrink:0; padding:5px; width:34px; height:34px; color:var(--solid); background:var(--club); border-radius:8px; }
 @media(max-width:380px) { .brandMark { display:none; } }
+
+/* Mantener los controles completos dentro de la pantalla en celulares. */
+.inner { min-width: 0; }
+.brand { min-width: 0; flex-shrink: 1; }
+.actions { min-width: 0; }
+
+@media (max-width: 520px) {
+  .inner { padding-left: 12px; padding-right: 16px; gap: 8px; }
+  .actions { gap: 6px; }
+  .brand { gap: 5px; font-size: 1.15rem; letter-spacing: -0.04em; }
+}
+
+@media (max-width: 360px) {
+  .beta { display: none; }
+  .brand { font-size: 1rem; }
+}

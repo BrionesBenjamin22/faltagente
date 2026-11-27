@@ -213,3 +213,17 @@ main.container:has([data-auth-experience]) {
   margin: 0;
   padding: 0;
 }
+/* Pantalla de detalle de partidos */
+main.container:has([data-match-detail]) {
+  width: min(100% - 40px, 1280px);
+  max-width: none;
+  margin: 28px auto 64px;
+  min-height: 0;
+}
+
+@media (max-width: 520px) {
+  main.container:has([data-match-detail]) {
+    width: calc(100% - 24px);
+    margin: 18px auto 42px;
+  }
+}
