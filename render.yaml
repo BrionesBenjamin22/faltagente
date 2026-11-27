@@ -21,7 +21,7 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      - key: RESEND_API_KEY
+      - key: BREVO_API_KEY
         sync: false
       - key: EMAIL_FROM
         sync: false
