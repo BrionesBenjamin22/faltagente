@@ -92,7 +92,8 @@ function HomeList({ success }: { success?: string }) {
     </header>
     {session.session?.authenticated && session.session.user && !session.session.user.emailVerified ? <AccountNotice
       title="Verificá tu email"
-      description="Abrí el enlace que enviamos a tu correo para verificar tu cuenta."
+      compact
+      description="Revisá tu correo para verificar tu cuenta."
       actions={<button className="button secondary" disabled={sending} onClick={async () => { setSending(true); try { await authService.resendVerification(); setFeedback("Si corresponde, recibirá un nuevo enlace de verificación."); } catch (error) { setFeedback(errorMessage(error)); } finally { setSending(false); } }}>{sending ? "Enviando…" : "Reenviar enlace"}</button>}
       feedback={feedback}
     /> : null}

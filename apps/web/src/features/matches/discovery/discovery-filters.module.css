@@ -1,4 +1,4 @@
-/* Identidad deportiva para la búsqueda; utiliza los tokens globales de tema. */
+/* Exploración de partidos: conserva los tokens y la identidad de ambos temas. */
 .discoveryHeader {
   display: flex;
   flex-wrap: wrap;
@@ -19,14 +19,20 @@
   letter-spacing: .12em;
   margin: 0 0 10px;
 }
-.heading { font-family: Impact, "Arial Narrow", "Segoe UI", sans-serif; font-size: clamp(2.5rem, 6vw, 4.4rem); line-height: 1.04; letter-spacing: -.02em; margin: 0 0 14px; }
+.heading {
+  font-family: Impact, "Arial Narrow", "Segoe UI", sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4.4rem);
+  line-height: 1.04;
+  letter-spacing: -.02em;
+  margin: 0 0 14px;
+}
 .intro { font-size: clamp(.98rem, 1.5vw, 1.1rem); color: var(--muted); margin: 0; max-width: 48ch; }
 .headerActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .headerActions a { white-space: nowrap; }
 .controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 22px;
+  gap: 20px;
   padding: clamp(18px, 3vw, 28px);
   margin: 0 0 30px;
   border: 1px solid var(--line);
@@ -35,22 +41,32 @@
   box-shadow: var(--shadow);
   min-width: 0;
 }
-.group { min-width: 0; }
+.group, .advancedFilters { min-width: 0; }
+.advancedFilters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
 .label { display: block; font-size: .9rem; font-weight: 750; line-height: 1.35; margin-bottom: 10px; }
+.sportTopLine { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.swipeHint { display: none; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; padding: 2px 0; }
 .chip {
-  flex: 0 0 auto; min-height: 44px; padding: 9px 16px;
-  border: 1px solid var(--line); border-radius: 999px;
-  color: var(--ink); background: var(--background);
-  font-weight: 600; cursor: pointer;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--background);
+  font-weight: 600;
+  cursor: pointer;
   transition: background-color .18s, border-color .18s, transform .18s;
 }
 .chip:hover { background: var(--notice); border-color: var(--club); }
 .chip[aria-pressed="true"] {
-  background: var(--button-bg); color: var(--button-text);
+  background: var(--button-bg);
+  color: var(--button-text);
   border-color: var(--button-bg);
 }
 .chip:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.mobileFiltersToggle { display: none; }
 .locality { min-width: 0; }
 .help { margin: 7px 0 0; font-size: .825rem; color: var(--muted); }
 .dateDetails { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
@@ -60,67 +76,104 @@
 .resultsHeader { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin: 32px 0 20px; }
 .resultsEyebrow { margin-bottom: 4px; }
 .listingTitle { font-size: clamp(1.4rem, 3vw, 1.9rem); line-height: 1.2; margin: 0; letter-spacing: -.03em; }
-.resultCount { display: inline-flex; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: .875rem; color: var(--muted); font-weight: 650; }
+.resultCount {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: .875rem;
+  color: var(--muted);
+  font-weight: 650;
+}
 @media (min-width: 800px) {
-  .controls { grid-template-columns: minmax(0, 1fr) minmax(240px, .8fr); }
-  .sports, .formats { grid-column: 1 / -1; }
-  .dates { grid-column: 2; grid-row: 2; }
-  .locality { grid-column: 1; grid-row: 2; }
+  .advancedFilters { grid-template-columns: minmax(0, 1fr) minmax(240px, .8fr); }
+  .formats { grid-column: 1 / -1; }
+  .locality { grid-column: 1; }
+  .dates { grid-column: 2; }
 }
-@media (max-width: 480px) {
-  .discoveryHeader { padding: 22px 18px; border-radius: 16px; }
-  .headerActions { width: 100%; }
-  .headerActions a { flex: 1 1 auto; }
-  .controls { padding: 18px 14px; gap: 20px; border-radius: 16px; }
-  .chips { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; margin: 0 -3px; padding: 3px 3px 9px; scrollbar-width: thin; }
-  .chip { white-space: nowrap; }
-  .resultsHeader { margin-top: 26px; }
-}
-@media (prefers-reduced-motion: reduce) { .chip { transition: none; } }
-/* Ajustes deportivos para dispositivos móviles */
-@media (max-width: 480px) {
-  .discoveryHeader {
-    padding: 20px 18px;
-    gap: 18px;
-    margin-bottom: 18px;
-    border-radius: 16px;
-  }
-
-  .eyebrow {
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
+@media (max-width: 600px) {
+  /* Hero menos alto: los partidos aparecen antes, sin ocultar las acciones. */
+  .discoveryHeader { padding: 16px; gap: 11px; margin-bottom: 11px; border-radius: 16px; }
+  .headerCopy { flex: 1 1 100%; }
+  .eyebrow { font-size: .66rem; letter-spacing: .08em; margin-bottom: 6px; }
+  /* Se conserva el título deportivo en Impact que se aprobó. */
+  .discoveryHeader .heading {
+    font-family: Impact, "Arial Narrow", sans-serif;
+    font-size: clamp(2.15rem, 9vw, 2.7rem);
+    font-weight: 900;
+    line-height: 1.08;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+    text-wrap: balance;
     margin-bottom: 8px;
   }
-
-  .heading {
-    font-size: clamp(2.05rem, 9vw, 2.75rem);
-    line-height: 1.02;
-    margin-bottom: 12px;
-    letter-spacing: -0.02em;
-  }
-
-  .intro {
-    font-size: 0.92rem;
-    line-height: 1.5;
-  }
-
-  .headerActions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    width: 100%;
-  }
-
+  .intro { font-size: .82rem; line-height: 1.35; }
+  .headerActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
   .headerActions a {
+    min-height: 44px;
     width: 100%;
     min-width: 0;
-    padding: 10px 8px;
-    font-size: 0.82rem;
+    padding: 9px 8px;
+    font-size: .82rem;
     text-align: center;
     white-space: normal;
   }
 
-  .controls {
-    margin-top: 0;
+  .controls { padding: 12px 13px; gap: 9px; margin-bottom: 16px; border-radius: 16px; }
+  .label { font-size: .86rem; margin-bottom: 5px; }
+  .sportTopLine .label { margin-bottom: 0; }
+  .sportTopLine { margin-bottom: 4px; }
+  .swipeHint { display: inline; color: var(--muted); font-size: .69rem; white-space: nowrap; }
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-inline: 4px;
+    scroll-snap-type: x proximity;
+    margin: 0 -2px;
+    padding: 2px 2px 7px;
+    scrollbar-width: thin;
+  }
+  .sports .chips {
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 20px), transparent 100%);
+  }
+  .chip { white-space: nowrap; scroll-snap-align: start; padding: 8px 13px; min-height: 44px; }
+
+  .mobileFiltersToggle {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--background);
+    color: var(--ink);
+    font-weight: 750;
+    cursor: pointer;
+  }
+  .mobileFiltersToggle:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .toggleChevron { flex-shrink: 0; transition: transform .2s; }
+  .mobileFiltersToggle[aria-expanded="true"] .toggleChevron { transform: rotate(180deg); }
+  .advancedFilters { gap: 15px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .advancedFilters[data-expanded="false"] { display: none; }
+  .resultsHeader { margin-top: 18px; margin-bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip, .toggleChevron { transition: none; }
+}
+/* Acercar la exploración a la barra superior */
+:global(main.container):has(> .discoveryHeader) {
+  margin-top: 28px;
+}
+
+@media (max-width: 600px) {
+  :global(main.container):has(> .discoveryHeader) {
+    margin-top: 20px;
   }
 }

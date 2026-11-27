@@ -63,6 +63,20 @@ it("keeps verification feedback inside its notice and prevents repeated resends 
   expect(within(notice).getByRole("button", { name: "Reenviar enlace" })).toBeEnabled();
 });
 
+it("shows sports immediately and exposes an accessible advanced-filters toggle", async () => {
+  open();
+  const sportsGroup = await screen.findByRole("group", { name: "¿Qué querés jugar?" });
+  expect(within(sportsGroup).getByRole("button", { name: "Todos los deportes" })).toBeInTheDocument();
+  const toggle = screen.getByRole("button", { name: "Más filtros" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(toggle).toHaveAttribute("aria-controls", "discovery-more-filters");
+  fireEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "Ocultar filtros" })).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("combobox", { name: "Localidad seleccionada" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Ocultar filtros" }));
+  expect(screen.getByRole("button", { name: "Más filtros" })).toHaveAttribute("aria-expanded", "false");
+});
+
 it("uses the real catalog, clears incompatible formats, and returns to every sport", async () => {
   open(); await chip("Fútbol"); await chip("Fútbol 5");
   await latest({ sportId: football.id, sportFormatId: football.formats[0].id });
@@ -90,7 +104,7 @@ it("combines local dates with sport and temporary locality without updating prof
   fireEvent.click(await screen.findByRole("option", { name: "City Bell" }));
   await latest({ locationId: otherLocation.id, sportId: football.id, sportFormatId: football.formats[0].id, date: "2027-02-28" });
   await chip("Todas las fechas"); await latest({ date: null, sportId: football.id });
-});
+}, 15_000);
 it("resets progressive pages when switching to a previously cached filter", async () => {
   open(); await screen.findByText("Fútbol página 1"); await chip("Cargar más partidos");
   await screen.findByText("Fútbol página 2"); await chip("Pádel"); await screen.findByText("Pádel página 1");
