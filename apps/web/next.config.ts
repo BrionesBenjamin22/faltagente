@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Next 16.3's standalone trace manifest is incompatible with Vercel's build
+  // adapter. Docker still uses the standalone server output.
+  output: process.env.VERCEL ? undefined : "standalone",
   // pnpm stores runtime packages outside apps/web in the monorepo root.
   outputFileTracingRoot: path.join(__dirname, "../.."),
   async rewrites() {

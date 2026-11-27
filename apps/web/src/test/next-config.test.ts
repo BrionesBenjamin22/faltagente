@@ -55,3 +55,17 @@ describe("API proxy rewrites", () => {
     await expect(rewrites()).rejects.toThrow("credenciales");
   });
 });
+
+describe("build output", () => {
+  it("uses standalone output for Docker and lets Vercel package its own functions", async () => {
+    vi.stubEnv("VERCEL", "");
+    vi.resetModules();
+    const localConfig = await import("../../next.config");
+    expect(localConfig.default.output).toBe("standalone");
+
+    vi.stubEnv("VERCEL", "1");
+    vi.resetModules();
+    const vercelConfig = await import("../../next.config");
+    expect(vercelConfig.default.output).toBeUndefined();
+  });
+});
