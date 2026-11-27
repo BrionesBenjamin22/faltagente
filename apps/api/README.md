@@ -24,7 +24,7 @@ MVP-03 agrega `GET /api/v1/matches/:id`, un detalle público con organizador mí
 
 ## Configuración
 
-Copiar los placeholders de `../../.env.example` a un archivo `.env` local. No versionar valores reales. Además de las variables HTTP siguientes, la slice requiere `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET` y `FRONTEND_URL`; los secretos deben ser distintos y tener al menos 32 caracteres. Resend requiere `RESEND_API_KEY` y `EMAIL_FROM` para la entrega real de emails; ambas son obligatorias en producción.
+Copiar los placeholders de `../../.env.example` a un archivo `.env` local. No versionar valores reales. Además de las variables HTTP siguientes, la slice requiere `DATABASE_URL`, `JWT_SECRET`, `CSRF_SECRET` y `FRONTEND_URL`; los secretos deben ser distintos y tener al menos 32 caracteres. Brevo requiere `BREVO_API_KEY` y `EMAIL_FROM` para la entrega real de emails; ambas son obligatorias en producción.
 
 | Variable | Contrato |
 | --- | --- |

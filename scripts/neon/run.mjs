@@ -10,7 +10,7 @@ const api = resolve(root, 'apps/api');
 const commands = new Set(['start', 'status', 'migrate', 'seed', 'check']);
 const configurationKeys = new Set([
   'NODE_ENV', 'PORT', 'CORS_ORIGINS', 'FRONTEND_URL', 'JWT_SECRET',
-  'CSRF_SECRET', 'RESEND_API_KEY', 'EMAIL_FROM',
+  'CSRF_SECRET', 'BREVO_API_KEY', 'EMAIL_FROM',
 ]);
 
 export function parseArguments(args) {
@@ -67,6 +67,7 @@ export function validateConnections(values) {
 export function buildEnvironment(command, inherited, local, neon) {
   const connections = validateConnections(neon);
   const env = { ...inherited };
+  delete env.RESEND_API_KEY;
   for (const key of Object.keys(env)) {
     if (/^(?:DATABASE_URL|DATABASE_URL_UNPOOLED|DIRECT_URL|DOCKER_DATABASE_URL|POSTGRES(?:_|$)|PG(?:HOST|PORT|DATABASE|USER|PASSWORD|SERVICE|SSLMODE|SSLROOTCERT|SSLCERT|SSLKEY)$)/.test(key)) delete env[key];
   }
@@ -93,7 +94,7 @@ export function loadFile(path, optional = false) {
 
 export function redactOutput(value, env) {
   let safe = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, '[REDACTED_DATABASE_URL]');
-  for (const key of ['DATABASE_URL', 'DATABASE_URL_UNPOOLED', 'JWT_SECRET', 'CSRF_SECRET', 'RESEND_API_KEY'])
+  for (const key of ['DATABASE_URL', 'DATABASE_URL_UNPOOLED', 'JWT_SECRET', 'CSRF_SECRET', 'BREVO_API_KEY'])
     if (env[key]) safe = safe.split(env[key]).join('[REDACTED]');
   for (const key of ['DATABASE_URL', 'DATABASE_URL_UNPOOLED']) {
     if (!env[key]) continue;
