@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { test, expect, api, prismaFixture, hashFixturePassword } from './support/harness';
-import { chooseLocation, expectHomeLocation, openAccountMenu } from './support/ui';
+import { chooseLocation, expectHomeDiscovery, openAccountMenu } from './support/ui';
 import { expectNoAuditSections, trackChangeHistoryRequests } from './support/audit';
 
 const password = 'Account browser password 123!';
@@ -110,7 +110,9 @@ test('profile sends real differences and password change revokes every session a
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(newPassword);
     await page.getByRole('button', { name: 'Ingresar', exact: true }).click();
-    await expectHomeLocation(page, 'City Bell');
+    await expectHomeDiscovery(page);
+    const restoredSession = await context.request.get(`${api}/auth/session`);
+    expect((await restoredSession.json()).user.primaryLocation.name).toBe('City Bell');
   } finally { await otherContext.close(); }
 });
 

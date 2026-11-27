@@ -1,5 +1,13 @@
 # Validación de las vertical slices de Falta Gente
 
+## Descubrimiento global: expectativas vigentes
+
+El Home muestra todas las localidades por defecto y prioriza la localidad principal del usuario autenticado. `expectHomeDiscovery` comprueba la selección «Todas las localidades» y la ausencia del filtro `location` en la URL; `expectHomeLocation` se reserva para una localidad elegida explícitamente. Registro, recarga, retorno desde perfil y nuevo login deben conservar la localidad del perfil sin convertirla en filtro automático. La suite comprueba también el parámetro `preferredLocationId` y la presencia y orden de partidos de varias localidades en los datos reales.
+
+Abasto sin partidos, cuando existen partidos en otras localidades, muestra «No encontramos partidos con estos filtros.» y permite limpiar filtros o abrir el selector existente. La limpieza elimina también la localidad. Estas expectativas reemplazan las referencias históricas al filtro automático y a la acción «Cambiar localidad» de las secciones siguientes.
+
+Validación de esta corrección: lint, TypeScript de los archivos de test modificados, colección estática de los 41 tests Playwright, 23 tests unitarios de descubrimiento y 18 tests de scripts CI aprobados. No se ejecutó el navegador por indicación del usuario; la ejecución de los escenarios queda a cargo del check remoto.
+
 ## Restricción de auditoría e historial de cambios
 
 El usuario validó manualmente [AUDIT-01](../docs/tasks/AUDIT-01.md) y solicitó commits. Perfil y partidos no muestran ni consultan auditoría/historial de campos; las rutas retiradas devuelven 404 incluso al titular u organizador. Las pruebas verifican ausencia de fechas técnicas en respuestas y conservación de escrituras históricas directamente en PostgreSQL. El historial de reservas sigue disponible.

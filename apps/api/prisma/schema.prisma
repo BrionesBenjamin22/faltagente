@@ -30,6 +30,7 @@ enum ReservationStatus {
 enum ReservationCancellationSource {
   USER
   MATCH
+  ORGANIZER
 }
 enum EmailTokenKind {
   VERIFY
@@ -207,6 +208,11 @@ model Reservation {
   matchId String @db.Uuid
   match Match @relation(fields:[matchId], references:[id])
   places Int
+  originalPlaces Int @default(1)
+  version Int @default(1)
+
+  cancellations ReservationCancellation[]
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   status ReservationStatus @default(CONFIRMED)
   cancelledAt DateTime? @db.Timestamptz(3)
@@ -294,4 +300,17 @@ model WaitlistEvent {
   reason String?
   places Int
   expiresAt DateTime? @db.Timestamptz(3)
+}
+
+model ReservationCancellation {
+  id String @id @default(uuid()) @db.Uuid
+  reservationId String @db.Uuid
+  reservation Reservation @relation(fields:[reservationId], references:[id], onDelete:Cascade)
+  previousPlaces Int
+  remainingPlaces Int
+  occurredAt DateTime @default(now()) @db.Timestamptz(3)
+  source ReservationCancellationSource
+  reason String? @db.VarChar(500)
+
+  @@index([reservationId, occurredAt, id])
 }

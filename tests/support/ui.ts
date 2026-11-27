@@ -27,4 +27,12 @@ export async function logout(page: Page) {
 export async function expectHomeLocation(page: Page, location: string) {
   await expect(page.getByRole('heading', { name: 'Partidos disponibles', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Localidad seleccionada', exact: true })).toContainText(location);
+  await expect(page.getByRole('button', { name: 'Todas las localidades', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => new URL(page.url()).searchParams.has('location')).toBe(true);
+}
+
+export async function expectHomeDiscovery(page: Page) {
+  await expect(page.getByRole('heading', { name: 'Partidos disponibles', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Todas las localidades', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => new URL(page.url()).searchParams.has('location')).toBe(false);
 }

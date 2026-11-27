@@ -72,6 +72,8 @@ test('real multideporte discovery preserves filters, pagination, URL history and
     await expect(dates.getByRole('button', { name: 'Todas las fechas', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('article.match')).toHaveCount(9);
     expect(new URL(page.url()).searchParams.has('date')).toBe(false);
+    expect(new URL(page.url()).searchParams.has('location')).toBe(false);
+    await expect(page.getByRole('button', { name: 'Todas las localidades', exact: true })).toHaveAttribute('aria-pressed', 'true');
     const catalog = await page.request.get(`${api}/sports`);
     expect((await catalog.json()).items.map((sport: { name: string }) => sport.name)).toContain('Pádel');
   } finally {

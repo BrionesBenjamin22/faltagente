@@ -1,3 +1,4 @@
+import { recordCancellation } from './reservation-cancellations.domain.js';
 import {
   BadRequestException,
   ConflictException,
@@ -6,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  databaseTime,
   lockBookingDomain,
   settleMatch,
   allocateOffers,
@@ -631,11 +633,16 @@ export class MatchManagementService {
       // Ownership is always checked; a repeated cancellation cannot rewrite audit.
       if (match.status === 'CANCELLED') return { id };
       this.checkVersion(match.version, dto.expectedVersion);
-      this.checkFuture(match);
+      const cancellationTime = await databaseTime(tx);
+      if (match.startsAt <= cancellationTime)
+        throw new ConflictException({
+          code: 'MATCH_NOT_EDITABLE',
+          message: 'Sólo puede cancelar partidos futuros. Vuelva al detalle.',
+        });
       const [reservations, participations] = await Promise.all([
         tx.reservation.findMany({
           where: { matchId: id, status: 'CONFIRMED' },
-          select: { userId: true, places: true },
+          select: { id: true, userId: true, places: true },
         }),
         tx.participation.findMany({
           where: { matchId: id, active: true },
@@ -680,14 +687,17 @@ export class MatchManagementService {
       });
       for (const entry of waitlistEntries)
         await finishEntry(tx, entry.id, 'INVALIDATED', 'MATCH_CANCELLED');
-      const cancelledAt = new Date();
+      const cancelledAt = cancellationTime;
       const cancellationReason = dto.reason?.trim() || null;
       // The match lock serializes every writer of these relations. Releasing a
       // daily participation needs no player User lock; never acquire one here.
+      for (const reservation of reservations)
+        await recordCancellation(tx, reservation, 0, cancelledAt, 'MATCH', null);
       await tx.reservation.updateMany({
         where: { matchId: id, status: 'CONFIRMED' },
         data: {
           status: 'CANCELLED',
+          version: { increment: 1 },
           cancelledAt,
           cancellationSource: 'MATCH',
           cancellationReason: null,

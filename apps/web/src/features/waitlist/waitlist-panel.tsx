@@ -6,6 +6,7 @@ import { errorMessage } from "@/lib/http";
 import { useOwnWaitlist, useWaitlistAction } from "./hooks";
 import { waitlistPlacesSchema } from "./validation";
 import type { WaitlistEntry } from "./types";
+import { MAX_RESERVATION_PLACES } from "@/features/matches/reservation-limits";
 import styles from "./waitlist.module.css";
 
 export function WaitlistPanel({ id, userId, canJoin, maximum }: { id: string; userId: string; canJoin: boolean; maximum: number }) {
@@ -53,7 +54,7 @@ export function WaitlistPanel({ id, userId, canJoin, maximum }: { id: string; us
         void act({ kind: "join", places: parsed.data }, "Entraste en la lista de espera correctamente");
       })}>
         <p>El partido está completo.</p><p>Solicitá los lugares que necesitás; entrar en la lista todavía no confirma una reserva.</p>
-        <div className={styles.quantity}><label htmlFor="waitlist-places">Cantidad de lugares en espera</label><input id="waitlist-places" type="number" min={1} max={maximum} step={1} disabled={mutation.isPending} aria-invalid={!!errors.places} aria-describedby={errors.places ? "waitlist-places-error" : undefined} {...register("places", { valueAsNumber: true, onChange: () => { clearErrors("places"); mutation.reset(); } })} /></div>
+        <div className={styles.quantity}><label htmlFor="waitlist-places">Cantidad de lugares en espera</label><input id="waitlist-places" type="number" min={1} max={Math.min(MAX_RESERVATION_PLACES, maximum)} step={1} disabled={mutation.isPending} aria-invalid={!!errors.places} aria-describedby={errors.places ? "waitlist-places-error" : undefined} {...register("places", { valueAsNumber: true, onChange: () => { clearErrors("places"); mutation.reset(); } })} /></div>
         {errors.places ? <p className="error" id="waitlist-places-error" role="alert">{errors.places.message}</p> : null}
         <button type="submit" className="button" disabled={mutation.isPending}>{mutation.isPending ? "Ingresando…" : "Entrar en lista de espera"}</button>
       </form> : null}

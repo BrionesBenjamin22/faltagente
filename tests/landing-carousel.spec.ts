@@ -87,9 +87,9 @@ test('discovery renders a loading skeleton and a real empty locality with an act
   expect(response.ok()).toBe(true);
   const payload = await response.json() as { total: number };
   expect(payload.total, 'Development seed Abasto has no matches').toBe(0);
-  await expect(page.getByRole('heading', { name: 'No hay partidos disponibles en esta zona.', exact: true })).toBeVisible();
-  await expect(page.getByText('No hay partidos disponibles en esta zona.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Cambiar localidad', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'No encontramos partidos con estos filtros.', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Limpiar filtros', exact: true })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Localidad seleccionada', exact: true }).click();
   await expect(page.getByPlaceholder('Buscar localidad…')).toBeVisible();
   await expect(page.getByPlaceholder('Buscar localidad…')).toBeFocused();
   await page.keyboard.press('Escape');

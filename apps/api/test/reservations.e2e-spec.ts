@@ -131,6 +131,481 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
     }
     await app?.close();
   });
+  it('reduces a reservation for its holder and organizer while preserving daily participation and private movements', async () => {
+    const { organizer, id } = await organized(5);
+    const p = await player();
+    const r = (await p.browser.send('post', path(id), { places: 5 })).body;
+    const endpoint = `${path(id)}/${r.id}/places`;
+    const before = await db.match.findUniqueOrThrow({ where: { id } });
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 5,
+        })
+      ).body.version,
+    ).toBe(1);
+    expect(await db.match.findUniqueOrThrow({ where: { id } })).toEqual(before);
+    expect(
+      await db.reservationCancellation.count({
+        where: { reservationId: r.id },
+      }),
+    ).toBe(0);
+    const partial = await p.browser.send('patch', endpoint, {
+      expectedVersion: 1,
+      places: 4,
+    });
+    expect(partial.status).toBe(200);
+    expect(partial.body).toMatchObject({
+      places: 4,
+      originalPlaces: 5,
+      version: 2,
+      status: 'CONFIRMED',
+    });
+    expect(partial.headers['cache-control']).toBe('no-store');
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 4,
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      (await p.browser.send('post', path(await match()), { places: 1 })).body
+        .code,
+    ).toBe('DAILY_PARTICIPATION_CONFLICT');
+    expect(
+      (
+        await organizer.browser.send('patch', endpoint, {
+          expectedVersion: 2,
+          places: 3,
+          reason: '  Ajuste del organizador  ',
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 3,
+          places: 2,
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 4,
+          places: 1,
+        })
+      ).status,
+    ).toBe(200);
+    const first = (
+      await p.browser.send('get', `${path(id)}/${r.id}/cancellations`)
+    ).body;
+    expect(first).toMatchObject({ total: 4, pageSize: 3, hasMore: true });
+    expect(
+      first.items.map(
+        (row: { remainingPlaces: number }) => row.remainingPlaces,
+      ),
+    ).toEqual([1, 2, 3]);
+    expect(first.items[2]).toMatchObject({
+      source: 'ORGANIZER',
+      reason: 'Ajuste del organizador',
+      previousPlaces: 4,
+      remainingPlaces: 3,
+    });
+    expect(
+      (await p.browser.send('get', `${path(id)}/${r.id}/cancellations?page=2`))
+        .body,
+    ).toMatchObject({
+      total: 4,
+      hasMore: false,
+      items: [
+        { source: 'USER', reason: null, previousPlaces: 5, remainingPlaces: 4 },
+      ],
+    });
+    expect(
+      (await organizer.browser.send('get', `${path(id)}/${r.id}/cancellations`))
+        .status,
+    ).toBe(404);
+    expect(
+      await db.participation.findUnique({
+        where: { userId_matchId: { userId: p.id, matchId: id } },
+      }),
+    ).toMatchObject({ active: true });
+    const list = await organizer.browser.send('get', path(id));
+    expect(list.body).toMatchObject({
+      total: 1,
+      pageSize: 9,
+      items: [
+        {
+          places: 1,
+          originalPlaces: 5,
+          version: 5,
+          holder: { id: p.id, name: 'Player' },
+        },
+      ],
+    });
+    expect(JSON.stringify(list.body)).not.toMatch(
+      /Ajuste|cancellationReason|email|password/,
+    );
+    expect((await p.browser.send('get', path(id))).status).toBe(403);
+    expect(
+      (await p.browser.send('post', `${path(id)}/${r.id}/cancel`, {})).status,
+    ).toBe(200);
+    expect(
+      await db.reservation.findUnique({ where: { id: r.id } }),
+    ).toMatchObject({ places: 1, originalPlaces: 5, status: 'CANCELLED' });
+    expect(
+      (await p.browser.send('post', path(await match()), { places: 1 })).status,
+    ).toBe(201);
+  });
+  it('validates reduction quantity, ownership, reason, session, CSRF, Origin and PostgreSQL start time', async () => {
+    const { organizer, id } = await organized(3);
+    const p = await player();
+    const other = await player();
+    const r = (await p.browser.send('post', path(id), { places: 3 })).body;
+    const endpoint = `${path(id)}/${r.id}/places`;
+    for (const places of [0, -1, 1.5, '2', 101])
+      expect(
+        (
+          await p.browser.send('patch', endpoint, {
+            expectedVersion: 1,
+            places,
+          })
+        ).status,
+      ).toBe(400);
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 4,
+        })
+      ).body.code,
+    ).toBe('RESERVATION_INCREASE_FORBIDDEN');
+    for (const places of [2, 3])
+      expect(
+        (
+          await p.browser.send('patch', endpoint, {
+            expectedVersion: 1,
+            places,
+            reason: 'Prohibido',
+          })
+        ).status,
+      ).toBe(400);
+    expect(
+      (
+        await other.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 2,
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await organizer.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 2,
+          reason: 'x'.repeat(501),
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await p.browser.send(
+          'patch',
+          endpoint,
+          { expectedVersion: 1, places: 2 },
+          false,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await p.browser.send(
+          'patch',
+          endpoint,
+          { expectedVersion: 1, places: 2 },
+          true,
+          'https://hostile.test',
+        )
+      ).status,
+    ).toBe(403);
+    const anon = new Browser();
+    await anon.prepare();
+    expect(
+      (await anon.send('patch', endpoint, { expectedVersion: 1, places: 2 }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await p.browser.send('post', `${path(id)}/${r.id}/cancel`, {
+          reason: 'No permitido',
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 2,
+          userId: p.id,
+        })
+      ).status,
+    ).toBe(400);
+    await db.match.update({
+      where: { id },
+      data: { startsAt: new Date('2000-01-01') },
+    });
+    expect(
+      (
+        await p.browser.send('patch', endpoint, {
+          expectedVersion: 1,
+          places: 2,
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      await db.reservationCancellation.count({
+        where: { reservationId: r.id },
+      }),
+    ).toBe(0);
+    expect(await db.match.findUnique({ where: { id } })).toMatchObject({
+      availablePlaces: 0,
+    });
+  });
+  it('limits new reservations to 100 places and paginates organizer reservations by nine', async () => {
+    const p = await player();
+    const id = await match(101);
+    expect(
+      (await p.browser.send('post', path(id), { places: 101 })).status,
+    ).toBe(400);
+    expect(
+      (await p.browser.send('post', path(id), { places: 100 })).body,
+    ).toMatchObject({ places: 100, originalPlaces: 100, version: 1 });
+    const fixture = await organized(10);
+    for (let index = 0; index < 10; index++) {
+      const holder = await db.user.create({
+        data: { name: 'Holder', email: `fixture-${randomUUID()}@example.test` },
+      });
+      userIds.push(holder.id);
+      await db.reservation.create({
+        data: { matchId: fixture.id, userId: holder.id, places: 1 },
+      });
+    }
+    expect(
+      (await fixture.organizer.browser.send('get', path(fixture.id))).body
+        .items,
+    ).toHaveLength(9);
+    expect(
+      (
+        await fixture.organizer.browser.send(
+          'get',
+          `${path(fixture.id)}?page=2`,
+        )
+      ).body,
+    ).toMatchObject({ total: 10, page: 2, pageSize: 9, hasMore: false });
+  });
+  it.each(['reduce', 'total', 'match', 'booking', 'organizer'] as const)(
+    'serializes reduction against %s without overbooking or duplicate release',
+    async (competing) => {
+      const { organizer, id } = await organized(3);
+      const p = await player();
+      const other = await player();
+      const r = (await p.browser.send('post', path(id), { places: 3 })).body;
+      const version = (await db.match.findUniqueOrThrow({ where: { id } }))
+        .version;
+      const endpoint = `${path(id)}/${r.id}`;
+      const operation =
+        competing === 'reduce'
+          ? p.browser.send('patch', `${endpoint}/places`, {
+              expectedVersion: 1,
+              places: 1,
+            })
+          : competing === 'total'
+            ? p.browser.send('post', `${endpoint}/cancel`, {})
+            : competing === 'organizer'
+              ? organizer.browser.send(
+                  'post',
+                  `${endpoint}/cancel-by-organizer`,
+                  { expectedVersion: 1 },
+                )
+              : competing === 'match'
+                ? organizer.browser.send('post', `/matches/${id}/cancel`, {
+                    expectedVersion: version,
+                  })
+                : other.browser.send('post', path(id), { places: 1 });
+      const [partial, otherResult] = await Promise.all([
+        p.browser.send('patch', `${endpoint}/places`, {
+          expectedVersion: 1,
+          places: 2,
+        }),
+        operation,
+      ]);
+      expect([200, 409]).toContain(partial.status);
+      expect([200, 201, 409]).toContain(otherResult.status);
+      if (competing === 'reduce')
+        expect([partial.status, otherResult.status].sort()).toEqual([200, 409]);
+      if (competing === 'match' && otherResult.status === 409)
+        expect((await cancelMatch(organizer, id)).status).toBe(201);
+      if (competing === 'organizer' && otherResult.status === 409)
+        expect(
+          (
+            await organizer.browser.send(
+              'post',
+              `${endpoint}/cancel-by-organizer`,
+              { expectedVersion: 2 },
+            )
+          ).status,
+        ).toBe(200);
+      const rows = await db.reservation.findMany({ where: { matchId: id } });
+      const after = await db.match.findUniqueOrThrow({ where: { id } });
+      expect(
+        after.availablePlaces +
+          rows
+            .filter((row) => row.status === 'CONFIRMED')
+            .reduce((sum, row) => sum + row.places, 0),
+      ).toBe(3);
+      if (['total', 'organizer', 'match'].includes(competing)) {
+        expect(after.availablePlaces).toBe(3);
+        expect(
+          await db.participation.count({
+            where: { userId: p.id, matchId: id, active: true },
+          }),
+        ).toBe(0);
+        const movements = await db.reservationCancellation.findMany({
+          where: { reservationId: r.id },
+        });
+        expect(
+          movements.reduce(
+            (sum, row) => sum + row.previousPlaces - row.remainingPlaces,
+            0,
+          ),
+        ).toBe(3);
+      }
+    },
+  );
+  it('allows only organizer full cancellation, with optional reason visible to the holder and immutable retries', async () => {
+    const { organizer, id } = await organized(3);
+    const p = await player();
+    const other = await player();
+    const r = (await p.browser.send('post', path(id), { places: 3 })).body;
+    const endpoint = `${path(id)}/${r.id}`;
+    const payload = {
+      expectedVersion: 1,
+      reason: '  Ajuste del organizador  ',
+    };
+    expect(
+      (await p.browser.send('post', `${endpoint}/cancel-by-organizer`, payload))
+        .status,
+    ).toBe(404);
+    expect(
+      (
+        await other.browser.send(
+          'post',
+          `${endpoint}/cancel-by-organizer`,
+          payload,
+        )
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await organizer.browser.send(
+          'post',
+          `${endpoint}/cancel-by-organizer`,
+          payload,
+          false,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await organizer.browser.send(
+          'post',
+          `${endpoint}/cancel-by-organizer`,
+          payload,
+          true,
+          'https://hostile.test',
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await organizer.browser.send(
+          'post',
+          `${endpoint}/cancel-by-organizer`,
+          { expectedVersion: 2 },
+        )
+      ).status,
+    ).toBe(409);
+    const result = await organizer.browser.send(
+      'post',
+      `${endpoint}/cancel-by-organizer`,
+      payload,
+    );
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({ id: r.id });
+    expect(result.headers['cache-control']).toBe('no-store');
+    expect(
+      (
+        await organizer.browser.send(
+          'post',
+          `${endpoint}/cancel-by-organizer`,
+          { ...payload, reason: 'No reescribir' },
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (await other.browser.send('post', `${endpoint}/cancel-by-organizer`, payload))
+        .status,
+    ).toBe(404);
+    const removalNotifications = await db.notification.findMany({
+      where: { relatedMatchId: id, type: 'PLAYER_REMOVED' },
+      orderBy: { dedupeKey: 'asc' },
+    });
+    expect(removalNotifications).toHaveLength(2);
+    expect(removalNotifications.find(row => row.userId === p.id)).toMatchObject({
+      actorUserId: organizer.id,
+      detail: 'Ajuste del organizador',
+      dedupeKey: `PLAYER_REMOVED:${id}:${r.id}`,
+      metadata: { places: 3 },
+    });
+    expect(removalNotifications.find(row => row.userId === organizer.id)).toMatchObject({
+      actorUserId: organizer.id,
+      title: 'Diste de baja una reserva',
+      dedupeKey: `PLAYER_REMOVED_CONFIRMATION:${id}:${r.id}`,
+    });
+    expect(await db.notification.count({
+      where: { relatedMatchId: id, type: 'MATCH_LEFT' },
+    })).toBe(0);
+    expect(
+      (await p.browser.send('get', `${endpoint}/cancellations`)).body,
+    ).toMatchObject({
+      total: 1,
+      items: [
+        {
+          source: 'ORGANIZER',
+          reason: 'Ajuste del organizador',
+          previousPlaces: 3,
+          remainingPlaces: 0,
+        },
+      ],
+    });
+    expect(
+      (await organizer.browser.send('get', `${endpoint}/cancellations`)).status,
+    ).toBe(404);
+    expect(
+      await db.participation.findUnique({
+        where: { userId_matchId: { userId: p.id, matchId: id } },
+      }),
+    ).toMatchObject({ active: false });
+    expect(
+      await db.participation.findUnique({
+        where: { userId_matchId: { userId: organizer.id, matchId: id } },
+      }),
+    ).toMatchObject({ active: true, role: 'ORGANIZER' });
+  });
   it('reserves multiple places, creates PLAYER, closes full match and retries idempotently', async () => {
     const p = await player();
     const id = await match();
@@ -146,7 +621,9 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
       'createdAt',
       'id',
       'matchId',
+      'originalPlaces',
       'places',
+      'version',
     ]);
     expect((await p.browser.send('get', `${path(id)}/me`)).body).toEqual(
       results[0].body,
@@ -333,17 +810,17 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
     });
     const cancelPath = `${path(id)}/${created.id}/cancel`;
     const results = await Promise.all(
-      [1, 2].map(() =>
-        p.browser.send('post', cancelPath, { reason: '  Cambio de planes  ' }),
-      ),
+      [1, 2].map(() => p.browser.send('post', cancelPath, {})),
     );
     expect(results.map((r) => r.status)).toEqual([200, 200]);
     expect(results[0].body).toEqual(results[1].body);
     expect(results[0].headers['cache-control']).toBe('no-store');
     expect(results[0].body).toMatchObject({
-      ...created,
+      id: created.id,
+      places: created.places,
+      version: 2,
       status: 'CANCELLED',
-      cancellationReason: 'Cambio de planes',
+      cancellationReason: null,
     });
     expect(results[0].body.cancelledAt).toBeTruthy();
     expect((await p.browser.send('get', `${path(id)}/me`)).body).toBeNull();
@@ -366,10 +843,9 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
       }),
     ).toMatchObject({ active: true });
     // An old retry cannot cancel the replacement, even with another reason.
-    expect(
-      (await p.browser.send('post', cancelPath, { reason: 'Changed retry' }))
-        .body,
-    ).toEqual(results[0].body);
+    expect((await p.browser.send('post', cancelPath, {})).body).toEqual(
+      results[0].body,
+    );
     expect((await p.browser.send('get', `${path(id)}/me`)).body).toEqual(
       again.body,
     );
@@ -749,12 +1225,13 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
     const old = (await former.browser.send('post', path(id), { places: 1 }))
       .body;
     expect(
-      (
-        await former.browser.send('post', `${path(id)}/${old.id}/cancel`, {
-          reason: 'Privado',
-        })
-      ).status,
+      (await former.browser.send('post', `${path(id)}/${old.id}/cancel`, {}))
+        .status,
     ).toBe(200);
+    await db.reservation.update({
+      where: { id: old.id },
+      data: { cancellationReason: 'Privado' },
+    });
     const first = (await a.browser.send('post', path(id), { places: 2 })).body;
     const second = (await b.browser.send('post', path(id), { places: 2 })).body;
     const before = await db.match.findUniqueOrThrow({ where: { id } });
@@ -806,7 +1283,7 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
     const retry = await a.browser.send(
       'post',
       `${path(id)}/${first.id}/cancel`,
-      { reason: 'must not overwrite' },
+      {},
     );
     expect(retry.status).toBe(200);
     expect(retry.body.cancellationSource).toBe('MATCH');
@@ -833,8 +1310,10 @@ describe('reservations against real PostgreSQL', { timeout: 30000 }, () => {
     const p = await player();
     const first = await match();
     const old = (await p.browser.send('post', path(first), { places: 1 })).body;
-    await p.browser.send('post', `${path(first)}/${old.id}/cancel`, {
-      reason: 'Private list reason',
+    await p.browser.send('post', `${path(first)}/${old.id}/cancel`, {});
+    await db.reservation.update({
+      where: { id: old.id },
+      data: { cancellationReason: 'Private list reason' },
     });
     const replacement = (
       await p.browser.send('post', path(first), { places: 2 })

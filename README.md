@@ -118,7 +118,7 @@ El alcance objetivo contempla las siguientes funciones. El apartado «Estado act
 - asociación de cada partido a un deporte;
 - formatos deportivos opcionales;
 - reserva de uno o más lugares;
-- acompañantes opcionales;
+- reservas grupales por cantidad de lugares;
 - cancelación de reservas;
 - cancelación de partidos;
 - lista de espera para partidos completos;
@@ -183,8 +183,10 @@ Google OAuth y reservas también continúan pendientes.
 
 El detalle permite a usuarios autenticados reservar uno o varios lugares disponibles. La confirmación crea una reserva y una participación como jugador, actualizando el cupo de forma atómica. La inscripción se conserva al recargar. Se impiden sobre reservas, duplicados, reservas del organizador y dos participaciones activas en la misma fecha local. Ver [alcance y validación](docs/tasks/RESERVATIONS-01.md).
 
-El titular puede cancelar toda su reserva antes del inicio, con motivo opcional privado. Se liberan sus lugares y participación de forma atómica, se conserva el historial paginado y puede volver a reservar sujeto a disponibilidad. Ver [cancelación de reservas](docs/tasks/RESERVATIONS-02.md). Siguen pendientes cancelación parcial, lista de espera y notificaciones.
+El titular puede cancelar toda su reserva antes del inicio sin ingresar motivo. Se liberan sus lugares y participación de forma atómica, se conserva el historial paginado y puede volver a reservar sujeto a disponibilidad. La [cancelación de reservas](docs/tasks/RESERVATIONS-02.md) registra el antecedente de esta funcionalidad.
 El organizador puede cancelar partidos futuros con reservas activas: cancela sus reservas y libera cupos y participaciones de forma atómica. El motivo es privado a los titulares afectados. Mis partidos incluye Organizados y Reservados con próximos, pasados y cancelados; diferencia bajas voluntarias y del organizador. Etapa validada manualmente y aprobada para commits: [cancelación de partidos con reservas](docs/tasks/RESERVATIONS-03.md).
+
+Titular y organizador pueden reducir una reserva de tres a dos lugares antes del inicio, con confirmación y control de versión. Sólo el organizador puede indicar un motivo opcional al reducir o cancelar una reserva. Se trabaja por cantidades, sin nombres ni registros individuales de acompañantes. El listado privado del organizador usa nueve reservas por página y el titular consulta tres movimientos por página. Los lugares liberados se reasignan atómicamente a la lista de espera. El máximo es de cien lugares por reserva o solicitud de espera. Ver [entrega aprobada](docs/tasks/finished/RESERVATIONS-04-quantity-reduction.md), [contrato API](apps/api/RESERVATIONS.md) y [frontend](apps/web/docs/matches.md).
 
 ### Restricción de auditoría e historial de cambios
 

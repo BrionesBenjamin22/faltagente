@@ -87,7 +87,13 @@ describe(
               { userId: holder.id, localDate, role: 'PLAYER' },
             ],
           },
-          reservations: { create: { userId: holder.id, places: total } },
+          reservations: {
+            create: {
+              userId: holder.id,
+              places: total,
+              originalPlaces: total,
+            },
+          },
         },
         include: { reservations: true },
       });
@@ -242,7 +248,7 @@ describe(
           )
         ).status,
       ).toBe(403);
-      for (const places of [0, -1, 1.5, '1'])
+      for (const places of [0, -1, 1.5, '1', 101])
         expect(
           (await actors[2].browser.send('post', path(match.id), { places }))
             .status,
@@ -383,6 +389,7 @@ describe(
       expect(a.status).toBe(200);
       expect(b.status).toBe(200);
       expect(a.body.id).toBe(b.body.id);
+      expect(a.body).toEqual(b.body);
       expect(
         await db.reservation.count({
           where: { matchId: match.id, userId: actors[2].id },
@@ -419,6 +426,56 @@ describe(
         }),
       ).toBe(0);
       await invariant(match.id);
+    });
+    it('serializes quantity reduction against offer acceptance without overbooking', async () => {
+      const row = await fixture(4);
+      await join(row.id, actors[2], 2);
+      const reservation = row.reservations[0];
+      const endpoint = `/matches/${row.id}/reservations/${reservation.id}/places`;
+      expect(
+        (
+          await row.holder.browser.send('patch', endpoint, {
+            expectedVersion: 1,
+            places: 2,
+          })
+        ).status,
+      ).toBe(200);
+      const offer = (await own(row.id, actors[2])).offer;
+      const [reduced, accepted] = await Promise.all([
+        row.holder.browser.send('patch', endpoint, {
+          expectedVersion: 2,
+          places: 1,
+        }),
+        actors[2].browser.send('post', `${offerPath(offer.id)}/accept`),
+      ]);
+      expect(reduced.status).toBe(200);
+      expect(accepted.status).toBe(200);
+      expect(accepted.body).toMatchObject({
+        places: 2,
+        originalPlaces: 2,
+        version: 1,
+      });
+      expect(
+        await db.match.findUnique({ where: { id: row.id } }),
+      ).toMatchObject({ availablePlaces: 1 });
+      await invariant(row.id);
+    });
+    it('accepts the supported 100-place waitlist group and rejects 101 before allocation', async () => {
+      const row = await fixture(100);
+      expect(
+        (await actors[2].browser.send('post', path(row.id), { places: 101 }))
+          .status,
+      ).toBe(400);
+      await join(row.id, actors[2], 100);
+      await release(row);
+      const offer = (await own(row.id, actors[2])).offer;
+      const accepted = await actors[2].browser.send(
+        'post',
+        `${offerPath(offer.id)}/accept`,
+      );
+      expect(accepted.status).toBe(200);
+      expect(accepted.body.places).toBe(100);
+      await invariant(row.id);
     });
     it('atomically invalidates competing offers after accepting on the same local day', async () => {
       const a = await fixture(1);

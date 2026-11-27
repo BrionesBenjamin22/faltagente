@@ -2,11 +2,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsUUID, Max, Min } from 'class-validator';
 import { MatchIdDto } from '../matches/dto/match-id.dto.js';
+import { MAX_RESERVATION_PLACES } from '../matches/reservation-limits.js';
 export class JoinWaitlistDto {
-  @ApiProperty({ minimum: 1, maximum: 2147483647 })
+  @ApiProperty({ minimum: 1, maximum: MAX_RESERVATION_PLACES })
   @IsInt()
   @Min(1)
-  @Max(2147483647)
+  @Max(MAX_RESERVATION_PLACES)
   places: number;
 }
 export class WaitlistPageDto {

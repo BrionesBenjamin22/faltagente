@@ -1,6 +1,6 @@
 # Estado de Falta Gente
 
-Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado del 19 de noviembre. Las reglas de `agent/PRODUCT.md` describen el alcance objetivo; no todas están implementadas. Algunas tareas Foundation siguen marcadas como pendientes pese a tener implementación parcial o completa: sus etiquetas no sustituyen esta revisión del código.
+Revisión de reservas del 26 de noviembre de 2026 sobre el estado consolidado del 19 de noviembre. Las reglas de `agent/PRODUCT.md` describen el alcance objetivo; no todas están implementadas. Algunas tareas Foundation siguen marcadas como pendientes pese a tener implementación parcial o completa: sus etiquetas no sustituyen esta revisión del código.
 
 ## Implementado
 
@@ -15,7 +15,7 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 ### Descubrimiento y partidos
 
 - Catálogos persistidos de localidades y deportes: Fútbol, Pádel, Básquet y Vóley, con formatos deportivos cuando corresponden.
-- Descubrimiento público y Home autenticado: filtros por localidad, deporte, formato y fecha local de Buenos Aires, con estado en URL y navegación atrás/adelante.
+- Descubrimiento público y Home autenticado: todas las localidades por defecto y prioridad para los partidos de la localidad principal del usuario autenticado antes de paginar. Filtros opcionales por localidad, deporte, formato y fecha local de Buenos Aires, limpieza completa, estado en URL y navegación atrás/adelante.
 - Localidad temporal independiente del perfil y carga progresiva de nueve resultados.
 - Detalle público en `/partidos/[id]`, datos mínimos del organizador y tratamiento de partidos inexistentes, cerrados o cancelados.
 - Compartir partidos futuros abiertos o cerrados mediante URL limpia, copia con fallback manual, WhatsApp, Telegram, X y Web Share cuando esté disponible. El disparador del encabezado abre un popover en escritorio y un bottom sheet modal en móvil, con foco gestionado y sin desplazar la tarjeta. Etapa aprobada manualmente el 25 de noviembre de 2026; ver [documentación del módulo](../apps/web/MATCH-SHARING.md).
@@ -27,8 +27,11 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 ### Reservas
 
 - Reserva de uno o varios lugares, confirmación automática y atómica, prevención de sobre-reserva y reservas propias del organizador, participación PLAYER y restricción diaria de Buenos Aires.
-- Cancelación completa antes del inicio, motivo privado opcional, liberación atómica de cupos y participación, reapertura e idempotencia por reserva concreta. El organizador también puede cancelar partidos con reservas activas mediante la transacción integrada descrita debajo.
+- Reducción de lugares antes del inicio por titular y organizador, conservando al menos un lugar y la participación PLAYER activa. Cancelación completa sin motivo del titular y cancelación individual por el organizador con motivo opcional. Liberación atómica de cupos, participación cuando corresponde e idempotencia de la cancelación por reserva concreta.
 - Reinscripción sujeta a disponibilidad y regla diaria, conservando cada reserva anterior y reutilizando la participación. Historial privado con tres reservas por página.
+- Reservas por cantidad, sin nombres ni registros individuales de acompañantes. Máximo de cien lugares por reserva o solicitud de espera. Versiones para detectar conflictos, cantidad original conservada y movimientos privados de reducción/cancelación, tres por página. Listado del organizador con nueve reservas confirmadas por página, sin acceso a movimientos privados del titular.
+- Lista de espera y ofertas implementadas: retenciones, selección compatible, aceptación, rechazo, expiración e invalidaciones atómicas por fecha local. Reducir o cancelar reservas reasigna los lugares dentro de la misma transacción; pueden quedar inmediatamente retenidos. Las notificaciones de negocio continúan pendientes. Ver [contrato](../apps/api/WAITLIST.md).
+- Etapa de cantidades validada manualmente y aprobada para commits el 26 de noviembre de 2026: 329 unitarios, 106 integraciones PostgreSQL y diez escenarios Playwright aprobados; lint, typecheck, build e imágenes Docker correctos. Migración conservativa aplicada y seeds de catálogo ejecutados, once migraciones sin pendientes y stack local saludable. Ver [RESERVATIONS-04](tasks/finished/RESERVATIONS-04-quantity-reduction.md).
 - Aprobación de la etapa y solicitud de commits recibidas el 24 de noviembre. Lint, typecheck, build, 271 unitarios, 75 integraciones y cuatro recorridos Playwright aprobados; las dos suites de integración afectadas por timeouts se repitieron correctamente. Migración aplicada, seeds actualizados y stack Docker saludable. Ver [cancelación de reservas](tasks/RESERVATIONS-02.md).
 - Cancelación atómica de partidos futuros con reservas activas: fuente USER/MATCH, liberación de cupos y participaciones, idempotencia y auditoría única. Motivo visible sólo a titulares afectados; las bajas voluntarias previas no otorgan acceso. El usuario confirmó manualmente la cancelación y el motivo en historial y solicitó commits el 24 de noviembre. Aprobaron 276 unitarios, 81 integraciones y seis escenarios Playwright, además de lint, typecheck, builds y seguridad. Nueve migraciones aplicadas y Docker saludable. Ver [RESERVATIONS-03](tasks/RESERVATIONS-03.md).
 
@@ -45,12 +48,10 @@ Revisión de reservas del 24 de noviembre de 2026 sobre el estado consolidado de
 ## Pendiente del producto
 
 1. **Refactorizar la UI.** Alcance visual y pantallas a definir en [UI-04](tasks/pending/UI-04-refactor-ui.md). No se implementó un rediseño como parte del cambio estructural.
-2. **Cancelación parcial de reservas.** Queda para una etapa posterior; la cancelación actual siempre incluye todos los lugares y acompañantes de la reserva.
-3. **Acompañantes y contacto privado.** Nombres opcionales de acompañantes; definir/cargar el contacto y revelarlo sólo tras una reserva confirmada, con autorización backend.
-4. **Lista de espera y ofertas.** Alta/baja, cantidad de lugares, selección por mejor aprovechamiento y antigüedad, oferta de 15 minutos, aceptación/rechazo/expiración e invalidaciones atómicas de otras ofertas/listas del mismo día al confirmar participación.
-5. **Notificaciones de negocio.** Persistencia y consulta de avisos in-app, próximos partidos y eventos de reservas/cancelaciones/ofertas; correos de esos eventos. Los toasts actuales sólo son feedback de UI.
-6. **Acceso Google.** OAuth y asociación segura con cuentas existentes; el acceso actual es local.
-7. **Otras capacidades previstas.** Propuesta de localidades faltantes. Las acciones de compartir enlaces y destinos sociales ya están implementadas.
+2. **Contacto privado.** Definir/cargar el contacto y revelarlo sólo tras una reserva confirmada, con autorización backend. Los nombres y registros individuales de acompañantes quedaron fuera del alcance acordado de reservas por cantidad.
+3. **Notificaciones de negocio.** Persistencia y consulta de avisos in-app, próximos partidos y eventos de reservas/cancelaciones/ofertas; correos de esos eventos. Los toasts actuales sólo son feedback de UI.
+4. **Acceso Google.** OAuth y asociación segura con cuentas existentes; el acceso actual es local.
+5. **Otras capacidades previstas.** Propuesta de localidades faltantes. Las acciones de compartir enlaces y destinos sociales ya están implementadas.
 
 Las etapas de reservas, edición, cancelación y espera deben diseñarse juntas en sus puntos de concurrencia y estados antes de implementar cada entrega. No están autorizadas como trabajo adicional por este resumen.
 

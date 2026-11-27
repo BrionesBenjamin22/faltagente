@@ -44,7 +44,7 @@ async function fixture() {
   async function reservation(holderId: string, matchId: string, localDate: Date, places: number, cancelled = false) {
     await db.participation.upsert({ where: { userId_matchId: { userId: holderId, matchId } },
       create: { userId: holderId, matchId, role: 'PLAYER', localDate, active: !cancelled }, update: { active: !cancelled } });
-    return db.reservation.create({ data: { userId: holderId, matchId, places,
+    return db.reservation.create({ data: { userId: holderId, matchId, places, originalPlaces: places,
       ...(cancelled ? { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: 'Motivo privado del titular', cancellationSource: 'USER' } : {}),
     } });
   }

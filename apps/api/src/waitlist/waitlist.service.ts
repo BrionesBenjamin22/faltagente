@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.module.js';
-import { confirmReservation } from '../matches/booking-core.js';
+import {
+  confirmReservation,
+  reservationProjection,
+} from '../matches/booking-core.js';
 import {
   activeEntries,
   allocateOffers,
@@ -248,7 +251,7 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
         return {
           reservation: await tx.reservation.findUniqueOrThrow({
             where: { id: offer.reservationId },
-            select: { id: true, matchId: true, places: true, createdAt: true },
+            select: reservationProjection,
           }),
         };
       await settleMatch(tx, offer.entry.matchId);

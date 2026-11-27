@@ -40,7 +40,7 @@ it("requires confirmation before leaving and targets the concrete entry", async 
 it("accepts the held offer once and refreshes reservations and other waitlists", async () => {
   const offer = { id: "offer", status: "PENDING" as const, places: 2, expiresAt: "2099-01-01", reservationId: null };
   vi.spyOn(waitlistService, "mine").mockResolvedValue({ ...entry, status: "OFFERED", offer });
-  const accept = vi.spyOn(waitlistService, "accept").mockResolvedValue({ id: "reservation", matchId: "match", places: 2, createdAt: "2026-01-01" });
+  const accept = vi.spyOn(waitlistService, "accept").mockResolvedValue({ id: "reservation", matchId: "match", places: 2, createdAt: "2026-01-01", version: 1, originalPlaces: 2 });
   const client = open(); const invalidate = vi.spyOn(client, "invalidateQueries");
   fireEvent.click(await screen.findByRole("button", { name: "Aceptar oferta" }));
   expect(await screen.findByText("Oferta aceptada. Reserva confirmada correctamente")).toBeInTheDocument();
@@ -86,4 +86,19 @@ it("uses fresh CSRF tokens and private no-store requests for offer mutations", a
   vi.stubGlobal("fetch", fetch);
   await waitlistService.reject("offer/id");
   expect(fetch).toHaveBeenNthCalledWith(2, expect.stringContaining("/waitlist/offers/offer%2Fid/reject"), expect.objectContaining({ method: "POST", credentials: "include", cache: "no-store", headers: expect.objectContaining({ "X-CSRF-Token": "csrf" }) }));
+});
+
+it("limits waiting requests to 100 places while preserving a smaller match capacity", async () => {
+  vi.spyOn(waitlistService, "mine").mockResolvedValue(null);
+  const join = vi.spyOn(waitlistService, "join").mockResolvedValue({ ...entry, places: 100 });
+  open(<WaitlistPanel id="match" userId="user" canJoin maximum={200} />);
+  const quantity = await screen.findByLabelText("Cantidad de lugares en espera");
+  expect(quantity).toHaveAttribute("max", "100");
+  fireEvent.change(quantity, { target: { value: "101" } });
+  fireEvent.click(screen.getByRole("button", { name: "Entrar en lista de espera" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("hasta 100 lugares");
+  expect(join).not.toHaveBeenCalled();
+  fireEvent.change(quantity, { target: { value: "100" } });
+  fireEvent.click(screen.getByRole("button", { name: "Entrar en lista de espera" }));
+  await waitFor(() => expect(join).toHaveBeenCalledExactlyOnceWith("match", 100));
 });

@@ -10,10 +10,10 @@ import styles from "./discovery-filters.module.css";
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
   return <button type="button" className={styles.chip} aria-pressed={selected} onClick={onClick}>{children}</button>;
 }
-export function DiscoveryFilters({ filters, locationId, authenticated, onFilters, onLocation, showClear = true }: {
+export function DiscoveryFilters({ filters, locationId, authenticated, onFilters, onLocation, onClear, showClear = true }: {
   filters: MatchFilters; locationId: string; authenticated: boolean;
   onFilters: (filters: MatchFilters) => void; onLocation: (location: string) => void;
-  showClear?: boolean;
+  onClear: () => void; showClear?: boolean;
 }) {
   const sports = useSports();
   // Anchor the opened picker to its date so external clears and history restore presets.
@@ -34,8 +34,9 @@ export function DiscoveryFilters({ filters, locationId, authenticated, onFilters
       {sports.data?.length === 0 ? <p className="muted">No hay deportes disponibles para filtrar.</p> : null}
     </div>
     <div className={styles.locality}>
+      <Chip selected={!locationId} onClick={() => onLocation("")}>Todas las localidades</Chip>
       <LocationCombobox id="home-location" label="Localidad seleccionada" value={locationId} onChange={onLocation} />
-      {authenticated ? <p className={styles.help}>Explorá otra zona sin cambiar tu localidad principal.</p> : null}
+      {authenticated ? <p className={styles.help}>Sin filtrar por localidad, aparecen primero los partidos de tu localidad principal.</p> : null}
     </div>
     {sport?.formats.length ? <div className={`${styles.group} ${styles.formats}`}>
       <span id="format-label" className={styles.label}>Formato</span>
@@ -52,9 +53,9 @@ export function DiscoveryFilters({ filters, locationId, authenticated, onFilters
         <Chip selected={filters.date === tomorrow && !customOpen} onClick={() => { setCustomDate(null); onFilters({ ...filters, date: tomorrow }); }}>Mañana</Chip>
         <Chip selected={choosingDate} onClick={() => setCustomDate(filters.date ?? "")}>Elegir fecha</Chip>
       </div>
-      {choosingDate || (showClear && (filters.sportId || filters.date)) ? <div className={styles.dateDetails}>
+      {choosingDate || (showClear && (locationId || filters.sportId || filters.date)) ? <div className={styles.dateDetails}>
         {choosingDate ? <div className={styles.dateInput}><label htmlFor="match-date">Fecha del partido</label><input id="match-date" type="date" value={filters.date ?? ""} onChange={event => { const value = event.target.value; if (!value || validLocalDate(value)) { setCustomDate(null); onFilters({ ...filters, date: value || undefined }); } }} /></div> : null}
-        {showClear && (filters.sportId || filters.date) ? <button type="button" className={`button secondary ${styles.clear}`} onClick={() => { setCustomDate(null); onFilters({}); }}>Limpiar filtros</button> : null}
+        {showClear && (locationId || filters.sportId || filters.date) ? <button type="button" className={`button secondary ${styles.clear}`} onClick={() => { setCustomDate(null); onClear(); }}>Limpiar filtros</button> : null}
       </div> : null}
     </div>
   </section>;

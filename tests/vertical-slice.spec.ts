@@ -1,22 +1,32 @@
 import { randomUUID } from 'node:crypto';
 import { test, expect, api, prismaFixture } from './support/harness';
-import { chooseLocation, logout, expectHomeLocation, openAccountMenu } from './support/ui';
+import { chooseLocation, logout, expectHomeLocation, expectHomeDiscovery, openAccountMenu } from './support/ui';
 
 const password = 'Browser testing password 123!';
 
-test('registration, locality discovery, temporary exploration and login restoration', async ({ page, context }) => {
+test('registration, global discovery, temporary locality filter and login restoration', async ({ page, context }) => {
   const email = `browser-${randomUUID()}@example.test`;
   await page.goto('/auth/register');
   await page.getByLabel('Nombre', { exact: true }).fill('Browser Tester');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Contraseña', { exact: true }).fill(password);
   await chooseLocation(page, 'Localidad principal', 'Tolosa');
+  const globalResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/matches' && response.request().method() === 'GET' && !new URL(response.url()).searchParams.has('locationId'));
   await page.getByRole('button', { name: 'Crear cuenta', exact: true }).click();
-  await expectHomeLocation(page, 'Tolosa');
+  await expectHomeDiscovery(page);
+  const globalListing = await globalResponse;
+  expect(globalListing.ok()).toBe(true);
+  const globalItems = (await globalListing.json()).items as { location: { id: string; name: string } }[];
+  expect(new Set(globalItems.map(match => match.location.name))).toEqual(new Set(['Tolosa', 'City Bell', 'Los Hornos']));
   await expect(page.getByText('Cancha de demostración 1', { exact: true })).toBeVisible();
   await page.screenshot({ path: '.runtime/iteration2-home-light.png', fullPage: true, animations: 'disabled' });
   const initialSession = await context.request.get(`${api}/auth/session`);
-  expect((await initialSession.json()).user.primaryLocation.name).toBe('Tolosa');
+  const primaryLocation = (await initialSession.json()).user.primaryLocation;
+  expect(primaryLocation.name).toBe('Tolosa');
+  expect(new URL(globalListing.url()).searchParams.get('preferredLocationId')).toBe(primaryLocation.id);
+  const firstOtherLocality = globalItems.findIndex(match => match.location.id !== primaryLocation.id);
+  expect(firstOtherLocality).toBeGreaterThan(0);
+  expect(globalItems.slice(firstOtherLocality).every(match => match.location.id !== primaryLocation.id)).toBe(true);
   const cookies = await context.cookies();
   for (const name of ['furvo-access', 'furvo-refresh']) {
     const cookie = cookies.find(value => value.name === name);
@@ -26,7 +36,7 @@ test('registration, locality discovery, temporary exploration and login restorat
   expect(await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage }, cookies: document.cookie })))
     .toEqual({ local: {}, session: {}, cookies: '' });
   await page.reload();
-  await expectHomeLocation(page, 'Tolosa');
+  await expectHomeDiscovery(page);
   const cityBellId = (await (await context.request.get(`${api}/locations`)).json()).items.find((location: { name: string }) => location.name === 'City Bell').id;
   const cityBellResponse = page.waitForResponse(response => response.url().includes('/matches?') && new URL(response.url()).searchParams.get('locationId') === cityBellId && response.request().method() === 'GET');
   await chooseLocation(page, 'Localidad seleccionada', 'City Bell');
@@ -40,14 +50,14 @@ test('registration, locality discovery, temporary exploration and login restorat
   await page.getByRole('menuitem', { name: 'Perfil', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Localidad principal', exact: true })).toContainText('Tolosa');
   await page.getByRole('link', { name: 'Volver', exact: true }).click();
-  await expectHomeLocation(page, 'City Bell');
+  await expectHomeDiscovery(page);
   await logout(page);
   await expect.poll(async () => (await (await context.request.get(`${api}/auth/session`)).json()).authenticated).toBe(false);
   await page.goto('/auth/login');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Contraseña', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Ingresar', exact: true }).click();
-  await expectHomeLocation(page, 'Tolosa');
+  await expectHomeDiscovery(page);
 });
 
 test('unauthenticated route protection and public discovery', async ({ page }) => {
@@ -73,7 +83,7 @@ test('existing account without locality selects it and continues to Home', async
     await page.getByLabel('Contraseña', { exact: true }).fill(password);
     await chooseLocation(page, 'Localidad principal', 'Tolosa');
     await page.getByRole('button', { name: 'Crear cuenta', exact: true }).click();
-    await expectHomeLocation(page, 'Tolosa');
+    await expectHomeDiscovery(page);
     await db.user.update({ where: { email }, data: { primaryLocationId: null } });
     await logout(page);
     await expect.poll(async () => (await (await context.request.get(`${api}/auth/session`)).json()).authenticated).toBe(false);
@@ -84,7 +94,7 @@ test('existing account without locality selects it and continues to Home', async
     await expect(page.getByRole('heading', { name: 'Elegí tu localidad' })).toBeVisible();
     await chooseLocation(page, 'Localidad principal', 'City Bell');
     await page.getByRole('button', { name: 'Guardar y continuar' }).click();
-    await expectHomeLocation(page, 'City Bell');
+    await expectHomeDiscovery(page);
     const saved = await db.user.findUniqueOrThrow({ where: { email }, include: { primaryLocation: true } });
     expect(saved.primaryLocation.name).toBe('City Bell');
   } finally {
@@ -109,5 +119,8 @@ test('Home shows loading, recoverable network error and an empty real locality',
   await page.getByRole('button', { name: 'Reintentar partidos' }).click();
   await expect(page.getByText('Cancha de demostración 1', { exact: true })).toBeVisible();
   await chooseLocation(page, 'Localidad seleccionada', 'Abasto');
-  await expect(page.getByText('No hay partidos disponibles en esta zona.')).toBeVisible();
+  await expect(page.getByText('No encontramos partidos con estos filtros.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Limpiar filtros', exact: true }).click();
+  await expectHomeDiscovery(page);
+  await expect(page.getByText('Cancha de demostración 1', { exact: true })).toBeVisible();
 });

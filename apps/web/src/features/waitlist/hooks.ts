@@ -28,7 +28,7 @@ export function useWaitlistAction(id: string) {
   const client = useQueryClient();
   const { synchronize } = useSession();
   return useMutation({
-    mutationFn: (action: { kind: "join"; places: number } | { kind: "leave"; entryId: string } | { kind: "accept" | "reject"; offerId: string }) => {
+    mutationFn: async (action: { kind: "join"; places: number } | { kind: "leave"; entryId: string } | { kind: "accept" | "reject"; offerId: string }) => {
       if (action.kind === "join") return waitlistService.join(id, action.places);
       if (action.kind === "leave") return waitlistService.leave(id, action.entryId);
       if (action.kind === "accept") return waitlistService.accept(action.offerId);
