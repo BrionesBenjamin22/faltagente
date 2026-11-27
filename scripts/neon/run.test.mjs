@@ -80,6 +80,15 @@ test('isolates local database variables, preserves API configuration and refuses
   assert.throws(() => buildEnvironment('check', inherited, local, {}), /required/);
 });
 
+test('loads Brevo from Neon overrides and excludes the retired Resend setting', () => {
+  const env = buildEnvironment('start', { BREVO_API_KEY: 'inherited-brevo', RESEND_API_KEY: 'legacy-inherited' },
+    { BREVO_API_KEY: 'local-brevo', RESEND_API_KEY: 'legacy-local' },
+    { ...neon, BREVO_API_KEY: 'neon-brevo', RESEND_API_KEY: 'legacy-neon' });
+
+  assert.equal(env.BREVO_API_KEY, 'neon-brevo');
+  assert.equal(env.RESEND_API_KEY, undefined);
+});
+
 test('constructs only controlled node entrypoints and never enables fictional seeds', () => {
   const resolver = { resolve: value => `resolved:${value}` };
   assert.deepEqual(commandArguments('migrate', resolver), ['resolved:prisma/build/index.js', 'migrate', 'deploy']);
@@ -99,8 +108,8 @@ test('constructs only controlled node entrypoints and never enables fictional se
 });
 
 test('redacts database URLs and credentials from child output', () => {
-  const env = { ...neon, JWT_SECRET: 'private-jwt', CSRF_SECRET: 'private-csrf', RESEND_API_KEY: 'private-resend' };
-  const output = redactOutput(`Error ${pooled}\nsecret! secret%21 private-jwt private-csrf private-resend`, env);
+  const env = { ...neon, JWT_SECRET: 'private-jwt', CSRF_SECRET: 'private-csrf', BREVO_API_KEY: 'private-brevo' };
+  const output = redactOutput(`Error ${pooled}\nsecret! secret%21 private-jwt private-csrf private-brevo`, env);
   assert.doesNotMatch(output, /secret|private-|postgresql:\/\//);
   assert.match(output, /REDACTED/);
 });

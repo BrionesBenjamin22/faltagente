@@ -268,7 +268,7 @@ DATABASE_URL=postgresql://hyt:<contraseña-local>@localhost:5432/falta-gente?sch
 JWT_SECRET=<secreto-aleatorio>
 CSRF_SECRET=<otro-secreto-aleatorio>
 
-RESEND_API_KEY=
+BREVO_API_KEY=
 EMAIL_FROM=
 ```
 
@@ -295,7 +295,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
 ```
 
-Para recibir emails reales de verificación y recuperación, completar `RESEND_API_KEY` y `EMAIL_FROM` con la configuración de Resend. Sin esos valores, el desarrollo permite registro/login y explorar partidos, pero no entrega los emails. Las pruebas cubren esos flujos con un transporte de email fake; no existe una bandeja de prueba en la aplicación.
+Para recibir emails reales de verificación y recuperación, completar `BREVO_API_KEY` y `EMAIL_FROM` con la configuración de Brevo. Sin esos valores, el desarrollo permite registro/login y explorar partidos, pero no entrega los emails. Las pruebas cubren esos flujos con un transporte de email fake; no existe una bandeja de prueba en la aplicación.
 
 Los archivos `.env` y `.env.local` están ignorados por Git. No versionar sus valores.
 

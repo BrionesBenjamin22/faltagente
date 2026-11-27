@@ -10,7 +10,7 @@ La CLI Neon 9.10.0 se instaló globalmente durante la preparación. `pnpm neon:p
 
 El archivo separado requiere `DATABASE_URL` pooled y `DATABASE_URL_UNPOOLED` directa, ambas con TLS y correspondientes al mismo endpoint, rol, base y schema. No compartirlas con el frontend. El wrapper rechaza el uso de la base local como fallback y admite archivos UTF-8 con BOM de Windows.
 
-`neon:start` hereda las opciones locales de API desde `apps/api/.env`; `.env.neon.local` puede sobrescribir `NODE_ENV`, `PORT`, `CORS_ORIGINS`, `FRONTEND_URL`, `JWT_SECRET`, `CSRF_SECRET`, `RESEND_API_KEY` y `EMAIL_FROM`. Es una herramienta para ejecutar localmente contra Neon. La publicación requiere configurar secretos y orígenes productivos en el proveedor.
+`neon:start` hereda las opciones locales de API desde `apps/api/.env`; `.env.neon.local` puede sobrescribir `NODE_ENV`, `PORT`, `CORS_ORIGINS`, `FRONTEND_URL`, `JWT_SECRET`, `CSRF_SECRET`, `BREVO_API_KEY` y `EMAIL_FROM`. Es una herramienta para ejecutar localmente contra Neon. La publicación requiere configurar secretos y orígenes productivos en el proveedor.
 
 ## Comandos desde la raíz
 
