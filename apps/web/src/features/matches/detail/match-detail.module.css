@@ -23,7 +23,8 @@
 .badgeDot { background:#4ba34c; width:7px; height:7px; border-radius:50%; }
 .statusCancelled { color:#9b3737; background:rgba(159,57,57,.09); border-color:rgba(159,57,57,.25); }
 .statusCancelled .badgeDot { background:#b14e4e; }
-.heroDescription { margin:16px 0 0; font-size:1rem; color:#47725c; }
+.heroDescription { margin:16px 0 0; font-size:1rem; color:#47725c; line-height:1.5; }
+.heroDescription strong { color:inherit; font-weight:850; }
 .heroArt { position:absolute; right:2%; top:50%; width:min(41%,470px); transform:translateY(-50%) rotate(-10deg); filter:drop-shadow(0 25px 20px rgba(14,56,33,.24)); pointer-events:none; }
 .heroArt svg { display:block; width:100%; height:auto; }
 .heroStats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); background:rgba(47,111,65,.07); border-top:1px solid rgba(46,95,59,.17); }
@@ -151,14 +152,15 @@
 @media(max-width:520px) {
   .breadcrumbs { margin-bottom:14px; gap:9px; font-size:.78rem; }
   .hero { border-radius:19px; }
-  .heroTop { min-height:265px; padding:26px 20px; align-items:flex-start; }
+  /* En celular separamos la cancha del texto: ninguna superposicion visual. */
+  .heroTop { min-height:0; padding:26px 20px 14px; display:flex; flex-direction:column; align-items:stretch; gap:12px; }
   .heroCopy { width:100%; }
-  .heroEyebrow { font-size:.64rem; margin-bottom:20px; letter-spacing:.09em; max-width:70%; }
-  .heroArt { width:60%; right:-13%; top:56%; transform:translateY(-33%) rotate(-12deg); opacity:.55; filter:drop-shadow(0 10px 10px rgba(0,0,0,.17)); }
-  .title { position:relative; font-size:clamp(3.5rem,15vw,5.4rem); max-width:90%; margin-bottom:20px; }
-  .heroTags { max-width:78%; gap:7px; }
+  .heroEyebrow { font-size:.64rem; margin-bottom:18px; letter-spacing:.09em; max-width:100%; }
+  .title { position:relative; font-size:clamp(3.5rem,15vw,5.4rem); max-width:100%; margin-bottom:18px; }
+  .heroTags { max-width:100%; gap:7px; }
   .format,.statusBadge { font-size:.69rem; padding:6px 9px; }
-  .heroDescription { position:relative; font-size:.81rem; max-width:75%; }
+  .heroDescription { position:relative; font-size:.85rem; max-width:100%; margin-top:12px; }
+  .heroArt { position:relative; width:min(80%,280px); right:auto; top:auto; align-self:flex-end; transform:rotate(-9deg); margin:0 0 -12px 0; opacity:1; filter:drop-shadow(0 12px 12px rgba(0,0,0,.14)); }
   .heroStats { grid-template-columns:1fr 1fr; }
   .heroStat { padding:12px 15px; gap:9px; }
   .heroStat:last-child { grid-column:1 / -1; border-top:1px solid rgba(46,95,59,.17); }
@@ -180,10 +182,10 @@
   .bookingPrice strong { font-size:2.3rem; }
 }
 @media(max-width:355px) {
-  .heroArt { opacity:.37; right:-24%; width:70%; }
+  .heroArt { width:min(82%,250px); margin-bottom:-8px; }
   .title { font-size:3.3rem; }
   .heroTags { max-width:100%; }
-  .heroDescription { max-width:85%; }
+  .heroDescription { max-width:100%; }
   .heroStat { padding:11px 10px; }
   .heroStat strong,.heroStat time { font-size:.76rem; }
   .miniCourt { min-width:72px; flex-basis:27%; }

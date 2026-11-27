@@ -31,7 +31,11 @@ it("shows the API sport, format, local date, place, price, organizer and descrip
   expect(screen.getByRole("heading", { name: "Fútbol", level: 1 })).toBeInTheDocument();
   expect(screen.getAllByText("Fútbol 5")).toHaveLength(2);
   expect(screen.getByText(/2 nov/i)).toHaveAttribute("dateTime", match.startsAt);
-  for (const value of ["El Galpón", "1 y 63", "Martín R.", match.description!]) expect(screen.getByText(value)).toBeInTheDocument();
+  expect(screen.getAllByText("El Galpón")).toHaveLength(2);
+
+  for (const value of ["1 y 63", "Martín R.", match.description!]) {
+    expect(screen.getByText(value)).toBeInTheDocument();
+  }
   expect(screen.getAllByText("Tolosa").length).toBeGreaterThan(0);
   expect(screen.getByText(/7\.000/)).toBeInTheDocument();
   expect(screen.getByText("2 lugares disponibles")).toBeInTheDocument();

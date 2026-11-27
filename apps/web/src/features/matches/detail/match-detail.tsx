@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -68,7 +67,7 @@ export function MatchDetailContent({ match, reservation, activity, management }:
             {match.sportFormat ? <span className={styles.format}><SportIcon sport={sport} aria-hidden="true" />{match.sportFormat.name}</span> : null}
             <span className={`${styles.statusBadge} ${match.status === "CANCELLED" ? styles.statusCancelled : ""}`}><span aria-hidden="true" className={styles.badgeDot}/> {statusText}</span>
           </div>
-          <p className={styles.heroDescription}>Un partido más, una oportunidad para jugar.</p>
+          <p className={styles.heroDescription}>Nos encontramos en <strong>{match.placeName}</strong> · {match.location.name}</p>
         </div>
         <div className={styles.heroArt} aria-hidden="true"><SportCourt sport={sport} /></div>
       </div>
