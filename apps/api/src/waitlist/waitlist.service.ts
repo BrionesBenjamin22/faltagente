@@ -329,6 +329,53 @@ export class WaitlistService implements OnModuleInit, OnModuleDestroy {
         'OFFER_ACCEPTED',
         offer,
       );
+      const match = await tx.match.findUnique({
+        where: { id: offer.entry.matchId },
+        select: {
+          organizerId: true,
+          venueName: true,
+          sport: { select: { name: true } },
+        },
+      });
+      if (match) {
+        await tx.notification.create({
+          data: {
+            userId,
+            type: 'RESERVATION_CONFIRMED',
+            title: 'Se confirmó tu reserva',
+            body: `Reservaste ${offer.places} ${offer.places === 1 ? 'lugar' : 'lugares'} en ${match.venueName}.`,
+            detail: `${match.sport.name}. Confirmación por oferta de lista de espera.`,
+            relatedMatchId: offer.entry.matchId,
+            dedupeKey: `RESERVATION_CONFIRMED:${offer.entry.matchId}:${reservation.id}`,
+            metadata: { places: offer.places, source: 'WAITLIST_OFFER' },
+          },
+        });
+        const organizerNotification = await tx.notification.create({
+          data: {
+            userId: match.organizerId,
+            type: 'MATCH_JOINED',
+            title: 'Alguien aceptó una oferta',
+            body: `Se confirmaron ${offer.places} ${offer.places === 1 ? 'lugar' : 'lugares'} en ${match.venueName}.`,
+            relatedMatchId: offer.entry.matchId,
+            dedupeKey: `MATCH_JOINED_WAITLIST:${offer.entry.matchId}:${reservation.id}`,
+            metadata: { places: offer.places, source: 'WAITLIST_OFFER' },
+          },
+          select: { id: true },
+        });
+        await tx.notificationJob.create({
+          data: {
+            recipientId: match.organizerId,
+            eventKey: `MATCH_JOINED_WAITLIST:${offer.entry.matchId}:${reservation.id}`,
+            kind: 'MATCH_JOINED',
+            payload: {
+              notificationId: organizerNotification.id,
+              title: 'Falta Gente',
+              body: 'Tenés una actualización nueva.',
+              matchId: offer.entry.matchId,
+            },
+          },
+        });
+      }
       return { reservation };
     });
     if ('unavailable' in result)

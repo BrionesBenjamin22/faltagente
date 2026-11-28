@@ -109,7 +109,10 @@ export async function finishEntry(
 }
 // Caller holds domain lock. Only this match is scanned on interactive mutations.
 export async function allocateOffers(tx: Tx, matchId: string) {
-  const match = await tx.match.findUniqueOrThrow({ where: { id: matchId } });
+  const match = await tx.match.findUniqueOrThrow({
+    where: { id: matchId },
+    include: { sport: { select: { name: true } } },
+  });
   const now = await databaseTime(tx);
   if (
     match.status === 'CANCELLED' ||
@@ -144,6 +147,33 @@ export async function allocateOffers(tx: Tx, matchId: string) {
     });
     available -= entry.places;
     await recordWaitlistEvent(tx, entry, 'OFFER_CREATED', undefined, offer);
+    const notification = await tx.notification.create({
+      data: {
+        userId: entry.userId,
+        type: 'WAITLIST_OFFER',
+        title: 'Te ofrecieron lugares',
+        body: `Tenés una oferta de ${entry.places} ${entry.places === 1 ? 'lugar' : 'lugares'} para ${match.sport.name}.`,
+        detail: 'Aceptá la oferta antes de que expire.',
+        relatedMatchId: matchId,
+        dedupeKey: `WAITLIST_OFFER:${offer.id}`,
+        metadata: { offerId: offer.id, expiresAt: offer.expiresAt },
+      },
+      select: { id: true },
+    });
+    await tx.notificationJob.create({
+      data: {
+        recipientId: entry.userId,
+        eventKey: `WAITLIST_OFFER:${offer.id}`,
+        kind: 'WAITLIST_OFFER',
+        payload: {
+          notificationId: notification.id,
+          title: 'Falta Gente',
+          body: 'Tenés una actualización nueva.',
+          offerId: offer.id,
+          matchId,
+        },
+      },
+    });
   }
   if (available !== match.availablePlaces)
     await tx.match.update({

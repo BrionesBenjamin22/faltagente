@@ -37,6 +37,15 @@ describe('base API configuration (e2e)', () => {
       message: 'No encontramos el recurso solicitado.',
       requestId: response.headers['x-request-id'],
     });
+
+    it('exempts only the internal notification processor from cookie CSRF', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/internal/notifications/process')
+        .send({ limit: 20 })
+        .expect(403);
+
+      expect(response.body.code).toBe('INTERNAL_NOTIFICATION_PROCESS_DENIED');
+    });
   });
 
   it('propagates a safe incoming request ID', async () => {

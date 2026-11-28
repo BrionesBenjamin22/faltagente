@@ -260,7 +260,18 @@ export class AuthService {
   async logout(req: Request, res: Response) {
     const access = await this.access(req);
     const token = req.cookies?.[cookieName('refresh')];
-    await this.db.session.updateMany({
+    const userId =
+      access?.session.userId ??
+      (typeof token === 'string'
+        ? (
+            await this.db.session.findUnique({
+              where: { refreshHash: hashToken(token) },
+              select: { userId: true },
+            })
+          )?.userId ?? null
+        : null);
+    await this.db.$transaction(async (tx) => {
+      await tx.session.updateMany({
       where: {
         OR: [
           ...(access ? [{ id: access.session.id }] : []),
@@ -270,6 +281,13 @@ export class AuthService {
         ],
       },
       data: { revokedAt: new Date() },
+      });
+      if (userId) {
+        await tx.pushSubscription.updateMany({
+          where: { userId, active: true },
+          data: { active: false, revokedAt: new Date() },
+        });
+      }
     });
     this.clearCookies(req, res);
   }

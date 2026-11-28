@@ -424,6 +424,7 @@ export class MatchManagementService {
 
   async update(userId: string, id: string, dto: UpdateMatchDto) {
     let hasChanged = false;
+    let changedKeys: string[] = [];
     try {
       const result = await this.db.$transaction(async (tx) => {
         const match = await this.lockedMatch(tx, userId, id);
@@ -461,7 +462,8 @@ export class MatchManagementService {
         const changed = (
           Object.keys(before) as (keyof typeof before)[]
         ).filter((key) => before[key] !== after[key]);
-        if (!changed.length) return { id };
+        if (!changed.length) return { id, changed: [] as string[] };
+        changedKeys = changed as string[];
         hasChanged = true;
         const held = await heldPlaces(tx, id);
         const activeWaitlistCount = await tx.waitlistEntry.count({
@@ -613,9 +615,9 @@ export class MatchManagementService {
         }
         await tx.match.update({ where: { id }, data });
         await allocateOffers(tx, id);
-        return { id };
+        return { id, changed: changedKeys };
       }, { maxWait: 10_000, timeout: 30_000 });
-      if (hasChanged) await this.notifyMatchUpdated(userId, id);
+      if (hasChanged) await this.notifyMatchUpdated(userId, id, changedKeys);
       return result;
     } catch (error) {
       if (
@@ -744,7 +746,11 @@ export class MatchManagementService {
     return result;
   }
 
-  private async notifyMatchUpdated(userId: string, matchId: string) {
+  private async notifyMatchUpdated(
+    userId: string,
+    matchId: string,
+    changedKeys: string[] = [],
+  ) {
     const match = await this.db.match.findUnique({
       where: { id: matchId },
       select: {
@@ -760,6 +766,9 @@ export class MatchManagementService {
       },
     });
     if (!match) return;
+    const relevant = changedKeys.some((key) =>
+      ['startsAt', 'placeName', 'address', 'pricePerPerson', 'sportId', 'sportFormatId', 'locationId'].includes(key),
+    );
     await this.notifications.safeCreate({
       userId,
       type: 'MATCH_UPDATED',
@@ -781,6 +790,7 @@ export class MatchManagementService {
         relatedMatchId: match.id,
         actorUserId: userId,
         dedupeKey: `MATCH_UPDATED_PARTICIPANT:${match.id}:${reservation.userId}:${match.version}`,
+        push: relevant,
       });
     }
   }
@@ -820,6 +830,7 @@ export class MatchManagementService {
         relatedMatchId: match.id,
         actorUserId: userId,
         dedupeKey: `MATCH_CANCELLED_PARTICIPANT:${match.id}:${reservation.id}`,
+        push: true,
       });
     }
   }

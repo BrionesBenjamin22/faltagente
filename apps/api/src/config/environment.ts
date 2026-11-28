@@ -8,6 +8,10 @@ export type Environment = {
   FRONTEND_URL: string;
   BREVO_API_KEY?: string;
   EMAIL_FROM?: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
+  NOTIFICATION_PROCESS_TOKEN?: string;
 };
 
 const allowedEnvironments = new Set<Environment['NODE_ENV']>([

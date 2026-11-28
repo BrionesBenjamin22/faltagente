@@ -291,6 +291,7 @@ export class ReservationsService {
         actorUserId: userId,
         dedupeKey: `MATCH_JOINED:${matchId}:${outcome.reservation.id}`,
         metadata: { places, remainingPlaces: match?.availablePlaces ?? null },
+        push: true,
       });
       await this.notifications.safeCreate({
         userId,
@@ -410,7 +411,10 @@ export class ReservationsService {
         await settleMatch(tx, matchId);
         await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
         await tx.$queryRaw`SELECT "id" FROM "Match" WHERE "id" = ${matchId}::uuid FOR UPDATE`;
-        const match = await tx.match.findUnique({ where: { id: matchId } });
+        const match = await tx.match.findUnique({
+          where: { id: matchId },
+          include: { sport: { select: { name: true } } },
+        });
         const reservation = await tx.reservation.findFirst({
           where: { id: reservationId, matchId },
           select: { ...historyProjection, userId: true },
@@ -505,6 +509,69 @@ export class ReservationsService {
           select: historyProjection,
         });
         await allocateOffers(tx, matchId);
+        if (dto.places < reservation.places) {
+          const remaining = dto.places;
+          const released = reservation.places - dto.places;
+          if (organizer) {
+            const notification = await tx.notification.create({
+              data: {
+                userId: reservation.userId,
+                type: 'PLAYER_REMOVED',
+                title: 'Se redujo tu reserva',
+                body: `El organizador redujo tu reserva a ${remaining} ${remaining === 1 ? 'lugar' : 'lugares'} en ${match.sport.name}.`,
+                detail: match.venueName,
+                relatedMatchId: matchId,
+                actorUserId: userId,
+                dedupeKey: `RESERVATION_REDUCED:${reservationId}:${response.version}`,
+                metadata: { previousPlaces: reservation.places, remainingPlaces: remaining, source: 'ORGANIZER' },
+              },
+              select: { id: true },
+            });
+            await tx.notificationJob.create({
+              data: {
+                recipientId: reservation.userId,
+                eventKey: `RESERVATION_REDUCED:${reservationId}:${response.version}`,
+                kind: 'RESERVATION_REDUCED',
+                payload: { notificationId: notification.id, title: 'Falta Gente', body: 'Tenés una actualización nueva.', matchId },
+              },
+            });
+          } else {
+            await tx.notification.create({
+              data: {
+                userId,
+                type: 'MATCH_LEFT',
+                title: 'Redujiste tu reserva',
+                body: `Liberaste ${released} ${released === 1 ? 'lugar' : 'lugares'} en ${match.sport.name}.`,
+                detail: match.venueName,
+                relatedMatchId: matchId,
+                dedupeKey: `RESERVATION_REDUCED_CONFIRMATION:${reservationId}:${response.version}`,
+                metadata: { previousPlaces: reservation.places, remainingPlaces: remaining, source: 'USER' },
+              },
+            });
+            const organizerNotification = await tx.notification.create({
+              data: {
+                userId: match.organizerId,
+                type: 'MATCH_LEFT',
+                title: 'Se redujo una reserva',
+                body: `Un jugador liberó ${released} ${released === 1 ? 'lugar' : 'lugares'} en ${match.sport.name}.`,
+                detail: match.venueName,
+                relatedMatchId: matchId,
+                actorUserId: userId,
+                dedupeKey: `MATCH_REDUCED:${matchId}:${reservationId}:${response.version}`,
+                metadata: { remainingPlaces: remaining, source: 'USER' },
+              },
+              select: { id: true },
+            });
+            await tx.notificationJob.create({
+              data: {
+                recipientId: match.organizerId,
+                eventKey: `MATCH_REDUCED:${matchId}:${reservationId}:${response.version}`,
+                kind: 'MATCH_REDUCED',
+                payload: { notificationId: organizerNotification.id, title: 'Falta Gente', body: 'Tenés una actualización nueva.', matchId },
+              },
+            });
+          }
+        }
         return response;
       },
       { maxWait: 10_000, timeout: 30_000 },
@@ -666,6 +733,7 @@ export class ReservationsService {
             actorUserId: userId,
             dedupeKey: `PLAYER_REMOVED:${matchId}:${reservationId}`,
             metadata: { places: outcome.reservation.places },
+            push: true,
           });
           await this.notifications.safeCreate({
             userId,
@@ -689,6 +757,7 @@ export class ReservationsService {
             actorUserId: userId,
             dedupeKey: `MATCH_LEFT:${matchId}:${reservationId}`,
             metadata: { places: outcome.reservation.places },
+            push: true,
           });
           await this.notifications.safeCreate({
             userId,

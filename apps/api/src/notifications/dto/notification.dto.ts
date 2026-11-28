@@ -18,7 +18,7 @@ export class NotificationsQueryDto {
   @Transform(({ value }) => (value === undefined ? 9 : Number(value)))
   @IsInt()
   @Min(1)
-  @Max(50)
+  @Max(9)
   pageSize = 9;
 }
 

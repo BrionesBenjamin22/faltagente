@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/features/auth/session";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,10 +15,38 @@ import { notificationIcons, relativeNotificationTime } from "./format";
 import { notificationsService } from "./service";
 import styles from "./notifications-center.module.css";
 
+function base64UrlToUint8Array(value: string) {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  const binary = window.atob(padded);
+  return Uint8Array.from(binary, character => character.charCodeAt(0));
+}
+
 export function NotificationsCenter() {
   const session = useSession();
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [pushSubscriptionId, setPushSubscriptionId] = useState<string | null>(null);
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
+  const pushConfig = useQuery({
+    queryKey: ["notifications", "push-config"],
+    queryFn: notificationsService.pushConfig,
+    enabled: !!session.session?.authenticated,
+  });
+  const pushSubscribe = useMutation({
+    mutationFn: notificationsService.pushSubscribe,
+    onSuccess: result => {
+      setPushSubscriptionId(result.id);
+      setPushMessage(notificationCopy.pushEnabled);
+    },
+  });
+  const pushUnsubscribe = useMutation({
+    mutationFn: notificationsService.pushUnsubscribe,
+    onSuccess: () => {
+      setPushSubscriptionId(null);
+      setPushMessage(notificationCopy.pushDisabled);
+    },
+  });
   const client = useQueryClient();
   const query = useInfiniteQuery({
     queryKey: ["notifications", "list", filter],
@@ -46,6 +74,48 @@ export function NotificationsCenter() {
     },
   });
 
+  async function enablePush() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      setPushMessage(notificationCopy.pushUnsupported);
+      return;
+    }
+    const publicKey = pushConfig.data?.publicKey;
+    if (!publicKey) {
+      setPushMessage(notificationCopy.pushUnsupported);
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      setPushMessage(notificationCopy.pushRejected);
+      return;
+    }
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    subscription ??= await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToUint8Array(publicKey),
+    });
+    const json = subscription.toJSON();
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+      setPushMessage(notificationCopy.pushUnsupported);
+      return;
+    }
+    pushSubscribe.mutate({
+      endpoint: json.endpoint,
+      keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+    });
+  }
+
+  async function disablePush() {
+    if (pushSubscriptionId) await pushUnsubscribe.mutateAsync(pushSubscriptionId);
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+      const subscription = await registration?.pushManager.getSubscription();
+      await subscription?.unsubscribe();
+    }
+  }
+
   useEffect(() => {
     if (!session.isPending && !session.isError && !session.session?.authenticated) router.replace("/auth/login");
   }, [router, session.isPending, session.isError, session.session?.authenticated]);
@@ -61,8 +131,16 @@ export function NotificationsCenter() {
       <Link className={styles.back} href="/partidos"><ArrowLeft size={18} aria-hidden="true" />{notificationCopy.back}</Link>
       <header className={styles.header}>
         <div><p className={styles.eyebrow}>ACTUALIZACIONES</p><h1>Notificaciones</h1></div>
-        <button type="button" className="button secondary" disabled={markAll.isPending || unreadCount === 0} onClick={() => markAll.mutate()}>{markAll.isPending ? "Marcando…" : notificationCopy.markAll}</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="button secondary" disabled={markAll.isPending || unreadCount === 0} onClick={() => markAll.mutate()}>{markAll.isPending ? "Marcando…" : notificationCopy.markAll}</button>
+          {pushConfig.data?.available ? (
+            <button type="button" className="button secondary" disabled={pushSubscribe.isPending || pushUnsubscribe.isPending} onClick={() => pushSubscriptionId ? void disablePush() : void enablePush()}>
+              {pushSubscriptionId ? notificationCopy.pushDisable : notificationCopy.pushEnable}
+            </button>
+          ) : null}
+        </div>
       </header>
+      {pushMessage ? <p role="status">{pushMessage}</p> : null}
       <div className={styles.filters} role="group" aria-label="Filtro de notificaciones">
         <button type="button" aria-pressed={filter === "all"} className={`button${filter === "all" ? "" : " secondary"}`} onClick={() => setFilter("all")}>{notificationCopy.all}</button>
         <button type="button" aria-pressed={filter === "unread"} className={`button${filter === "unread" ? "" : " secondary"}`} onClick={() => setFilter("unread")}>{notificationCopy.unread}</button>
@@ -91,6 +169,8 @@ export function NotificationsCenter() {
         </>
       )}
       {markAll.isError || remove.isError ? <p className="error" role="alert">{errorMessage((markAll.error ?? remove.error) as unknown)}</p> : null}
+      {markAll.isSuccess ? <p role="status">{notificationCopy.markedRead}</p> : null}
+      {remove.isSuccess ? <p role="status">{notificationCopy.removed}</p> : null}
     </section>
   );
 }

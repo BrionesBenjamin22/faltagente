@@ -8,7 +8,8 @@ vi.mock("@/features/auth/session", () => ({
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
-  useMutation: () => ({ isPending: false, isError: false, mutate: vi.fn(), error: null }),
+  useQuery: () => ({ data: { available: false, publicKey: null } }),
+  useMutation: () => ({ isPending: false, isError: false, isSuccess: false, mutate: vi.fn(), mutateAsync: vi.fn(), error: null }),
   useInfiniteQuery: () => ({
     isPending: false,
     isError: false,
