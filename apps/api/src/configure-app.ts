@@ -28,6 +28,11 @@ export function configureApplication(app: INestApplication): void {
   const origins = parseCorsOrigins(config.get('CORS_ORIGINS', { infer: true }));
   app.enableCors({ credentials: true, origin: origins });
   app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'POST' && req.path === '/api/v1/internal/notifications/process') {
+      res.set('Cache-Control', 'no-store');
+      next();
+      return;
+    }
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       if (
         !origins.includes(req.get('Origin') ?? '') ||

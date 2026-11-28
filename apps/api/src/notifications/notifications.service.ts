@@ -12,6 +12,7 @@ export interface CreateNotificationInput {
   actorUserId?: string;
   metadata?: Prisma.InputJsonValue;
   dedupeKey?: string;
+  push?: boolean;
 }
 
 const notificationProjection = {
@@ -64,7 +65,58 @@ export class NotificationsService {
 
   async safeCreate(input: CreateNotificationInput) {
     try {
-      return await this.create(input);
+      return await this.db.$transaction(async (tx) => {
+        const notification = input.dedupeKey
+          ? await tx.notification.upsert({
+              where: { userId_dedupeKey: { userId: input.userId, dedupeKey: input.dedupeKey } },
+              create: {
+                userId: input.userId,
+                type: input.type,
+                title: input.title,
+                body: input.body,
+                detail: input.detail ?? null,
+                relatedMatchId: input.relatedMatchId ?? null,
+                actorUserId: input.actorUserId ?? null,
+                metadata: input.metadata ?? {},
+                dedupeKey: input.dedupeKey,
+              },
+              update: {},
+              select: notificationProjection,
+            })
+          : await tx.notification.create({
+              data: {
+                userId: input.userId,
+                type: input.type,
+                title: input.title,
+                body: input.body,
+                detail: input.detail ?? null,
+                relatedMatchId: input.relatedMatchId ?? null,
+                actorUserId: input.actorUserId ?? null,
+                metadata: input.metadata ?? {},
+              },
+              select: notificationProjection,
+            });
+        if (input.dedupeKey) {
+          if (input.push) {
+          await tx.notificationJob.upsert({
+            where: { eventKey: input.dedupeKey },
+            create: {
+              recipientId: input.userId,
+              eventKey: input.dedupeKey,
+              kind: input.type,
+              payload: {
+                notificationId: notification.id,
+                title: 'Falta Gente',
+                body: 'Tenés una actualización nueva.',
+                matchId: input.relatedMatchId ?? null,
+              },
+            },
+            update: {},
+          });
+          }
+        }
+        return notification;
+      });
     } catch (error) {
       this.logger.error(
         `No se pudo crear la notificación ${input.type} para el usuario ${input.userId}`,
@@ -123,10 +175,9 @@ export class NotificationsService {
   }
 
   async unreadCount(userId: string) {
-    await this.materializeMatchReminders(userId);
     return {
       unreadCount: await this.db.notification.count({
-        where: { userId, isRead: false },
+        where: { userId, isRead: false, isHidden: false },
       }),
     };
   }
@@ -137,9 +188,9 @@ export class NotificationsService {
     page: number,
     pageSize: number,
   ) {
-    await this.materializeMatchReminders(userId);
     const where = {
       userId,
+      isHidden: false,
       ...(filter === 'unread' ? { isRead: false } : {}),
     };
     const [items, total, unreadCount] = await this.db.$transaction([
@@ -151,7 +202,9 @@ export class NotificationsService {
         skip: (page - 1) * pageSize,
       }),
       this.db.notification.count({ where }),
-      this.db.notification.count({ where: { userId, isRead: false } }),
+      this.db.notification.count({
+        where: { userId, isRead: false, isHidden: false },
+      }),
     ]);
     return {
       items,
@@ -165,23 +218,16 @@ export class NotificationsService {
 
   async detail(userId: string, id: string) {
     const notification = await this.db.notification.findFirst({
-      where: { id, userId },
+      where: { id, userId, isHidden: false },
       select: notificationProjection,
     });
     if (!notification) throw new NotFoundException();
-    if (!notification.isRead) {
-      await this.db.notification.updateMany({
-        where: { id: notification.id, userId, isRead: false },
-        data: { isRead: true, readAt: new Date() },
-      });
-      return { ...notification, isRead: true, readAt: new Date() };
-    }
     return notification;
   }
 
   async markRead(userId: string, id: string) {
     const result = await this.db.notification.updateMany({
-      where: { id, userId, isRead: false },
+      where: { id, userId, isRead: false, isHidden: false },
       data: { isRead: true, readAt: new Date() },
     });
     if (!result.count) {
@@ -196,15 +242,16 @@ export class NotificationsService {
 
   async markAllRead(userId: string) {
     await this.db.notification.updateMany({
-      where: { userId, isRead: false },
+      where: { userId, isRead: false, isHidden: false },
       data: { isRead: true, readAt: new Date() },
     });
     return { updated: true };
   }
 
   async remove(userId: string, id: string) {
-    const result = await this.db.notification.deleteMany({
-      where: { id, userId },
+    const result = await this.db.notification.updateMany({
+      where: { id, userId, isHidden: false },
+      data: { isHidden: true, hiddenAt: new Date() },
     });
     if (!result.count) throw new NotFoundException();
   }

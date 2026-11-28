@@ -21,13 +21,15 @@ export function NotificationDetail({ id }: { id: string }) {
     queryFn: () => notificationsService.detail(id),
     enabled: !!session.session?.authenticated,
   });
-
   useEffect(() => {
     if (!session.isPending && !session.isError && !session.session?.authenticated) router.replace("/auth/login");
   }, [router, session.isPending, session.isError, session.session?.authenticated]);
   useEffect(() => {
-    if (query.isSuccess) void client.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
-  }, [client, query.isSuccess]);
+    if (query.isSuccess) {
+      void notificationsService.markRead(id).catch(() => undefined);
+      void client.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+    }
+  }, [client, id, query.isSuccess]);
 
   if (session.isPending || query.isPending) return <div className={styles.detailPage}><SkeletonDetail /></div>;
   if (query.isError) return <div className={styles.detailPage}><p className="error" role="alert">{errorMessage(query.error)}</p><button type="button" className="button secondary" onClick={() => void query.refetch()}>{notificationCopy.retry}</button></div>;

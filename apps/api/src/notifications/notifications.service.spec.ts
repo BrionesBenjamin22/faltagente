@@ -51,7 +51,7 @@ describe('NotificationsService', () => {
 
     await expect(service.detail('user-1', 'notification-2')).rejects.toBeInstanceOf(NotFoundException);
     expect(db.notification.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'notification-2', userId: 'user-1' },
+      where: { id: 'notification-2', userId: 'user-1', isHidden: false },
     }));
   });
 
@@ -62,18 +62,19 @@ describe('NotificationsService', () => {
 
     await service.markRead('user-1', 'notification-1');
     expect(db.notification.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'notification-1', userId: 'user-1', isRead: false },
+      where: { id: 'notification-1', userId: 'user-1', isRead: false, isHidden: false },
     }));
   });
 
-  it('deletes only a notification owned by the authenticated user', async () => {
+  it('hides only a notification owned by the authenticated user', async () => {
     const db = dbMock();
-    vi.mocked(db.notification.deleteMany).mockResolvedValue({ count: 1 } as never);
+    vi.mocked(db.notification.updateMany).mockResolvedValue({ count: 1 } as never);
     const service = new NotificationsService(db);
 
     await service.remove('user-1', 'notification-1');
-    expect(db.notification.deleteMany).toHaveBeenCalledWith({
-      where: { id: 'notification-1', userId: 'user-1' },
-    });
+    expect(db.notification.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'notification-1', userId: 'user-1', isHidden: false },
+      data: expect.objectContaining({ isHidden: true }),
+    }));
   });
 });
